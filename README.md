@@ -69,7 +69,7 @@
       - 得到一个$V\in R^{n*k}$，每一行对应一个属性，即将每一个属性嵌入到$R^k$中，得到属性的feature
       - 输入transaction，映射为feature，输出该条transaction对应用户给对应item的评分rate![](Resources/FM基本公式.png)
       - 时间复杂度$O(n)$
-  1. 按照对象来分：
+  2. 按照对象来分：
   - user-oriented：
     - 计算用户之间的相似度，进行上述的聚类等
     - 给$u$推荐与其相似的用户爱看的新闻
