@@ -169,11 +169,17 @@
 
 ## 文献索引
 [1] Google News Personalization Scalable Online Collaborative Filtering
+
 [2] A contextual-bandit approach to personalized news article recommendation
+
 [3] Content-Based News Recommendation
+
 [4] Personalized News Recommendation A Review and an Experimental Investigation
+
 [5] Personalized news recommendation based on click behavior
+
 [6] SCENE A Scalable Two-Stage Personalized News Recommendation System
+
 [7] Content-based Collaborative Filtering for News Topic Recommendation
 [8] Embedding-based news recommendation for millions of users
 [9] Matrix factorization techniques for recommender systems
