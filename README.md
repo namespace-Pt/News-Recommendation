@@ -168,32 +168,45 @@
 
 
 ## 文献索引
-[1] Google News Personalization Scalable Online Collaborative Filtering
-
-[2] A contextual-bandit approach to personalized news article recommendation
-
-[3] Content-Based News Recommendation
-
-[4] Personalized News Recommendation A Review and an Experimental Investigation
+[1] Google News Personalization Scalable Online Collaborative Filtering  
+[2] A contextual-bandit approach to personalized news article recommendation  
+[3] Content-Based News Recommendation  
+[4] Personalized News Recommendation A Review and an Experimental Investigation  
 
 [5] Personalized news recommendation based on click behavior
 
 [6] SCENE A Scalable Two-Stage Personalized News Recommendation System
 
 [7] Content-based Collaborative Filtering for News Topic Recommendation
+
 [8] Embedding-based news recommendation for millions of users
+
 [9] Matrix factorization techniques for recommender systems
+
 [10] Factorization Machines
+
 [11] Wide & Deep Learning for Recommender Systems
+
 [12] Maximum Likelihood, Logistic Regression, and Stochastic Gradient Training
-[13] Learning deep structured semantic models for web search using clickthrough data.
+
+[13] Learning deep structured semantic models for web search using clickthrough data
+
 [14] Combining Content-Based and Collaborative Filtering in an Online Newspaper
+
 [15] Neural Networks: Tricks of the Trade (Second edition)
+
 [16] Deepfm afactorizationmachine based neural network for ctr prediction
+
 [17] News session based recommendation susing deep neural networks
+
 [18] Towards better representation learning for personalized news recommendation a multi-channel deep fusion approach
+
 [19] Session-based recommendations with recurrent neural networks
+
 [20] Neural News Recommendation with Attentive Multi-View Learning
+
 [21] Neural News Recommendation with Long- and Short-term User Representation
+
 [22] Neural News Recommendation with Multi-Head Self-Attention
+
 [23] Npa Neural news recommendation with personalized attention
