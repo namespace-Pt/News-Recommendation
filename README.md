@@ -9,15 +9,15 @@
 - Reinforcement learning
 
 ## Glossary
-- Access partern：点击同一个文章的不同用户分布*之类的东西*
+- Access partern：点击同一个文章的不同用户的分布
 - cross-validation ![](Resources/cross-validation.png)
 - inner product and outer product, $u$和$v$都是$n$维向量：![](Resources/inner%20product%20and%20outer%20product.png)
-
+- Click Through Rate(CTR):$CTR = \frac{clicked}{viewed}$
+- i.i.d: independent and identically distributed，独立同分布
 ## 问题索引
-- [18]没看完
-- [20]中attn的query是什么？？？上升一下，**RS中的query是什么？？**
+- [20]中attn的query是什么？？？上升一下，**带attn的RS中的query是什么？？**
 - SVM和Fisher什么鬼的[15]
-- 像极大似然法这种东西，它是把所有样本集输出都算出来后才能计算loss，那么对优化参数有没有影响呢？
+- 像极大似然法这种东西，它是把所有样本集输出都算出来后才能计算loss，那么对优化参数有没有影响呢？**minibatch SGD就把样本分成很多份，分开计算**
 - 倒排索引
 
 ## Toolkits
@@ -29,9 +29,8 @@
 
 ## 目标
 - 可以看做是将用户最喜欢看的新闻推荐到最前面![如图](Resources/推荐新闻的位置[7].png)
-- maximize CTR[16]
-- 最大化用户点击的次数的期望[2]
-
+- maximize CTR[2,16]
+- in closed form：包含有限个数字/符号/变量的表达式
 ## 新闻推荐的特点
 - 数量大
 - 文章更新快，item频繁更新
@@ -44,6 +43,14 @@
   - 用户需要手动刷新，得到推荐
   - User’s current interest in a session may be affected by his context(e.g.,location,accesstime) or by global context(e.g.,breaking news or important events)[17].
 
+## 梳理
+关于推荐，首先有**基于user-item矩阵的协同过滤(Collaborative Filtering)**，最基础的memory-based协同过滤要求计算user的**两两之间相似度**，计算量很大，于是在其基础上发展了各式各样**减小运算量**的办法（model-based）：聚类和使用隐空间；聚类将相似的用户聚集在一个cluster内，之后再给$u$推荐时只需要考虑其所在cluster内部的其他成员爱看哪些item，也可以通过概率的办法计算用户和item的分布；隐空间则是通过分解user-item矩阵，将user和item投射到同一个隐空间中，可以直接计算向量内积、cos夹角等方法评价user、item的相似度；
+但协同过滤没办法推荐新内容（没人点击），冷启动问题严重，而且矩阵分解等办法一旦加入新user、item就得重新训练，很麻烦，由此产生了**基于内容的推荐（Content-based）**，其在word-doc矩阵及其衍生品上进行运算，本质转化为**信息检索（infomation retrieval）**，其步骤分为
+  1. **将item表示为一个向量（representation）**，即将item投射到**语义空间（semantic space）**，然后根据用户的浏览历史将用户也投射到语义空间（**user profile**）
+  2. 召回符合user profile的item，初步选出一个大集合$\mathbb{S}$
+  3. 用更精确的item representation和user profile计算item的评分（rating），根据此评分对$\mathbb{S}$中的元素进行排序（ranking）
+
+新闻推荐的目的更单纯，就是想**增加Click Through Rate（CTR）**，由此可以使用评分来模拟用户点击新闻的概率，然后**让用户真正点击的新闻（training data）对应概率最大**
 ## Collaborative Filtering
   - **在user-item矩阵及其衍生品基础上进行计算**
   1. 按照方法来分：
@@ -112,7 +119,7 @@
        - attention[20,22,23]
   3. 将user profile作为query，从新闻集合中选取匹配的新闻（infomation retrieval），一般考虑的特征比较少，比较粗糙
      - 将多种特征赋以不同的权重[6]
-     - 内积+ANN[18]
+     - user-item矩阵分解做内积，ANN减少运算，我感觉是这样[18]
      - attention[20,22,23]
      - LSTM[21]
 
@@ -159,7 +166,7 @@
   - 隐层的维度
   - 模型的形状![](Resources/16_1.png)
 ## 评测
-- CTR = $\frac{clicked}{showed}$，越大越好
+- CTR = $\frac{clicked}{viewed}$，越大越好
 - AUC、MRR、nDCG；越大越好[8]![](Resources/评价指标.png)但我感觉吧，nDCG没啥用，因为用户推荐的时候只会点开一个新闻，看完再返回来就应该根据用户历史生成新的新闻了
 - HitRate@k:假设$u$点击过的新闻集合$A$，得到的推荐列表（集合）为$R$，$|R| = K$，则$$HR@K = \frac{|A\cap R|}{|A|}$$
 - 要在99%置信区间的t检验下合格[7]
