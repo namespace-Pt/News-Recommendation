@@ -3,22 +3,27 @@
 - 蓝：看懂后自己提醒的需要注意的点
 - 绿：不认识的单词
 ## 要看
+- 考虑时事[5]是怎么做的
+- FM到底是一个attribute学习到一个向量还是一个element学习到一个
 - HRNN那篇
 - 新出的Bandit
 - [2]重新看一下
 - Reinforcement learning
-
+## 问题
+- [20,21,22]中attn的query是什么？？？
+- 用self-attn模拟新闻之间的交互，用attn寻找重要的新闻？
+  
+- SVM和Fisher什么鬼的[15]
+- 像极大似然法这种东西，它是把所有样本集输出都算出来后才能计算loss，那么对优化参数有没有影响呢？**minibatch SGD就把样本分成很多份，分开计算**
+- 倒排索引
 ## Glossary
 - Access partern：点击同一个文章的不同用户的分布
 - cross-validation ![](Resources/cross-validation.png)
 - inner product and outer product, $u$和$v$都是$n$维向量：![](Resources/inner%20product%20and%20outer%20product.png)
 - Click Through Rate(CTR):$CTR = \frac{clicked}{viewed}$
 - i.i.d: independent and identically distributed，独立同分布
-## 问题索引
-- [20]中attn的query是什么？？？上升一下，**带attn的RS中的query是什么？？**
-- SVM和Fisher什么鬼的[15]
-- 像极大似然法这种东西，它是把所有样本集输出都算出来后才能计算loss，那么对优化参数有没有影响呢？**minibatch SGD就把样本分成很多份，分开计算**
-- 倒排索引
+- lookup (table):设$W \in \mathbb{R}^n*m$为用户的lookup table，一行对应一条embedding，$u$的embedding为$W[u]$，一般随机初始化或者预训练得到
+
 
 ## Toolkits
 - NLP工具：GATE
@@ -130,7 +135,7 @@
        - submodularity:budgeted maximum coverage[6]
      - 计算得相似度relevance后，用其估计$u$点击$v$的概率，基于logistic回归，最大化点击概率（label=1，等价于CTR），loss function为负的极大似然函数/Cross-Entropy Loss
        - 内积
-         - 计算相同隐空间下的用户feature向量和新闻feature向量内积计算相似度，之后通过sigmoid得到概率[8]
+         - 计算相同隐空间下的用户feature向量和新闻feature向量内积计算相似度，之后通过sigmoid得到概率[8,20-24]
          - 内积最有效率[20]![](Resources/20_1.png)
          
        - cosine
@@ -198,3 +203,4 @@
 [21] Neural News Recommendation with Long- and Short-term User Representation  
 [22] Neural News Recommendation with Multi-Head Self-Attention  
 [23] Npa Neural news recommendation with personalized attention  
+[24] DKN Deep Knowledge-Aware Network
