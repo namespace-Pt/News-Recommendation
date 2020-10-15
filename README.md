@@ -3,17 +3,16 @@
 - 蓝：看懂后自己提醒的需要注意的点
 - 绿：不认识的单词
 ## 要看
-- FM到底是一个attribute学习到一个向量还是一个element学习到一个
 - 新出的Bandit
 - [2]重新看一下
 - Reinforcement learning
 ## 问题
-- [20,21,22]中attn的query是什么？？？
-- 用self-attn模拟新闻之间的交互，用attn寻找重要的新闻？
-  
+- FM到底是一个attribute学习到一个向量还是一个element学习到一个 **一个element**
+- [20,21,22]中attn的query是什么？？？ **训练得到**
+- 用self-attn模拟新闻之间的交互，用attn寻找重要的新闻？ **我理解是这样**
 - SVM和Fisher什么鬼的[15]
 - 像极大似然法这种东西，它是把所有样本集输出都算出来后才能计算loss，那么对优化参数有没有影响呢？**minibatch SGD就把样本分成很多份，分开计算**
-- 倒排索引
+- 倒排索引 **用词索引文档**
 ## Glossary
 - Access partern：点击同一个文章的不同用户的分布
 - cross-validation ![](Resources/cross-validation.png)
