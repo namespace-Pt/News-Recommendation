@@ -3,9 +3,7 @@
 - 蓝：看懂后自己提醒的需要注意的点
 - 绿：不认识的单词
 ## 要看
-- 考虑时事[5]是怎么做的
 - FM到底是一个attribute学习到一个向量还是一个element学习到一个
-- HRNN那篇
 - 新出的Bandit
 - [2]重新看一下
 - Reinforcement learning
@@ -23,6 +21,8 @@
 - Click Through Rate(CTR):$CTR = \frac{clicked}{viewed}$
 - i.i.d: independent and identically distributed，独立同分布
 - lookup (table):设$W \in \mathbb{R}^n*m$为用户的lookup table，一行对应一条embedding，$u$的embedding为$W[u]$，一般随机初始化或者预训练得到
+- Co-visitation[1]，记录用户点击过当前article后又点击了哪些，之后点击的每一篇以衰减的时间为权重；即维护一个图，节点是所有article，边代表co-visitation，即任一个用户点击i后点了j，就把i->j连一条边，边的权重会随时间衰减
+
 
 
 ## Toolkits
@@ -33,24 +33,22 @@
 - 接受推荐的用户记为$u$，某一新闻记为$v$
 
 ## 目标
-- 可以看做是将用户最喜欢看的新闻推荐到最前面![如图](Resources/推荐新闻的位置[7].png)
-- maximize CTR[2,16]
-- in closed form：包含有限个数字/符号/变量的表达式
+两种角度：
+- 将用户最喜欢看的新闻放在最前面[7,8]，我理解这属于ranking
+- 最大化Click Through Rate，即预测某一篇新闻会不会被点击，转化为二分类问题，最大化用户点击的概率[1-6,11-23]
+
 ## 新闻推荐的特点
-- 数量大
+- User和article数量都很大，会有editor动态维护article池[2]
 - 文章更新快，item频繁更新
 - 很多user看很少的新闻，使其特征sparse[17]
-- 人们来看推荐很少会抱有特定的信息诉求，而是“show me something interesting”[14]
-- 最好不要explicit获取用户profile，很多人不愿意
-- 用户的兴趣随着打开相似新闻而衰减
-- 应该考虑两种session：
-  - 用户点开一篇新闻后回来，得到和点开新闻前不同的推荐列表
-  - 用户需要手动刷新，得到推荐
-  - User’s current interest in a session may be affected by his context(e.g.,location,accesstime) or by global context(e.g.,breaking news or important events)[17].
+- 人们来看推荐很少会抱有特定的信息诉求，而是“show me something interesting”[14]
+- 用户的兴趣一直发生着变化，随着打开相似新闻而衰减[8]
+- 最好不要explicit获取用户preference，很多人不愿意
 
 ## 梳理
 关于推荐，首先有**基于user-item矩阵的协同过滤(Collaborative Filtering)**，最基础的memory-based协同过滤要求计算user的**两两之间相似度**，计算量很大，于是在其基础上发展了各式各样**减小运算量**的办法（model-based）：聚类和使用隐空间；聚类将相似的用户聚集在一个cluster内，之后再给$u$推荐时只需要考虑其所在cluster内部的其他成员爱看哪些item，也可以通过概率的办法计算用户和item的分布；隐空间则是通过分解user-item矩阵，将user和item投射到同一个隐空间中，可以直接计算向量内积、cos夹角等方法评价user、item的相似度；
-但协同过滤没办法推荐新内容（没人点击），冷启动问题严重，而且矩阵分解等办法一旦加入新user、item就得重新训练，很麻烦，由此产生了**基于内容的推荐（Content-based）**，其在word-doc矩阵及其衍生品上进行运算，本质转化为**信息检索（infomation retrieval）**，其步骤分为
+协同过滤没办法推荐新内容（没人点击），冷启动问题严重，不适用于新闻推荐的场景，因此提出了**基于内容的推荐**；而且矩阵分解等办法一旦加入新user、item就得重新训练，且需要人工feature engineering，因此提出了**Factorization Machine**。
+基于内容的推荐主要有以下几步：
   1. **将item表示为一个向量（representation）**，即将item投射到**语义空间（semantic space）**，然后根据用户的浏览历史将用户也投射到语义空间（**user profile**）
   2. 召回符合user profile的item，初步选出一个大集合$\mathbb{S}$
   3. 用更精确的item representation和user profile计算item的评分（rating），根据此评分对$\mathbb{S}$中的元素进行排序（ranking）
@@ -60,9 +58,10 @@
   - **在user-item矩阵及其衍生品基础上进行计算**
   1. 按照方法来分：
   - memory-based：
-    - 根据用户历史记录，计算用户之间两两之间相似度，以此作为权重，$u$的推荐结果就是其和剩余n-1个用户的历史记录加权平均得到的向量中分数大于某一阈值的（按照分数ranking）
-      - 计算量太大，使用不同方法减少运算量：MinHash+LSH[1]
-      - 对用户历史记录全是线性加权求和，显然没有考虑用户兴趣的变化等等因素
+    - 根据用户历史记录，计算用户之间两两之间相似度(Jaccard)，以此作为权重，对u的推荐结果就是其和剩余n-1个用户的历史记录加权平均得到的向量中分数大于某一阈值的对应article
+    - 对用户历史记录全是线性加权求和，显然没有考虑用户兴趣的变化等等因素[8]
+    - 要算user两两之间的相似度，计算量太大，使用不同方法减少运算量：MinHash+LSH[1]，除了这样的trick外，提出model-based
+
   - model-based：
     - neigbor：
       - 使用knn、kmeans、hierarchical clustering[2,6]等方法将用户进行聚类，用$u$在各个类别的fractional membership来表示$u$，推荐时计算$u$和预先定义的$m$个类之间的相似度，将其作为权重进行和整个类用户的平均历史记录加权平均得到结果，极大减少计算量
@@ -88,67 +87,67 @@
   - item-oriented：
     - （计算article之间的相似度），进行上述的聚类
     - 给$u$推荐与其看过的新闻相似的新闻
-    - **怎么计算article之间的相似度？如果采用语义信息，不就变成content-based了？如果仅靠user-item矩阵中的信息那不就退化成user-oriented了？**
+
 ## Content Filtering
-  - **在word-doc矩阵及其拓展上进行计算**
-  - 按步骤描述[11] ![](Resources/推荐系统基本图示.png)
-  1. 表达新闻（representation）
-     - word/term-based（tf-idf）[3]
-       - n-gram[11]
-       - 1-D CNN with window size of n(n-gram)[17]
-     
-     - topic/category-based[5,6]
-       - 矩阵分解（SVD、LSI等）
-       - 基于概率的矩阵分解（PLSA、LDA等）效果不好因为使用无监督的训练方法（EM等），这种训练方式的损失函数和提升infomation retrieval并无太多联系[13]![](Resources/基于概率的矩阵分解（PLSA、LDA等）效果不好因为使用无监督的训练方法.png)
-       - n-gram配合全连接神经网络+tanh[13]
-     - entity-based[4]
-     - embedding-based
-       - denoising auto-encoder[8]，映射到隐空间同时保持相似性
-       - 用了multi-view attention[20]
-     - attribute-based
-       - 将用户和item的信息拉成一行，每一个attribute都对应若干列，单个属性的向量是独热表达的，可以参考FM的那张图，随机初始化后为每一个属性学习得到一个repr[11]
-       - 结合FM和DNN[16]
+  ### **在word-doc矩阵及其拓展上进行计算**
+  ### 按步骤描述[11] ![](Resources/推荐系统基本图示.png)
+1. 表达新闻（representation）
+  - Term-based[3]
+    - n-gram[11]
+    - 1-D CNN with window size of n(n-gram)[17]
+  - topic/category-based[5,6]
+    - 矩阵分解（SVD、LSI等）
+    - 基于概率的矩阵分解（PLSA、LDA等）效果不好因为使用无监督的训练方法（EM等），这种训练方式的损失函数和提升infomation retrieval并无太多联系[13]       
+    - n-gram配合全连接神经网络+tanh[13]
+  - entity-based[4,24]
+  - embedding-based
+    - denoising auto-encoder[8]
+    - Multi-view Attention[20], self-attention[22],  - personalized-attention[23]
+  - attribute-based
+    - 将用户和item的信息拉成一行，每一个attribute都对应若干列，单个属性的向量是独热表达的，可以参考FM的那张图，随机初始化后为每一个属性学习得到一个repr[11]
+    - 结合FM和DNN[16]
+    - Wide&deep[11]
+  - extra-infomation(meta-data[17])
+    - location
+    - popularity[6,18]
+    - recency[6,18]
 
-     - extra-infomation(meta-data[17])
-       - location
-       - popularity[6,18]
-       - recency[6,18]
-  2. 根据用户历史记录中的新闻来建模用户（user profile）
-     - 考虑当下热点[5]
-     - 考虑用户兴趣衰减[8]
-     - 融合多种信息
-       - 和$u$相似的用户[6]，其实感觉这样就算hybrid模型了
-       - location[5]
-     - neural
-       - GRU[8]
-       - attention[20,22,23]
-  3. 将user profile作为query，从新闻集合中选取匹配的新闻（infomation retrieval），一般考虑的特征比较少，比较粗糙
+2. 根据用户历史记录中的新闻来建模用户（user profile）
+    - 考虑当下热点[5]
+      - 用一段时间内发布某一category的新闻数除以总发布新闻数表示$p(c_i)$，代入贝叶斯模型，计算给定用户点击事件，article属于各个category的概率，用最大的给推荐
+    - 考虑用户兴趣衰减[8]
+    - 融合多种信息
+      - 和$u$相似的用户[6]
+      - location[5]
+    - neural
+      - GRU[8]
+      - attention[20,22,23]
+3. 将user profile作为query，从新闻集合中选取匹配的新闻（infomation retrieval），一般考虑的特征比较少，比较粗糙
      - 将多种特征赋以不同的权重[6]
-     - user-item矩阵分解做内积，ANN减少运算，我感觉是这样[18]
-     - attention[20,22,23]
-     - LSTM[21]
+     - user-item矩阵分解做内积，ANN减少运算[18]
+     - Co-visitation[1]，记录某一篇article被点击后，用户还点击了哪些article
+        - 维护一个图，节点是所有article，边代表co-visitation，即任一个用户点击i后点了j，就把i->j连一条边，边的权重会随时间衰减
+4. 对候选集中的新闻评分，根据评分生成推荐（ranking/rearrange），考虑更细致的特征
+  - 基于期望
+    - contexual bandit[2]，将从候选集中选取新闻看做n-arm bandit问题，一方面要长期地让用户满意（最大化CTR），另一方面要在当前状态多探索，获得用户对不同类型新闻的反馈
+  - 基于贪心
+    - submodularity:budgeted maximum coverage[6]
+  - 计算得相似度relevance后，用relevance估计点击概率：基于logistic回归（套上一层sigmoid函数）或者随机负采样后softmax估计点击概率，目标是最大化点击概率（label=1，等价于CTR），loss function为负的极大似然函数/Cross-Entropy Loss，以下是不同估计relevance的方法：
+    - 内积
+      - 计算相同隐空间下的用户feature向量和新闻feature向量内积计算相似度，之后通过sigmoid得到概率[8,20-24]
+      - 内积最有效率[20]![](Resources/20_1.png)
+    - cosine
+       - DSSM，用relevance的softmax得到概率，分母是用户没看的4篇新闻[13]（最好是在当前minibatch中别的用户看了这些）+看了的当前新闻，以及如果当前minibatch中不够，那么选热门新闻，帮助模型区分热门新闻和用户兴趣[19]，或者选当前session中系统呈现出来但用户没有点击的新闻[20]）
+       - [17]中的Next Article Recommendation使用cosine相似度计算relevance
 
-  4. 对候选集中的新闻评分，根据评分生成推荐（ranking/rearrange），考虑更细致的特征
-     - 基于期望
-       - contexual bandit[2]
-     - 基于贪心
-       - submodularity:budgeted maximum coverage[6]
-     - 计算得相似度relevance后，用其估计$u$点击$v$的概率，基于logistic回归，最大化点击概率（label=1，等价于CTR），loss function为负的极大似然函数/Cross-Entropy Loss
-       - 内积
-         - 计算相同隐空间下的用户feature向量和新闻feature向量内积计算相似度，之后通过sigmoid得到概率[8,20-24]
-         - 内积最有效率[20]![](Resources/20_1.png)
-         
-       - cosine
-         - DSSM使用cosine相似度计算relevance，用relevance的softmax得到概率，分母是用户没看的4篇新闻[13]（最好是在当前minibatch中别的用户看了这些）+看了的当前新闻，以及如果当前minibatch中不够，那么选热门新闻，帮助模型区分热门新闻和用户兴趣[19]，或者选当前session中系统呈现出来但用户没有点击的新闻[20]）
-         - [17]中的Next Article Recommendation使用cosine相似度计算relevance
-       - neural
-         - wide&deep[11]，同时训练两个模型，一个是线性wide，一个是随机初始化低维特征向量然后三层RELU的deep，通过神经元（y = $w^T\cdot x$）计算得分，两个分数之和通过sigmoid得到概率
-         - DeepFM[16]，计算deep module与FM module的分数之和通过sigmoid得到概率
-     - 要考虑的点
-       - 剔除相似内容的新闻，每一次呈现给用户的新闻列表要diversify，相似内容的新闻不要出现在一次推荐结果中[6]
+    - neural
+      - $\hat{y} = \omega^T x + b$
+  - 要考虑的点
+    - 剔除相似内容的新闻，每一次呈现给用户的新闻列表要diversify，相似内容的新闻不要出现在一次推荐结果中[6]
 
 ## Hybrid
 - 计算CF和CR的得分，两者相乘
+- 同时利用user-item矩阵和semantic、context信息
 
 ## 实验方法
 - word-doc矩阵初步降维
