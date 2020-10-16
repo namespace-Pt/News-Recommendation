@@ -1,3 +1,6 @@
+:smile:
+[TOC]
+
 ## Highlight
 - 黄：需要看的点
 - 蓝：看懂后自己提醒的需要注意的点
@@ -13,10 +16,15 @@
 - SVM和Fisher什么鬼的[15]
 - 像极大似然法这种东西，它是把所有样本集输出都算出来后才能计算loss，那么对优化参数有没有影响呢？**minibatch SGD就把样本分成很多份，分开计算**
 - 倒排索引 **用词索引文档**
+
 ## Glossary
+- Jaccard:给定$x = (1,0,0),y=(0,0,1)$，则
+  $$Jaccard(x,y) = \frac{|x\cap y|}{|x\cup y|} = \frac{1}{2}$$
 - Access partern：点击同一个文章的不同用户的分布
 - cross-validation ![](Resources/cross-validation.png)
-- inner product and outer product, $u$和$v$都是$n$维向量：![](Resources/inner%20product%20and%20outer%20product.png)
+- $u$、$v$是$n$维行向量：
+  - inner product$ = u^Tv$
+  - outer product$ = uv^T$
 - Click Through Rate(CTR):$CTR = \frac{clicked}{viewed}$
 - i.i.d: independent and identically distributed，独立同分布
 - lookup (table):设$W \in \mathbb{R}^n*m$为用户的lookup table，一行对应一条embedding，$u$的embedding为$W[u]$，一般随机初始化或者预训练得到
@@ -33,8 +41,12 @@
 
 ## 目标
 两种角度：
-- 将用户最喜欢看的新闻放在最前面[7,8]，我理解这属于ranking
-- 最大化Click Through Rate，即预测某一篇新闻会不会被点击，转化为二分类问题，最大化用户点击的概率[1-6,11-23]
+1. 将用户最喜欢看的新闻放在最前面
+2. 预测某一篇新闻会不会被点击，最大化Click Through Rate
+   - 建模为二分类问题，对单个新闻，判断用户是否点击
+   - 建模为多分类问题，对多个新闻，用户点击其中的正例
+
+殊途同归，最大化用户点击的概率
 
 ## 新闻推荐的特点
 - User和article数量都很大，会有editor动态维护article池[2]
@@ -101,7 +113,8 @@
   - entity-based[4,24]
   - embedding-based
     - denoising auto-encoder[8]
-    - Multi-view Attention[20], self-attention[22],  - personalized-attention[23]
+    - attention
+    - CNN
   - attribute-based
     - 将用户和item的信息拉成一行，每一个attribute都对应若干列，单个属性的向量是独热表达的，可以参考FM的那张图，随机初始化后为每一个属性学习得到一个repr[11]
     - 结合FM和DNN[16]
@@ -112,15 +125,23 @@
     - recency[6,18]
 
 2. 根据用户历史记录中的新闻来建模用户（user profile）
+  - neural
+    - RNN[8,26]
+      - 长短期
+      - 考虑时间
+    - attention[20,22,23,26,27,28]
+      - multi-view[21,26]，计算不同domain信息之间的interaction（比如用户浏览的title和body之间的）
+      - self-attn[22]，计算词和词之间的联系
+      - personalized-sttn[23]
+    - 基于transaction[16,18]
+      - 有多个user field，包含多种信息，将各种信息使用神经网络结合![](Resources/18_2.png)
+  - 附加
     - 考虑当下热点[5]
-      - 用一段时间内发布某一category的新闻数除以总发布新闻数表示$p(c_i)$，代入贝叶斯模型，计算给定用户点击事件，article属于各个category的概率，用最大的给推荐
+      - 用一段时间内发布某一category的新闻数除以总发布新闻数表示$p(c_i)$，代入贝叶斯模型，计算$p(c_i|click)$即给定用户点击事件，article属于各个category的概率，用最大的给推荐
     - 考虑用户兴趣衰减[8]
     - 融合多种信息
       - 和$u$相似的用户[6]
       - location[5]
-    - neural
-      - GRU[8]
-      - attention[20,22,23]
 3. 将user profile作为query，从新闻集合中选取匹配的新闻（infomation retrieval），一般考虑的特征比较少，比较粗糙
      - 将多种特征赋以不同的权重[6]
      - user-item矩阵分解做内积，ANN减少运算[18]
@@ -131,16 +152,26 @@
     - contexual bandit[2]，将从候选集中选取新闻看做n-arm bandit问题，一方面要长期地让用户满意（最大化CTR），另一方面要在当前状态多探索，获得用户对不同类型新闻的反馈
   - 基于贪心
     - submodularity:budgeted maximum coverage[6]
-  - 计算得相似度relevance后，用relevance估计点击概率：基于logistic回归（套上一层sigmoid函数）或者随机负采样后softmax估计点击概率，目标是最大化点击概率（label=1，等价于CTR），loss function为负的极大似然函数/Cross-Entropy Loss，以下是不同估计relevance的方法：
-    - 内积
-      - 计算相同隐空间下的用户feature向量和新闻feature向量内积计算相似度，之后通过sigmoid得到概率[8,20-24]
-      - 内积最有效率[20]![](Resources/20_1.png)
-    - cosine
-       - DSSM，用relevance的softmax得到概率，分母是用户没看的4篇新闻[13]（最好是在当前minibatch中别的用户看了这些）+看了的当前新闻，以及如果当前minibatch中不够，那么选热门新闻，帮助模型区分热门新闻和用户兴趣[19]，或者选当前session中系统呈现出来但用户没有点击的新闻[20]）
-       - [17]中的Next Article Recommendation使用cosine相似度计算relevance
-
-    - neural
-      - $\hat{y} = \omega^T x + b$
+  - 基于logistic回归
+    1. 计算user-article相似度relevance：
+      - 内积
+        - 计算相同隐空间下的用户feature向量和新闻feature向量内积计算相似度，之后通过sigmoid得到概率[8,20-24]
+        - 内积最有效率[20]       
+      - cosine[13,17]
+        - 计算user隐向量和article隐向量之间的cos相似度
+      - Co-attention[27]
+      - Neural[11,16,18,26,29]
+        - 给定$x$同时包含了用户和article的信息，则$y=w^T x + b$
+    2. 基于relevance估计user点击article的概率
+      - Sigmoid
+        - $\hat{p} = \sigma(r)$
+      - Softmax
+        - $\hat{p} = \frac{e^{r^+}}{\sum_{k=0}^{K}e^{r^-} + e^{r^+}}$
+        - 用relevance的softmax得到概率，分母是用户没看的k篇新闻[13]（最好是在当前minibatch中别的用户看了这些）+看了的当前新闻，以及如果当前minibatch中不够，那么选热门新闻，帮助模型区分热门新闻和用户兴趣[19]，或者选当前session中系统呈现出来但用户没有点击的新闻[20]）
+    3. 目标是最大化点击概率（label=1，等价于CTR），loss function
+      - 多分类（极大似然函数/Cross-Entropy Loss），在多个新闻中点击一个[11,13,16,18-23,27]
+      - 二分类，针对一个新闻，使用二元logloss[26,30]
+  
   - 要考虑的点
     - 剔除相似内容的新闻，每一次呈现给用户的新闻列表要diversify，相似内容的新闻不要出现在一次推荐结果中[6]
 
@@ -148,14 +179,12 @@
 - 计算CF和CR的得分，两者相乘
 - 同时利用user-item矩阵和semantic、context信息
 
-## 实验方法
+## Trick
 - word-doc矩阵初步降维
   - word hashing[13]
 - sample
   - 随机的挑选![](Resources/让训练数据不要收到特定时期的流行新闻的影响.png)
   - 应该将是否存在新用户的情况分开讨论对比
-  - session中仅考虑positive sample（用户点击的新闻）[17]，**我觉得是不是可以想一手negative sample**
-
 
 ## 训练
 - 要搞明白目标是什么，objective function和目标要对应，如果使用聚类的目标函数做出来的模型去ranking，肯定效果差
@@ -163,19 +192,23 @@
 - 多个机器并行，使用热启动解决每次加入新用户需要重新训练的问题[11] ![](Resources/每次都要重新训练，可以使用热启动解决[11].png)
 - 模型初始化权重时，可以更加精确[15] ![](Resources/模型初始化权重时，可以更加精确.png)
 - 模型中采用20%的dropout防止过拟合[20]![](Resources/20_2.png)
-- 可以对比各个超参数对模型的影响，包括
-  - 激活函数（RELU，tanh，sigmoid）
-  - 每一层的神经元个数（100 200 400）
-  - 隐层的维度
-  - 模型的形状![](Resources/16_1.png)
+- 为了防止梯度下降或者梯度爆炸，使用layer normalization[29]
+- [30]提出了新的loss function，可以将负例的影响纳入到二分类logloss中
+
 ## 评测
 - CTR = $\frac{clicked}{viewed}$，越大越好
 - AUC、MRR、nDCG；越大越好[8]![](Resources/评价指标.png)但我感觉吧，nDCG没啥用，因为用户推荐的时候只会点开一个新闻，看完再返回来就应该根据用户历史生成新的新闻了
 - HitRate@k:假设$u$点击过的新闻集合$A$，得到的推荐列表（集合）为$R$，$|R| = K$，则$$HR@K = \frac{|A\cap R|}{|A|}$$
 - 要在99%置信区间的t检验下合格[7]
 - 在线评测[17]，用当前session的数据训练，下一个session中的数据预测
+- 可以对比各个超参数对模型的影响，包括
+  - 激活函数（RELU，tanh，sigmoid）
+  - 每一层的神经元个数（100 200 400）
+  - 隐层的维度
+  - 模型的形状![](Resources/16_1.png)
 
-
+## Explainability
+在提升准确率外，还应该优化推荐系统的解释力，即告诉用户为什么给你推荐了这个item，可以增强用户信任，获得更好的点击数据[27,28]
 
 ## 文献索引
 [1] Google News Personalization Scalable Online Collaborative Filtering  
@@ -201,4 +234,22 @@
 [21] Neural News Recommendation with Long- and Short-term User Representation  
 [22] Neural News Recommendation with Multi-Head Self-Attention  
 [23] Npa Neural news recommendation with personalized attention  
-[24] DKN Deep Knowledge-Aware Network
+[24] DKN Deep Knowledge-Aware Network  
+[25] DRN A Deep Reinforcement Learning Framework for News Recommendation  
+[26] Adaptive User Modeling with Long and Short-Term Preference for Personalized Recommendation  
+[27] Co-Attentive Multi-Task Learning for Explainable Recommendation  
+[28] Explainable Recommendation through Attentive Multi-View Learning  
+[29] Fine-grained Interest Matching for Neural News Recommendation  
+[30] Geography-Aware Sequential Location Recommendation  
+[31] Hi-Fi Ark Deep User Representation via High-Fidelity Archive Network  
+[32] Knowledge Graph Convolutional Networks for Recommender Systems  
+[33] Multi-Task Feature Learning for Knowledge Graph Enhanced Recommendation  
+[34] Neural News Recommendation with Heterogeneous User Behavior  
+[35] Neural News Recommendation with Topic-Aware News Representation  
+[36] Personalized Multimedia Item and Key Frame Recommendation  
+[37] Reviews Meet Graphs Enhancing User and Item Representations for Recommendation with Hierarchical Attentive Graph Neural Network  
+[38] Session-Based Recommendation with Graph Neural Networks  
+[39] Graph Neural News Recommendation with Unsupervised Preference Disentanglement  
+[40] LightRec A Memory and Search-Efficient Recommender System  
+[41] Towards Explainable Conversational Recommendation  
+[42] Knowledge-Aware Document Representation for News Recommendations  
