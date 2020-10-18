@@ -12,11 +12,11 @@
 - [ ] 新出的Bandit
 - [ ] Reinforcement learning[25]
 - [ ] [31]和[39]有异曲同工之妙，得再看看
+- [ ] product quantization
 ## 问题
 - [28]的user的entity是怎么获得的？？
 - [32]的loss没太明白，大概就是正例减负例吧
-- $||\vec{x}||_2$是啥意思
-- [39]的preference regularizer是啥
+- [39]的preference regularizer是啥？[**见39.md**](Notes/39.md)
 - FM到底是一个attribute学习到一个向量还是一个element学习到一个 **一个element**
 - [20,21,22]中attn的query是什么？？？ **其实就是参数啦**
 - 用self-attn模拟新闻之间的交互，用attn寻找重要的新闻？ **我理解是这样**
@@ -36,6 +36,7 @@
 - i.i.d: independent and identically distributed，独立同分布
 - lookup (table):设$W \in \mathbb{R}^n*m$为用户的lookup table，一行对应一条embedding，$u$的embedding为$W[u]$，一般随机初始化或者预训练得到
 - Co-visitation[1]，记录用户点击过当前article后又点击了哪些，之后点击的每一篇以衰减的时间为权重；即维护一个图，节点是所有article，边代表co-visitation，即任一个用户点击i后点了j，就把i->j连一条边，边的权重会随时间衰减
+
 ### 理解attention
 两个角度，$f: \mathbb{R}^{d*d} \rightarrow \mathbb{R}$ 或者是 $\mathbb{R}^{d} \rightarrow \mathbb{R}$，$f$可以是*perceptron*，可以是点积、cos相似度等（两个自变量时），$v_i$代表item的向量表达
 - 直接把自己映射成权重，
@@ -92,7 +93,7 @@ $$v_i = \sum \alpha_{v_j}v_j$$
 
   - model-based：
     - neigbor：
-      - 使用knn、kmeans、hierarchical clustering[2,6]等方法将用户进行聚类，用$u$在各个类别的fractional membership来表示$u$，推荐时计算$u$和预先定义的$m$个类之间的相似度，将其作为权重进行和整个类用户的平均历史记录加权平均得到结果，极大减少计算量
+      - 使用kmeans、hierarchical clustering[2,6]等方法将用户进行聚类，用$u$在各个类别的fractional membership来表示$u$，推荐时计算$u$和预先定义的$m$个类之间的相似度，将其作为权重进行和整个类用户的平均历史记录加权平均得到结果，极大减少计算量
       - 最后评分还是加权求和，没有考虑兴趣变迁等等
     - Matrix Factorization：
       - 分解user-item矩阵，将用户和article都映射到一个隐空间（$R^{K}$）中，用户有其特征向量$p_u$，新闻有其特征向量$q_v$，所有用户对所有item的平均值是$\mu$，$u$的偏置是$b_u$，$v$的偏置是$b_v$，则用户$u$对于新闻$v$的评分为 $$r = b_{uv} + p_u^{T}\cdot q_v\\ b_{uv} = \mu +b_u+b_v$$
