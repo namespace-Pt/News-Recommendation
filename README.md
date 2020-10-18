@@ -207,7 +207,6 @@ $$v_i = \sum \alpha_{v_j}v_j$$
     - 剔除相似内容的新闻，每一次呈现给用户的新闻列表要diversify，相似内容的新闻不要出现在一次推荐结果中[6]
 
 ## Hybrid
-- 计算CF和CR的得分，两者相乘
 - 同时利用user-item矩阵和semantic、context信息
 
 ## Trick
@@ -225,6 +224,7 @@ $$v_i = \sum \alpha_{v_j}v_j$$
 - 模型中采用20%的dropout防止过拟合[20]![](Resources/20_2.png)
 - 为了防止梯度下降或者梯度爆炸，使用layer normalization[29]
 - [30]提出了新的loss function，可以将负例的影响纳入到二分类logloss中
+- 好像可以从一个参数矩阵中derive出另一个，一起训练，没太懂，详见[40]
 
 ## 评测
 - CTR = $\frac{clicked}{viewed}$，越大越好
@@ -284,3 +284,4 @@ $$v_i = \sum \alpha_{v_j}v_j$$
 [40] LightRec A Memory and Search-Efficient Recommender System  
 [41] Towards Explainable Conversational Recommendation  
 [42] Knowledge-Aware Document Representation for News Recommendations  
+[43] Combining Collaborative Filtering and Search Engine into Hybrid News Recommendation  
