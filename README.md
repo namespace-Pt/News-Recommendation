@@ -1,17 +1,24 @@
 :smile:
 [TOC]
 
+## 声明
+要引用、转载，请附本仓库链接
+
 ## Highlight
 - 黄：需要看的点
 - 蓝：看懂后自己提醒的需要注意的点
 - 绿：不认识的单词
 ## 要看
-- 新出的Bandit
-- [2]重新看一下
-- Reinforcement learning
+- [ ] 新出的Bandit
+- [ ] Reinforcement learning[25]
+- [ ] [31]和[39]有异曲同工之妙，得再看看
 ## 问题
+- [28]的user的entity是怎么获得的？？
+- [32]的loss没太明白，大概就是正例减负例吧
+- $||\vec{x}||_2$是啥意思
+- [39]的preference regularizer是啥
 - FM到底是一个attribute学习到一个向量还是一个element学习到一个 **一个element**
-- [20,21,22]中attn的query是什么？？？ **训练得到**
+- [20,21,22]中attn的query是什么？？？ **其实就是参数啦**
 - 用self-attn模拟新闻之间的交互，用attn寻找重要的新闻？ **我理解是这样**
 - SVM和Fisher什么鬼的[15]
 - 像极大似然法这种东西，它是把所有样本集输出都算出来后才能计算loss，那么对优化参数有没有影响呢？**minibatch SGD就把样本分成很多份，分开计算**
@@ -29,20 +36,30 @@
 - i.i.d: independent and identically distributed，独立同分布
 - lookup (table):设$W \in \mathbb{R}^n*m$为用户的lookup table，一行对应一条embedding，$u$的embedding为$W[u]$，一般随机初始化或者预训练得到
 - Co-visitation[1]，记录用户点击过当前article后又点击了哪些，之后点击的每一篇以衰减的时间为权重；即维护一个图，节点是所有article，边代表co-visitation，即任一个用户点击i后点了j，就把i->j连一条边，边的权重会随时间衰减
+### 理解attention
+两个角度，$f: \mathbb{R}^{d*d} \rightarrow \mathbb{R}$ 或者是 $\mathbb{R}^{d} \rightarrow \mathbb{R}$，$f$可以是*perceptron*，可以是点积、cos相似度等（两个自变量时），$v_i$代表item的向量表达
+- 直接把自己映射成权重，
+$$\alpha_{v_i} = softmax(f(v_i))$$
+- 和query对比后映射成权重
+$$\alpha_{v_i} = softmax(f(query,v_i))$$
+- self-attn：把自己分别映射为query和key，再对比映射为权重（$W^q,W^k \in \mathbb{R}^{d*l}$），$f$默认为点积
+$$\alpha_{v_i} = softmax(f(v_i\cdot W^q,v_i\cdot W^k))$$
 
-
+最终有
+$$v_i = \sum \alpha_{v_j}v_j$$
 
 ## Toolkits
 - NLP工具：GATE
 - libFM
 
+# 新闻推荐
 ## Notation
 - 接受推荐的用户记为$u$，某一新闻记为$v$
 
 ## 目标
 两种角度：
-1. 将用户最喜欢看的新闻放在最前面
-2. 预测某一篇新闻会不会被点击，最大化Click Through Rate
+1. 将用户最喜欢看的新闻放在最前面[7,8]
+2. 最大化Click Through Rate，即预测某一篇新闻被某一个用户点击的概率，最大化该概率
    - 建模为二分类问题，对单个新闻，判断用户是否点击
    - 建模为多分类问题，对多个新闻，用户点击其中的正例
 
@@ -87,11 +104,11 @@
       - 推荐时直接计算$p(v|u) = \sum_z p(v|z) * p(z|u)$
       
     - Factorization Machine：
-      - 将*user-item*矩阵转化为*transaction-attribute*矩阵，一行为一条交互记录，列为不同的属性，将用户id和新闻id都作为属性（独热表达）![](Resources/factorization%20machine%20graph.png)，每一条交互记录都对应一个用户最终的评分（在explicit中才用吧，**怎么将rating和explicit feedback联系起来**）
+      - 将*user-item*矩阵转化为*transaction-attribute*矩阵，一行为一条交互记录，列为不同的属性，将用户id和新闻id都作为属性（独热、*多热*表达），每一条交互记录都对应一个用户最终的评分（点击概率）![](Resources/factorization%20machine%20graph.png)
       - 得到一个$V\in R^{n*k}$，每一行对应一个属性，即将每一个属性嵌入到$R^k$中，得到属性的feature
       - 输入transaction，映射为feature，输出该条transaction对应用户给对应item的评分rate![](Resources/FM基本公式.png)
       - 时间复杂度$O(n)$
-  2. 按照对象来分：
+  1. 按照对象来分：
   - user-oriented：
     - 计算用户之间的相似度，进行上述的聚类等
     - 给$u$推荐与其相似的用户爱看的新闻
@@ -110,15 +127,23 @@
     - 矩阵分解（SVD、LSI等）
     - 基于概率的矩阵分解（PLSA、LDA等）效果不好因为使用无监督的训练方法（EM等），这种训练方式的损失函数和提升infomation retrieval并无太多联系[13]       
     - n-gram配合全连接神经网络+tanh[13]
-  - entity-based[4,24]
+  - entity-based
+    - 利用title中的实体作为complement[4,24]
+    - 直接将item作为实体构建知识图谱[32]
   - embedding-based
     - denoising auto-encoder[8]
     - attention
-    - CNN
+      - self-attn，建模词和词之间的联系，权衡词的重要性
+      - multi-view attn，建模各模块之间的联系，如标题和类别，权衡其重要性
+      - co-attentive[27,41]
+    - CNN[20-24,31,34]，可以捕捉*local text*
   - attribute-based
     - 将用户和item的信息拉成一行，每一个attribute都对应若干列，单个属性的向量是独热表达的，可以参考FM的那张图，随机初始化后为每一个属性学习得到一个repr[11]
     - 结合FM和DNN[16]
     - Wide&deep[11]
+  - graph-based
+    - 构建co-visitation graph，sequential预测用户下一个点击的item[38]
+    - 构建user-item的二部图[37,39]，利用邻居节点的信息表示自身
   - extra-infomation(meta-data[17])
     - location
     - popularity[6,18]
@@ -126,22 +151,26 @@
 
 2. 根据用户历史记录中的新闻来建模用户（user profile）
   - neural
+    - MLP[33]
+      - 直接把用户id等特征映射到隐空间
     - RNN[8,26]
-      - 长短期
-      - 考虑时间
+      - 长短期画像
+      - 考虑时间间隔，优化LSTM[26]
     - attention[20,22,23,26,27,28]
       - multi-view[21,26]，计算不同domain信息之间的interaction（比如用户浏览的title和body之间的）
       - self-attn[22]，计算词和词之间的联系
-      - personalized-sttn[23]
-    - 基于transaction[16,18]
-      - 有多个user field，包含多种信息，将各种信息使用神经网络结合![](Resources/18_2.png)
+      - personalized-sttn[23]，用户id的embedding作为query，匹配合适的权重
+    - 基于transaction[16,18,27]
+      - 有多个field，包含多种信息，将各种信息使用神经网络结合![](Resources/18_2.png)
   - 附加
     - 考虑当下热点[5]
       - 用一段时间内发布某一category的新闻数除以总发布新闻数表示$p(c_i)$，代入贝叶斯模型，计算$p(c_i|click)$即给定用户点击事件，article属于各个category的概率，用最大的给推荐
     - 考虑用户兴趣衰减[8]
-    - 融合多种信息
+    - Heterogeneous Aggregation
       - 和$u$相似的用户[6]
       - location[5]
+      - 搜索记录，浏览的网页[34]
+      - review[41]
 3. 将user profile作为query，从新闻集合中选取匹配的新闻（infomation retrieval），一般考虑的特征比较少，比较粗糙
      - 将多种特征赋以不同的权重[6]
      - user-item矩阵分解做内积，ANN减少运算[18]
@@ -168,9 +197,10 @@
       - Softmax
         - $\hat{p} = \frac{e^{r^+}}{\sum_{k=0}^{K}e^{r^-} + e^{r^+}}$
         - 用relevance的softmax得到概率，分母是用户没看的k篇新闻[13]（最好是在当前minibatch中别的用户看了这些）+看了的当前新闻，以及如果当前minibatch中不够，那么选热门新闻，帮助模型区分热门新闻和用户兴趣[19]，或者选当前session中系统呈现出来但用户没有点击的新闻[20]）
-    3. 目标是最大化点击概率（label=1，等价于CTR），loss function
+    3. 目标是最大化点击概率（label=1，等价于CTR），*loss function*可以是：
       - 多分类（极大似然函数/Cross-Entropy Loss），在多个新闻中点击一个[11,13,16,18-23,27]
-      - 二分类，针对一个新闻，使用二元logloss[26,30]
+      - 二分类，针对一个新闻，使用二元logloss[26,31,38,39]
+        - 难以考虑负例的信息，在其上改进[30,32]
   
   - 要考虑的点
     - 剔除相似内容的新闻，每一次呈现给用户的新闻列表要diversify，相似内容的新闻不要出现在一次推荐结果中[6]
