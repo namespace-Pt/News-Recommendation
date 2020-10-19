@@ -2,7 +2,7 @@
 [TOC]
 
 ## 声明
-要引用、转载，请附本仓库链接
+要引用、转载，请附本仓库链接[https://github.com/namespace-Pt/News-Recommendation]
 
 ## Highlight
 - 黄：需要看的点
@@ -11,7 +11,7 @@
 ## 要看
 - [ ] 新出的Bandit
 - [ ] Reinforcement learning[25]
-- [ ] [31]和[39]有异曲同工之妙，得再看看
+- [x] [31]和[39]有异曲同工之妙，得再看看
 - [ ] product quantization
 ## 问题
 - [28]的user的entity是怎么获得的？？
@@ -38,7 +38,7 @@
 - Co-visitation[1]，记录用户点击过当前article后又点击了哪些，之后点击的每一篇以衰减的时间为权重；即维护一个图，节点是所有article，边代表co-visitation，即任一个用户点击i后点了j，就把i->j连一条边，边的权重会随时间衰减
 
 ### 理解attention
-两个角度，$f: \mathbb{R}^{d*d} \rightarrow \mathbb{R}$ 或者是 $\mathbb{R}^{d} \rightarrow \mathbb{R}$，$f$可以是*perceptron*，可以是点积、cos相似度等（两个自变量时），$v_i$代表item的向量表达
+两个角度，$f: \mathbb{R}^{d*d} \rightarrow \mathbb{R}$ 或者是 $\mathbb{R}^{d} \rightarrow \mathbb{R}$，$f$可以是*perceptron*，可以是点积、cos相似度等（两个自变量时），$v_i$代表article的向量表达
 - 直接把自己映射成权重，
 $$\alpha_{v_i} = softmax(f(v_i))$$
 - 和query对比后映射成权重
@@ -68,19 +68,19 @@ $$v_i = \sum \alpha_{v_j}v_j$$
 
 ## 新闻推荐的特点
 - User和article数量都很大，会有editor动态维护article池[2]
-- 文章更新快，item频繁更新
+- 文章更新快，article频繁更新
 - 很多user看很少的新闻，使其特征sparse[17]
 - 人们来看推荐很少会抱有特定的信息诉求，而是“show me something interesting”[14]
 - 用户的兴趣一直发生着变化，随着打开相似新闻而衰减[8]
 - 最好不要explicit获取用户preference，很多人不愿意
 
 ## 梳理
-关于推荐，首先有**基于user-item矩阵的协同过滤(Collaborative Filtering)**，最基础的memory-based协同过滤要求计算user的**两两之间相似度**，计算量很大，于是在其基础上发展了各式各样**减小运算量**的办法（model-based）：聚类和使用隐空间；聚类将相似的用户聚集在一个cluster内，之后再给$u$推荐时只需要考虑其所在cluster内部的其他成员爱看哪些item，也可以通过概率的办法计算用户和item的分布；隐空间则是通过分解user-item矩阵，将user和item投射到同一个隐空间中，可以直接计算向量内积、cos夹角等方法评价user、item的相似度；
-协同过滤没办法推荐新内容（没人点击），冷启动问题严重，不适用于新闻推荐的场景，因此提出了**基于内容的推荐**；而且矩阵分解等办法一旦加入新user、item就得重新训练，且需要人工feature engineering，因此提出了**Factorization Machine**。
+关于推荐，首先有**基于user-item矩阵的协同过滤(Collaborative Filtering)**，最基础的memory-based协同过滤要求计算user的**两两之间相似度**，计算量很大，于是在其基础上发展了各式各样**减小运算量**的办法（model-based）：聚类和使用隐空间；聚类将相似的用户聚集在一个cluster内，之后再给$u$推荐时只需要考虑其所在cluster内部的其他成员爱看哪些article，也可以通过概率的办法计算用户和article的分布；隐空间则是通过分解user-item矩阵，将user和article投射到同一个隐空间中，可以直接计算向量内积、cos夹角等方法评价user、article的相似度；
+协同过滤没办法推荐新内容（没人点击），冷启动问题严重，不适用于新闻推荐的场景，因此提出了**基于内容的推荐**；而且矩阵分解等办法一旦加入新user、article就得重新训练，且需要人工feature engineering，因此提出了**Factorization Machine**。
 基于内容的推荐主要有以下几步：
-  1. **将item表示为一个向量（representation）**，即将item投射到**语义空间（semantic space）**，然后根据用户的浏览历史将用户也投射到语义空间（**user profile**）
-  2. 召回符合user profile的item，初步选出一个大集合$\mathbb{S}$
-  3. 用更精确的item representation和user profile计算item的评分（rating），根据此评分对$\mathbb{S}$中的元素进行排序（ranking）
+  1. **将article表示为一个向量（representation）**，即将article投射到**语义空间（semantic space）**，然后根据用户的浏览历史将用户也投射到语义空间（**user profile**）
+  2. 召回符合user profile的article，初步选出一个大集合$\mathbb{S}$
+  3. 用更精确的article representation和user profile计算article的评分（rating），根据此评分对$\mathbb{S}$中的元素进行排序（ranking）
 
 新闻推荐的目的更单纯，就是想**增加Click Through Rate（CTR）**，由此可以使用评分来模拟用户点击新闻的概率，然后**让用户真正点击的新闻（training data）对应概率最大**
 ## Collaborative Filtering
@@ -96,7 +96,7 @@ $$v_i = \sum \alpha_{v_j}v_j$$
       - 使用kmeans、hierarchical clustering[2,6]等方法将用户进行聚类，用$u$在各个类别的fractional membership来表示$u$，推荐时计算$u$和预先定义的$m$个类之间的相似度，将其作为权重进行和整个类用户的平均历史记录加权平均得到结果，极大减少计算量
       - 最后评分还是加权求和，没有考虑兴趣变迁等等
     - Matrix Factorization：
-      - 分解user-item矩阵，将用户和article都映射到一个隐空间（$R^{K}$）中，用户有其特征向量$p_u$，新闻有其特征向量$q_v$，所有用户对所有item的平均值是$\mu$，$u$的偏置是$b_u$，$v$的偏置是$b_v$，则用户$u$对于新闻$v$的评分为 $$r = b_{uv} + p_u^{T}\cdot q_v\\ b_{uv} = \mu +b_u+b_v$$
+      - 分解user-item矩阵，将用户和article都映射到一个隐空间（$R^{K}$）中，用户有其特征向量$p_u$，新闻有其特征向量$q_v$，所有用户对所有article的平均值是$\mu$，$u$的偏置是$b_u$，$v$的偏置是$b_v$，则用户$u$对于新闻$v$的评分为 $$r = b_{uv} + p_u^{T}\cdot q_v\\ b_{uv} = \mu +b_u+b_v$$
       - 可以自然地捕捉到显示信息和隐藏信息，$q_v$的第$i$个维度代表$v$在第$i$个factor上的从属信息，越大代表越属于（相关），$p_u$的第i个维度代表$u$对第$i$个factor的感兴趣程度，越大越感兴趣，其中$p_u$和$q_v$都可以携带额外信息，并且作为时间的函数[9]；
       - 每次加入新的用户、新的新闻都得重新算，效率极低；在user-item矩阵稀疏的情况下效果差，如果只考虑出现1的列，那么会导致过拟合[9]；同时计算复杂度高[10]
     - 基于概率的分解：
@@ -107,13 +107,13 @@ $$v_i = \sum \alpha_{v_j}v_j$$
     - Factorization Machine：
       - 将*user-item*矩阵转化为*transaction-attribute*矩阵，一行为一条交互记录，列为不同的属性，将用户id和新闻id都作为属性（独热、*多热*表达），每一条交互记录都对应一个用户最终的评分（点击概率）![](Resources/factorization%20machine%20graph.png)
       - 得到一个$V\in R^{n*k}$，每一行对应一个属性，即将每一个属性嵌入到$R^k$中，得到属性的feature
-      - 输入transaction，映射为feature，输出该条transaction对应用户给对应item的评分rate![](Resources/FM基本公式.png)
+      - 输入transaction，映射为feature，输出该条transaction对应用户给对应article的评分rate![](Resources/FM基本公式.png)
       - 时间复杂度$O(n)$
   1. 按照对象来分：
   - user-oriented：
     - 计算用户之间的相似度，进行上述的聚类等
     - 给$u$推荐与其相似的用户爱看的新闻
-  - item-oriented：
+  - article-oriented：
     - （计算article之间的相似度），进行上述的聚类
     - 给$u$推荐与其看过的新闻相似的新闻
 
@@ -129,22 +129,38 @@ $$v_i = \sum \alpha_{v_j}v_j$$
     - 基于概率的矩阵分解（PLSA、LDA等）效果不好因为使用无监督的训练方法（EM等），这种训练方式的损失函数和提升infomation retrieval并无太多联系[13]       
     - n-gram配合全连接神经网络+tanh[13]
   - entity-based
-    - 利用title中的实体作为complement[4,24]
-    - 直接将item作为实体构建知识图谱[32]
+    - 利用title中的实体作为complement[4,24,33]
+    
   - embedding-based
     - denoising auto-encoder[8]
     - attention
       - self-attn，建模词和词之间的联系，权衡词的重要性
       - multi-view attn，建模各模块之间的联系，如标题和类别，权衡其重要性
-      - co-attentive[27,41]
+      - co-attention[27,41]
+        - 在用户和文档是用同一个单元表示的时候（e.g.用户是一组实体，article是一组实体，两者个数相同）
+        - 构建矩阵$M\in \mathbb{R}^{d*d}$计算用户单元和article单元的两两之间相似度，每一行argmax找到与用户最相关的**一个**单元
+        - 常与view配合，因为一个大view下可能有好多个小view，首先选出最相关的大view
+        - softmax后**选出最大的**不可导，因此使用*Straight-ThroughGumbel-Softmax*
+        - 可以使用不同的*Gumbel Noise*运行多次，得到多种不同的结果（选出多个）
     - CNN[20-24,31,34]，可以捕捉*local text*
+    - 将文章的信息**投射/分解**到多个不同的空间[29,31]
+      - 空间之间彼此不同，因此能尽可能地包含更多信息
+        - [29]用不同级别膨胀率的HDC提取文章信息，每一个膨胀率对应一个空间
+        - [31]使用多个pooling head将用户信息投射到和每个pooling head相关的空间中，使用pooling head之间的正交性保证其不重合
+        - [39]使用k个不同的fead-forward(RELU)映射到不同的隐空间中，使用[preference regularizer](Notes/39.md)确保k个隐空间之间不重合
+        - [40]基于product quantization提出[recurrent composite encoding](Notes/40.md)，让第$l$个隐空间学习$input-\sum_{i=0}^{l-1}y^i$
   - attribute-based
-    - 将用户和item的信息拉成一行，每一个attribute都对应若干列，单个属性的向量是独热表达的，可以参考FM的那张图，随机初始化后为每一个属性学习得到一个repr[11]
+    - 将用户和article的信息拉成一行，每一个attribute都对应若干列，单个属性的向量是独热表达的，可以参考FM的那张图，随机初始化后为每一个属性学习得到一个repr[11]
     - 结合FM和DNN[16]
     - Wide&deep[11]
   - graph-based
-    - 构建co-visitation graph，sequential预测用户下一个点击的item[38]
-    - 构建user-item的二部图[37,39]，利用邻居节点的信息表示自身
+    - 一个session内构建co-visitation graph，sequential预测用户下一个点击的article[38]
+    - 构建user-item的二部图[37,39]
+      - 利用邻居节点的信息表示自身[37]
+      - GNN[39]
+    - 直接将article作为实体构建知识图谱[32]
+      - 利用邻居实体（article）的信息完善自身表示，同时将用户对某一条边的兴趣作为权重
+      - 新闻推荐中应该不适用，更新太勤了，动态维护图应该还挺麻烦
   - extra-infomation(meta-data[17])
     - location
     - popularity[6,18]
@@ -172,7 +188,7 @@ $$v_i = \sum \alpha_{v_j}v_j$$
       - location[5]
       - 搜索记录，浏览的网页[34]
       - review[41]
-3. 将user profile作为query，从新闻集合中选取匹配的新闻（infomation retrieval），一般考虑的特征比较少，比较粗糙
+3. 从新闻集合中选取匹配user profile的新闻（infomation retrieval），一般考虑的特征比较少，比较粗糙
      - 将多种特征赋以不同的权重[6]
      - user-item矩阵分解做内积，ANN减少运算[18]
      - Co-visitation[1]，记录某一篇article被点击后，用户还点击了哪些article
@@ -183,7 +199,7 @@ $$v_i = \sum \alpha_{v_j}v_j$$
   - 基于贪心
     - submodularity:budgeted maximum coverage[6]
   - 基于logistic回归
-    1. 计算user-article相似度relevance：
+    1. 计算user-item相似度relevance：
       - 内积
         - 计算相同隐空间下的用户feature向量和新闻feature向量内积计算相似度，之后通过sigmoid得到概率[8,20-24]
         - 内积最有效率[20]       
@@ -202,7 +218,14 @@ $$v_i = \sum \alpha_{v_j}v_j$$
       - 多分类（极大似然函数/Cross-Entropy Loss），在多个新闻中点击一个[11,13,16,18-23,27]
       - 二分类，针对一个新闻，使用二元logloss[26,31,38,39]
         - 难以考虑负例的信息，在其上改进[30,32]
-  
+  - multi-task
+    - 在进行新闻推荐的同时完成别的任务，不同任务之间共享新闻表达向量
+    1. 新闻分类[17,35]
+        - 利用得到的新闻表达向量训练分类器进行新闻主题识别
+    2. 生成解释[27,41]
+        - 告诉用户为什么给他推荐这个，提升信任并促使用户点击
+    3. 知识图谱
+        - 给定头实体的表达，关系的表达，预测尾实体[33]
   - 要考虑的点
     - 剔除相似内容的新闻，每一次呈现给用户的新闻列表要diversify，相似内容的新闻不要出现在一次推荐结果中[6]
 
@@ -225,6 +248,7 @@ $$v_i = \sum \alpha_{v_j}v_j$$
 - 为了防止梯度下降或者梯度爆炸，使用layer normalization[29]
 - [30]提出了新的loss function，可以将负例的影响纳入到二分类logloss中
 - 好像可以从一个参数矩阵中derive出另一个，一起训练，没太懂，详见[40]
+- 防止梯度消失/梯度爆炸：layer normalization
 
 ## 评测
 - CTR = $\frac{clicked}{viewed}$，越大越好
@@ -239,7 +263,7 @@ $$v_i = \sum \alpha_{v_j}v_j$$
   - 模型的形状![](Resources/16_1.png)
 
 ## Explainability
-在提升准确率外，还应该优化推荐系统的解释力，即告诉用户为什么给你推荐了这个item，可以增强用户信任，获得更好的点击数据[27,28]
+在提升准确率外，还应该优化推荐系统的解释力，即告诉用户为什么给你推荐了这个article，可以增强用户信任，获得更好的点击数据[27,28]
 
 ## 文献索引
 [1] Google News Personalization Scalable Online Collaborative Filtering  
