@@ -2,7 +2,8 @@
 [TOC]
 
 ## 声明
-要引用、转载，请附本仓库链接[https://github.com/namespace-Pt/News-Recommendation]
+- 要引用、转载，请附本仓库链接[https://github.com/namespace-Pt/News-Recommendation]
+- 如果想要我pre做的更清楚的ppt，以及每一篇论文的笔记，请邮件联系[zpt@ruc.edu.cn]
 
 ## Highlight
 - 黄：需要看的点
@@ -16,11 +17,9 @@
 - [x] [31]和[39]有异曲同工之妙，得再看看
 - [ ] product quantization
 ## 问题
-- [38]
+- 短期到底是全部还是近期的
 - [32]初始化是啥样，case study **随机初始化，可训，有case study**
-- [29]到底动不动
-- 多样化，如何保证画像不变时推荐不同内容
-- 怎样动态维护画像
+- [29]到底动不动 **动**
 - [28]的user的entity是怎么获得的？？
 - [32]的loss没太明白，大概就是正例减负例吧
 - [39]的preference regularizer是啥？[**见39.md**](Notes/39.md)
@@ -279,7 +278,8 @@ $$v_i = \sum \alpha_{v_j}v_j$$
   - 隐层的维度
   - 模型的形状![](Resources/16_1.png)
 
-
+## 我觉得很好的文章
+[13,26,48]
 
 ## 文献索引
 [1] Google News Personalization Scalable Online Collaborative Filtering  
@@ -324,4 +324,9 @@ $$v_i = \sum \alpha_{v_j}v_j$$
 [40] LightRec A Memory and Search-Efficient Recommender System  
 [41] Towards Explainable Conversational Recommendation  
 [42] Knowledge-Aware Document Representation for News Recommendations  
-[43] Combining Collaborative Filtering and Search Engine into Hybrid News Recommendation  
+[43] Combining Collaborative Filtering and Search Engine into Hybrid News Recommendation    
+[44] Collaborative Metric Learning with Memory Network for Multi-Relational Recommender Systems  
+[45] Sequential Recommendation with User Memory Networks  
+[46] Leveraging Demonstrations for Reinforcement Recommendation Reasoning over Knowledge Graphs   
+[47] EntityDuet Neural Ranking Understanding the Role of Knowledge Graph Semantics  
+[48] Octopus Comprehensive and Elastic User Representation for the Generation of Recommendation
