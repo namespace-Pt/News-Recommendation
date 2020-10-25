@@ -47,7 +47,7 @@
 - [Convolution](https://towardsdatascience.com/a-comprehensive-guide-to-convolutional-neural-networks-the-eli5-way-3bd2b1164a53)
 - [Transformer](http://jalammar.github.io/illustrated-transformer/)
 - [LSTM](https://colah.github.io/posts/2015-08-Understanding-LSTMs/)
-- [Mathemativs for Machine Learning](https://mml-book.github.io/)
+- [Mathematics for Machine Learning](https://mml-book.github.io/)
 
 ### 理解attention
 两个角度，$f: \mathbb{R}^{d*d} \rightarrow \mathbb{R}$ 或者是 $\mathbb{R}^{d} \rightarrow \mathbb{R}$，$f$可以是*perceptron*，可以是点积、cos相似度等（两个自变量时），$v_i$代表article的向量表达
