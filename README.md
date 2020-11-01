@@ -17,7 +17,8 @@
 - [x] [31]和[39]有异曲同工之妙，得再看看
 - [ ] product quantization
 ## 问题
-- 短期到底是全部还是近期的
+- AUC公式写错了
+- [21]短期到底是全部还是近期的 **全部**
 - [32]初始化是啥样，case study **随机初始化，可训，有case study**
 - [29]到底动不动 **动**
 - [28]的user的entity是怎么获得的？？
@@ -280,7 +281,6 @@ $$v_i = \sum \alpha_{v_j}v_j$$
 
 ## 我觉得很好的文章
 [13,26,48]
-
 ## 文献索引
 [1] Google News Personalization Scalable Online Collaborative Filtering  
 [2] A contextual-bandit approach to personalized news article recommendation  
