@@ -7,5 +7,14 @@ cuda == 10.1
 ```
 ## Achieved
 ### /utils/preprocess.py
-- MINDIterator: 
+- MINDIterator
+  - read and parse data in MIND datasets
+  - return a generator which generates *batch_size* of training examples once
+
+### /utils/utils.py
+  - some useful function
+ 
 ## Instruction
+```shell
+run main.ipynb
+```
