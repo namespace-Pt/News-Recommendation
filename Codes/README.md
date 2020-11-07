@@ -19,7 +19,7 @@ cuda == 10.1
 
 ## Instruction
 ```shell
-run main.ipynb
+run [model_name].ipynb
 ```
 
 ## Question
