@@ -2,7 +2,9 @@ import random
 import re
 import json
 import pickle
+import torch
 import pandas as pd
+import torch.nn as nn
 from torchtext.data import Field
 from torchtext.data import Dataset,Example
 
@@ -100,7 +102,7 @@ def constructUid2idx(behaviors_file,dic_file):
     g.close()
 
 def constructBasicDict(news_file,behavior_file,mode):
-    """construct basic dictionary
+    """ construct basic dictionary
 
         Args:
         news_file: path of news file
@@ -129,30 +131,23 @@ def getVocab(file):
     g.close()
     return dic
 
-# class DataFrameDataset(Dataset):
-#    """
-#        load data from pandas.DataFrame
-#    """
-#     def __init__(self,df:pd.DataFrame,fields:list):
-#         # Datasets.__init__(examples,fields)
-#         # examples: list of examples
-#         # fields: List(tuple(str,Field))
+def getLoss(model):
+    """
+        get loss function for model
+    """
+    if model.npratio > 0:
+        loss = nn.NLLLoss()
+    else:
+        loss = nn.BCELoss()
+    
+    return loss
 
-#         super().__init__(
-#             [
-#                 # an Example is a row in training/testing
-#                 Example.fromlist(list(r)[3:5],fields)
-
-#                 # df.iterrows generates one row of DataFrame at a time
-#                 # i means newsID, r means other columns
-#                 # list(r) ommit keys
-#                 for i,r in df.iterrows()
-#             ],
-#             fields
-#         )
-# def load_news(self,news_file):
-#     # load news
-#     data = pd.read_table(r'D:\Data\NR_data\MINDsmall_train\news.tsv',index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
-#     text_field = getTextField(data)
-#     train = DataFrameDataset(df=data.dropna(),fields=[('title',text_field),('abstract',text_field)])
-#     self.news_title_array = text_field.numericalize(text_field.pad([i.title for i in train.examples]))
+def getLabel(model,x):
+    if model.npratio > 0:
+        index = torch.arange(0,model.npratio + 1,device=model.device).expand(model.batch_size,-1)
+        label = x['labels']==1
+        label = index[label]
+    else:
+        label = x['labels']
+    
+    return label

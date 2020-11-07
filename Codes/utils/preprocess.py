@@ -1,4 +1,3 @@
-import json
 import torch
 import numpy as np
 from .utils import newsample,getId2idx,word_tokenize,getVocab
@@ -9,15 +8,15 @@ class MINDIterator():
         Args:
         hparams: pre-defined dictionary of hyper parameters
     """
-    def __init__(self, hparams, npratio=-1, col_spliter="\t", ID_spliter="%"):
+    def __init__(self, hparams,col_spliter="\t", ID_spliter="%"):
         # initiate the whole iterator
         self.col_spliter = col_spliter
         self.ID_spliter = ID_spliter
         self.batch_size = hparams['batch_size']
         self.title_size = hparams['title_size']
         self.his_size = hparams['his_size']
-        self.npratio = npratio
-        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        self.npratio = hparams['npratio']
+        self.device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 
         self.word_dict = getVocab('./data/vocab_'+hparams['mode']+'.pkl')
         self.nid2index = getId2idx('./data/nid2idx_'+hparams['mode']+'.json')
@@ -44,7 +43,7 @@ class MINDIterator():
 
         self.news_title_array = np.zeros((len(news_title),self.title_size),dtype="int32")
 
-        for news_index in range(len(news_title)):
+        for news_index,_ in enumerate(news_title):
             title = news_title[news_index]
             for word_index in range(min(self.title_size, len(title))):                
                 self.news_title_array[news_index, word_index] = self.word_dict[
@@ -93,8 +92,12 @@ class MINDIterator():
                 impr_index += 1
 
     def parser_one_line(self, line):
-        """Parse one behavior sample into |candidates| feature values.
+        """Parse one behavior sample into |candidates| feature values, each of which consists of
+        one single candidate title vector when npratio < 0 or npratio+1 candidate title vectors when npratio > 0
+
         if npratio is larger than 0, return negtive sampled result.
+
+        npratio is for negtive sampling (used in softmax)
         
         Args:
             line (int): sample index/impression index
@@ -124,9 +127,9 @@ class MINDIterator():
                 user_index = []
                 label = [1] + [0] * self.npratio
 
-                n = newsample(negs, self.npratio)
+                neg_list = newsample(negs, self.npratio)
 
-                candidate_title_index = self.news_title_array[[p] + n]
+                candidate_title_index = self.news_title_array[[p] + neg_list]
                 click_title_index = self.news_title_array[self.histories[line]]
                 impr_index.append(self.impr_indexes[line])
                 user_index.append(self.uindexes[line])
@@ -152,9 +155,9 @@ class MINDIterator():
                 user_index = []
                 # indicate whether the news is clicked
                 label = [label]
-                # append the news title vector corresponding to news in the impression of this log
+                # append the news title vector corresponding to news variable, in order to generate [news_title_vector]
                 candidate_title_index.append(self.news_title_array[news])
-                # append the news title vector corresponding to news in the history of this log
+                # append the news title vector corresponding to news variable
                 click_title_index = self.news_title_array[self.histories[line]]
                 impr_index.append(self.impr_indexes[line])
                 user_index.append(self.uindexes[line])
@@ -167,7 +170,8 @@ class MINDIterator():
                 )
 
     def load_data_from_file(self, news_file, behavior_file):
-        """Read and parse data from news file and behavior file.
+        """Read and parse data from news file and behavior file, generate batch_size of training examples, each of which contains
+        an impression id, a user id, a union tensor of history clicked news' title tensor, a candidate news' title vector, a click label
         
         Args:
             news_file (str): A file contains several informations of news.
@@ -237,15 +241,8 @@ class MINDIterator():
                 click_title_indexes,
             )
 
-    def _convert_data(
-        self,
-        label_list,
-        imp_indexes,
-        user_indexes,
-        candidate_title_indexes,
-        click_title_indexes,
-    ):
-        """Convert data of one candidate into torch.tensor that are good for further model operation.
+    def _convert_data(self,label_list,imp_indexes,user_indexes,candidate_title_indexes,click_title_indexes):
+        """Convert data of one candidate into torch.tensor that are good for further model operation, 
         
         Args:
             label_list (list): a list of ground-truth labels.
@@ -278,7 +275,8 @@ class MINDIterator():
         }
 
     def load_user_from_file(self, news_file, behavior_file):
-        """Read and parse user data from news file and behavior file.
+        """Read and parse user data from news file and behavior file, generate batch_size of user examples, 
+        each of which contains a user id, an impression id, a union tensor of history clicked news' title tensor
         
         Args:
             news_file (str): A file contains several informations of news.
@@ -319,9 +317,7 @@ class MINDIterator():
                 user_indexes, impr_indexes, click_title_indexes,
             )
 
-    def _convert_user_data(
-        self, user_indexes, impr_indexes, click_title_indexes,
-    ):
+    def _convert_user_data(self, user_indexes, impr_indexes, click_title_indexes):
         """Convert data into numpy arrays that are good for further model operation.
         
         Args:
@@ -376,9 +372,7 @@ class MINDIterator():
                 news_indexes, candidate_title_indexes,
             )
     
-    def _convert_news_data(
-        self, news_indexes, candidate_title_indexes,
-    ):
+    def _convert_news_data(self, news_indexes, candidate_title_indexes):
         """Convert data into numpy arrays that are good for further model operation.
         
         Args:
@@ -408,7 +402,6 @@ class MINDIterator():
         Returns:
             obj: An iterator that will yields parsed impression data, in the format of dict.
         """
-        asdadawd
         if not hasattr(self, "histories"):
             self.init_behaviors(behaivors_file)
         indexes = np.arange(len(self.labels))
