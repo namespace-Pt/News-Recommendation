@@ -1,5 +1,10 @@
 :smile:
 [TOC]
+## 结构
+- Codes：复现的代码    
+- Notes：论文笔记
+- Papers：论文
+- Resources：论文截图
 
 ## 声明
 - 要引用、转载，请附本仓库链接[https://github.com/namespace-Pt/News-Recommendation]
@@ -10,26 +15,6 @@
 - 蓝：看懂后自己提醒的需要注意的点
 - 绿：不认识的单词
 **在[45]之后黄色代表不认识的单词，绿色代表需要看的点**
-
-## 要看
-- [ ] 新出的Bandit
-- [x] Reinforcement learning[25]
-- [x] [31]和[39]有异曲同工之妙，得再看看
-- [ ] product quantization
-## 问题
-- AUC公式写错了
-- [21]短期到底是全部还是近期的 **全部**
-- [32]初始化是啥样，case study **随机初始化，可训，有case study**
-- [29]到底动不动 **动**
-- [28]的user的entity是怎么获得的？？
-- [32]的loss没太明白，大概就是正例减负例吧
-- [39]的preference regularizer是啥？[**见39.md**](Notes/39.md)
-- FM到底是一个attribute学习到一个向量还是一个element学习到一个 **一个element**
-- [20,21,22]中attn的query是什么？？？ **其实就是参数啦**
-- 用self-attn模拟新闻之间的交互，用attn寻找重要的新闻？ **我理解是这样**
-- SVM和Fisher什么鬼的[15]
-- 像极大似然法这种东西，它是把所有样本集输出都算出来后才能计算loss，那么对优化参数有没有影响呢？**minibatch SGD就把样本分成很多份，分开计算**
-- 倒排索引 **用词索引文档**
 
 ## Glossary
 - Jaccard:给定$x = (1,0,0),y=(0,0,1)$，则
@@ -59,19 +44,21 @@
 - 接受推荐的用户记为$u$，某一新闻记为$v$
 
 ## 目标
-两种角度：
-1. 将用户最喜欢看的新闻放在最前面[7,8]
-2. 最大化Click Through Rate，即预测某一篇新闻被某一个用户点击的概率，最大化该概率
-   - 建模为二分类问题，对单个新闻，判断用户是否点击
-   - 建模为多分类问题，对多个新闻，用户点击其中的正例
+给定用户$u$，新闻集$\mathcal{V}$，从$\mathcal{V}$中选出前$k$个用户最有可能点击的新闻，推荐给用户
+  - 最大化click through rate（CTR）
 
 ## 新闻推荐的特点
-- User和article数量都很大，会有editor动态维护article池[2]
-- 文章更新快，article频繁更新
-- 很多user看很少的新闻，使其特征sparse[17]
-- 人们来看推荐很少会抱有特定的信息诉求，而是“show me something interesting”[14]
-- 用户的兴趣一直发生着变化，随着打开相似新闻而衰减[8]
-- 难以获取explicit feedback
+- **Large scale**：用户和新闻数量都很大，新闻更新快
+
+- **Sparse**：很多用户看很少的新闻，使其特征稀疏
+
+- **Dynamic**：用户的兴趣一直发生着变化
+
+- **No query**：人们来看推荐很少会抱有特定的信息诉求，而是show me something interesting
+
+- **No explicit feedback**：难以得到用户的显示反馈，只有点击数据
+
+- **No heterogeneous context**：MIND数据集不提供用户的地理位置、搜索记录等信息
 
 ## 梳理
 关于推荐，首先有**基于user-item矩阵的协同过滤(Collaborative Filtering)**，最基础的memory-based协同过滤要求计算user的**两两之间相似度**，计算量很大，于是在其基础上发展了各式各样**减小运算量**的办法（model-based）：聚类和使用隐空间；聚类将相似的用户聚集在一个cluster内，之后再给$u$推荐时只需要考虑其所在cluster内部的其他成员爱看哪些article，也可以通过概率的办法计算用户和article的分布；隐空间则是通过分解user-item矩阵，将user和article投射到同一个隐空间中，可以直接计算向量内积、cos夹角等方法评价user、article的相似度；
