@@ -23,7 +23,7 @@ run [model_name].ipynb
 ```
 
 ## Question
-- suppose tensor x of [1 * b * c], which is derived from MLP, then I copy the tensor along dim=0 for further computation, where I got tensor of [a * b * c], finally when training will the gradient bp be affected? 
+- suppose tensor x of [1 * b * c], which is derived from MLP, then I copy the tensor along dim=0 for further computation, thus I got tensor of [a * b * c], finally when training will the gradient backpropagating be affected? 
 
 ## Insight
 - considering negtive sampling from the current impression 
