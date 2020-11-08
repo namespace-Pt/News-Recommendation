@@ -44,7 +44,7 @@ class NPAModel(nn.Module):
         self.DropOut = nn.Dropout(p=self.dropout_p)
 
     def _user_projection(self,user_index_batch):
-        """project user ID to dense vector e_u of [batch_size,user_dim] and store it for further use
+        """ project user ID to dense vector e_u of [batch_size,user_dim] and store it for further use
         
         Args:
             x: one training batch example           
@@ -55,7 +55,7 @@ class NPAModel(nn.Module):
         self.e_u = e_u
     
     def _word_query_projection(self):
-        """project e_u to word preference query vector of [batch_size,preference_dim]
+        """ project e_u to word preference query vector of [batch_size,preference_dim]
         
         Returns:
             word_query: tensor of batch_size * preference_dim       
@@ -68,7 +68,7 @@ class NPAModel(nn.Module):
         return word_query
     
     def _news_query_projection(self):
-        """project e_u to news preference query vector of [batch_size,preference_dim]
+        """ project e_u to news preference query vector of [batch_size,preference_dim]
         
         Returns:
             news_query: tensor of batch_size * preference_dim       

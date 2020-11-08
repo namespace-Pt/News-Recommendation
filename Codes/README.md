@@ -5,6 +5,12 @@ python == 3.7.9
 torch == 1.6.0
 cuda == 10.1
 ```
+
+## Instruction
+```shell
+run [model_name].ipynb
+```
+
 ## Achieved
 ### /utils/preprocess.py
 - MINDIterator
@@ -17,10 +23,6 @@ cuda == 10.1
 ### /models
   - NPA[23]
 
-## Instruction
-```shell
-run [model_name].ipynb
-```
 
 ## Question
 - suppose tensor x of [1 * b * c], which is derived from MLP, then I copy the tensor along dim=0 for further computation, thus I got tensor of [a * b * c], finally when training will the gradient backpropagating be affected? 

@@ -232,14 +232,16 @@ class MINDIterator():
                     click_title_indexes = []
                     cnt = 0
 
-        if cnt > 0:
-            yield self._convert_data(
-                label_list,
-                imp_indexes,
-                user_indexes,
-                candidate_title_indexes,
-                click_title_indexes,
-            )
+        "in case the last few examples can't fill a batch, abandon them"
+
+        # if cnt > 0:
+        #     yield self._convert_data(
+        #         label_list,
+        #         imp_indexes,
+        #         user_indexes,
+        #         candidate_title_indexes,
+        #         click_title_indexes,
+        #     )
 
     def _convert_data(self,label_list,imp_indexes,user_indexes,candidate_title_indexes,click_title_indexes):
         """Convert data of one candidate into torch.tensor that are good for further model operation, 

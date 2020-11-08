@@ -29,6 +29,13 @@
 - lookup (table):设$W \in \mathbb{R}^n*m$为用户的lookup table，一行对应一条embedding，$u$的embedding为$W[u]$，一般随机初始化或者预训练得到
 - Co-visitation[1]，记录用户点击过当前article后又点击了哪些，之后点击的每一篇以衰减的时间为权重；即维护一个图，节点是所有article，边代表co-visitation，即任一个用户点击i后点了j，就把i->j连一条边，边的权重会随时间衰减
 - Hadamard product：element-wise product over 2 vectors of the same size
+- Confusion Matrix
+  - TP
+    - TPR(sensitivity)
+  - FP: false positive, means false determine on False Example (classified to True)
+    - FPR(specificity)
+  - FN: false negtive, means false determine on True Example (classified to False)
+## Blogs
 - [Q-Learning](https://www.mlq.ai/deep-reinforcement-learning-q-learning/)
 - [Convolution](https://towardsdatascience.com/a-comprehensive-guide-to-convolutional-neural-networks-the-eli5-way-3bd2b1164a53)
 - [Transformer](http://jalammar.github.io/illustrated-transformer/)
