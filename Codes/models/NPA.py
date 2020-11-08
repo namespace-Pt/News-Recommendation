@@ -7,9 +7,11 @@ import torch.nn as nn
 class NPAModel(nn.Module):
     def __init__(self,hparams,vocab):
         super().__init__()
-        
+
         self.npratio = hparams['npratio']
         self.dropout_p = hparams['dropout_p']
+        self.metrics = hparams['metrics']
+
         self.batch_size = hparams['batch_size']
         self.title_size = hparams['title_size']
         self.his_size =hparams['his_size']
@@ -208,7 +210,7 @@ class NPAModel(nn.Module):
                 cdd_news_repr = self._news_encoder(cdd_news_batch[i],word_query[i].expand(self.npratio+1,-1))
                 cdd_news_reprs[i] = cdd_news_repr
         else:
-            cdd_news_repr = self._news_encoder(cdd_news_batch,word_query)
+            cdd_news_reprs = self._news_encoder(cdd_news_batch.squeeze(),word_query).unsqueeze(dim=1)
         
         user_repr = self._user_encoder(x['clicked_title_batch'],news_query,word_query)
         

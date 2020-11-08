@@ -131,7 +131,7 @@ class MINDIterator():
 
                 candidate_title_index = self.news_title_array[[p] + neg_list]
                 click_title_index = self.news_title_array[self.histories[line]]
-                impr_index.append(self.impr_indexes[line])
+                impr_index = self.impr_indexes[line]
                 user_index.append(self.uindexes[line])
 
                 yield (
@@ -159,7 +159,7 @@ class MINDIterator():
                 candidate_title_index.append(self.news_title_array[news])
                 # append the news title vector corresponding to news variable
                 click_title_index = self.news_title_array[self.histories[line]]
-                impr_index.append(self.impr_indexes[line])
+                impr_index = self.impr_indexes[line]
                 user_index.append(self.uindexes[line])
                 yield (
                     label,
@@ -258,7 +258,7 @@ class MINDIterator():
         """
 
         labels = torch.tensor(label_list, dtype=torch.float32,device=self.device)
-        imp_indexes = torch.tensor(imp_indexes, dtype=torch.int64,device=self.device)
+        # imp_indexes = torch.tensor(imp_indexes, dtype=torch.int64,device=self.device)
         user_indexes = torch.tensor(user_indexes, dtype=torch.int64,device=self.device)
 
         # candidate_title_index_batch = torch.cat(candidate_title_indexes,dim=0).unsqueeze(dim=0)
