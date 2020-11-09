@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-05 18:05:03
-LastEditTime: 2020-11-09 14:02:07
+LastEditTime: 2020-11-10 00:30:46
 '''
 
 import torch
@@ -198,7 +198,7 @@ class NPAModel(nn.Module):
         if self.npratio > 0:
             score = nn.functional.log_softmax(score,dim=1)
         else:
-            score = nn.functional.sigmoid(score)
+            score = torch.sigmoid(score)
         return score.squeeze()
 
     def forward(self,x):

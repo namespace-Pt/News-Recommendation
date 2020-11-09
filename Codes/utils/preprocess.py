@@ -18,9 +18,9 @@ class MINDIterator():
         self.npratio = hparams['npratio']
         self.device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 
-        self.word_dict = getVocab('./data/vocab_'+hparams['mode']+'.pkl')
-        self.nid2index = getId2idx('./data/nid2idx_'+hparams['mode']+'.json')
-        self.uid2index = getId2idx('./data/uid2idx_'+hparams['mode']+'.json')
+        self.word_dict = getVocab('data/vocab_'+hparams['mode']+'.pkl')
+        self.nid2index = getId2idx('data/nid2idx_'+hparams['mode']+'.json')
+        self.uid2index = getId2idx('data/uid2idx_'+hparams['mode']+'.json')
 
     def init_news(self,news_file):
         """ init news information given news file, such as news_title_array and nid2index.
