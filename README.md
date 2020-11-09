@@ -37,7 +37,7 @@
   - FN: false negtive, means false determine on True Example (classified to False)
 ## Blogs
 - [Q-Learning](https://www.mlq.ai/deep-reinforcement-learning-q-learning/)
-- [Convolution](https://towardsdatascience.com/a-comprehensive-guide-to-convolutional-neural-networks-the-eli5-way-3bd2b1164a53)
+- [CNN](https://towardsdatascience.com/a-comprehensive-guide-to-convolutional-neural-networks-the-eli5-way-3bd2b1164a53),[CNN_torch](https://towardsdatascience.com/pytorch-basics-how-to-train-your-neural-net-intro-to-cnn-26a14c2ea29)
 - [Transformer](http://jalammar.github.io/illustrated-transformer/)
 - [LSTM](https://colah.github.io/posts/2015-08-Understanding-LSTMs/)
 - [Mathematics for Machine Learning](https://mml-book.github.io/)
