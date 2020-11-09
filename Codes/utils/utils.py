@@ -323,10 +323,9 @@ def group_labels(impression_ids, labels, preds):
     all_labels = []
     all_preds = []
 
-    # maybe wrong?????
     for k in all_keys:
-        all_labels += group_labels[k]
-        all_preds += group_preds[k]
+        all_labels.append(group_labels[k])
+        all_preds.append(group_preds[k])
 
     return all_keys, all_labels, all_preds
 
@@ -367,7 +366,5 @@ def run_eval(model,test_iterator):
         dict: A dictionary contains evaluation metrics.
     """
     _, group_labels, group_preds = _eval(model,test_iterator)
-    print(group_labels[0:10])
-    print(group_preds[0:10])
     res = _cal_metric(group_labels,group_preds,model.metrics.split(','))
     return res
