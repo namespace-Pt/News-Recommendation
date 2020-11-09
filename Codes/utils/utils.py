@@ -6,7 +6,7 @@ import torch
 import pandas as pd
 import torch.nn as nn
 import numpy as np
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score,log_loss,mean_squared_error,accuracy_score,f1_score
 from torchtext.data import Field
 from torchtext.data import Dataset,Example
 
