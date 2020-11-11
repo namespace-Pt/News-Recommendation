@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-05 18:05:03
-LastEditTime: 2020-11-10 00:30:46
+LastEditTime: 2020-11-10 12:27:00
 '''
 
 import torch
@@ -10,7 +10,7 @@ import torch.nn as nn
 class NPAModel(nn.Module):
     def __init__(self,hparams,vocab):
         super().__init__()
-
+        
         self.npratio = hparams['npratio']
         self.dropout_p = hparams['dropout_p']
         self.metrics = hparams['metrics']

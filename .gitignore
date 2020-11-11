@@ -7,5 +7,5 @@ Discussions
 News Recommendation Talk.pptx
 MyWork
 Codes/.vector_cache
-*.pyc
+Codes/*/__pycache__/
 Codes/server_scripts
