@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-05 18:05:03
-LastEditTime: 2020-11-10 12:27:00
+LastEditTime: 2020-11-11 11:27:45
 '''
 
 import torch
@@ -49,7 +49,6 @@ class NPAModel(nn.Module):
         self.DropOut = nn.Dropout(p=self.dropout_p)
 
     def _user_projection(self,user_index_batch):
-        
         """ project user ID to dense vector e_u of [batch_size,user_dim] and store it for further use
         
         Args:
