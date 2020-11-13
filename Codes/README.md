@@ -23,9 +23,7 @@ run [model_name].ipynb
 ### /models
   - NPA[23]
 
-## Questions
-- suppose tensor x of [1 * b * c], which is derived from MLP, then I copy the tensor along dim=0 for further computation, thus I got tensor of [a * b * c], finally when training will the gradient backpropagating be affected? 
-- batch is faster than loop?
-- how to compute auc, what is threshold in sklearn.metrics.roc_curve?
+## TODO
+- integrate MINDIterator to Datasets and Dataloader
 
 ## Insights

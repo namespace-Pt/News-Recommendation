@@ -3,12 +3,14 @@ import re
 import json
 import pickle
 import torch
+import os
 import pandas as pd
 import torch.nn as nn
 import numpy as np
 from sklearn.metrics import roc_auc_score,log_loss,mean_squared_error,accuracy_score,f1_score
-from torchtext.data import Field
-from torchtext.data import Dataset,Example
+from torchtext.data.utils import get_tokenizer
+from torchtext.data import Dataset
+from torchtext.vocab import build_vocab_from_iterator
 
 def word_tokenize(sent):
     """ Split sentence into word list using regex.
@@ -40,31 +42,26 @@ def newsample(news, ratio):
     else:
         return random.sample(news, ratio)
 
+def news_token_generator(news_file):
+    news_df = pd.read_table(news_file,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
+    news_iterator = news_df.iterrows()
+
+    tokenizer = get_tokenizer('basic_english')
+
+    for _,i in news_iterator:
+        yield tokenizer(i['title'])
+
 def constructVocab(news_file,save_path):
     """
         Build field using torchtext for tokenization
     
     Returns:
         torchtext.vocabulary 
-    """
-    news_df = pd.read_table(news_file,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
-    
-    text_field = Field(
-        tokenize='basic_english',
-        lower=True
-    )
+    """    
+    vocab = build_vocab_from_iterator(news_token_generator(news_file))
 
-    # tokenize title,abstract,category and subcategory
-    preprocess_title = news_df['title'].apply(lambda x: text_field.preprocess(x))
-    preprocess_abstract = news_df['abstract'].dropna().apply(lambda x: text_field.preprocess(x))
-    
-    # preprocess_category = news_df['category'].apply(lambda x: text_field.preprocess(x))
-    # preprocess_subcategory = news_df['subcategory'].apply(lambda x: text_field.preprocess(x))
-
-    text_field.build_vocab(preprocess_title,preprocess_abstract)
-    
     output = open(save_path,'wb')
-    pickle.dump(text_field.vocab,output)
+    pickle.dump(vocab,output)
     output.close()
 
 def constructNid2idx(news_file,dic_file):
