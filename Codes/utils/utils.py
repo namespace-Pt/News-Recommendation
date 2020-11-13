@@ -1,3 +1,8 @@
+'''
+Author: Pt
+Date: 2020-11-10 00:06:47
+LastEditTime: 2020-11-14 01:14:38
+'''
 import random
 import re
 import json
@@ -42,23 +47,59 @@ def newsample(news, ratio):
     else:
         return random.sample(news, ratio)
 
-def news_token_generator(news_file):
+
+def news_token_generator(news_file,tokenizer,attrs):
+    ''' iterate news_file, collect attrs into a string and generate it
+       
+    Args: 
+        tokenizer: torchtext.data.utils.tokenizer
+        attrs: list of attrs to be collected and yielded
+    Returns: 
+        a generator over attrs in news
+    '''    
+
     news_df = pd.read_table(news_file,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
     news_iterator = news_df.iterrows()
 
-    tokenizer = get_tokenizer('basic_english')
-
     for _,i in news_iterator:
-        yield tokenizer(i['title'])
+        content = []
+        for attr in attrs:
+            content.append(i[attr])
+        
+        yield tokenizer(' '.join(content))
 
-def constructVocab(news_file,save_path):
+def news_token_generator_group(news_file,tokenizer,vocab,mode):
+    ''' iterate news_file, collect attrs and generate them respectively
+       
+    Args: 
+        tokenizer: torchtext.data.utils.tokenizer
+        mode: int defining how many attributes to be generated
+    Returns: 
+        generates wordID vector of each attrs, gathered into a list
+    '''
+    news_df = pd.read_table(news_file,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
+    news_iterator = news_df.iterrows()
+    
+    attrs = ['title','category','subcategory','abstract']
+    for _,i in news_iterator:
+        result = []
+        indicator = 0
+        while indicator < mode:
+            result.append([vocab[x] for x in tokenizer(i[attrs[indicator]])])
+            indicator += 1
+        yield result 
+
+def constructVocab(news_file,attrs,save_path):
     """
         Build field using torchtext for tokenization
     
     Returns:
         torchtext.vocabulary 
     """    
-    vocab = build_vocab_from_iterator(news_token_generator(news_file))
+    
+    tokenizer = get_tokenizer('basic_english')
+
+    vocab = build_vocab_from_iterator(news_token_generator(news_file,tokenizer,attrs))
 
     output = open(save_path,'wb')
     pickle.dump(vocab,output)
@@ -100,7 +141,7 @@ def constructUid2idx(behaviors_file,dic_file):
     json.dump(uid2index,g,ensure_ascii=False)
     g.close()
 
-def constructBasicDict(news_file,behavior_file,mode):
+def constructBasicDict(news_file,behavior_file,mode,attrs):
     """ construct basic dictionary
 
         Args:
@@ -108,7 +149,7 @@ def constructBasicDict(news_file,behavior_file,mode):
         behavior_file: path of behavior file
         mode: [small/large]
     """    
-    constructVocab(news_file,'./data/vocab_'+mode+'.pkl')
+    constructVocab(news_file,attrs,'./data/vocab_'+mode+'.pkl')
     constructUid2idx(behavior_file,'./data/uid2idx_'+mode+'.json')
     constructNid2idx(news_file,'./data/nid2idx_'+mode+'.json')
 
@@ -142,6 +183,9 @@ def getLoss(model):
     return loss
 
 def getLabel(model,x):
+    """
+        parse labels to label indexes 
+    """
     if model.npratio > 0:
         index = torch.arange(0,model.npratio + 1,device=model.device).expand(model.batch_size,-1)
         label = x['labels']==1

@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-05 18:05:03
-LastEditTime: 2020-11-11 11:27:45
+LastEditTime: 2020-11-13 18:05:38
 '''
 
 import torch
@@ -24,7 +24,7 @@ class NPAModel(nn.Module):
         self.user_dim = hparams['user_dim']
         self.preference_dim =hparams['preference_dim']
 
-        self.device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+        self.device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device('cpu')
 
         # pretrained embedding
         self.embedding = vocab.vectors
@@ -139,11 +139,11 @@ class NPAModel(nn.Module):
         attn_aggr = torch.bmm(keys,attn_weights).squeeze()
         return attn_aggr
 
-    def _news_encoder(self,news_batch,word_query):
+    def _news_encoder(self,news_set,word_query):
         """ encode set of news to news representations of [set_size,filter_num]
         
         Args:
-            news_batch: tensor of set_size * title_size
+            news_set: tensor of set_size * title_size
             word_query: tensor of set_size * preference_dim      
         
         Returns:
@@ -151,10 +151,10 @@ class NPAModel(nn.Module):
         """
 
         # important not to directly apply view function
-        # return tensor of batch_size * embedding_dim * title_size
-        cdd_title_embedding = self.embedding[news_batch].permute(0,2,1).to(self.device)
+        # return tensor of set_size * embedding_dim * title_size
+        cdd_title_embedding = self.embedding[news_set].permute(0,2,1).to(self.device)
         
-        # return tensor of batch_size * filter_num * title_size
+        # return tensor of set_size * filter_num * title_size
         cdd_title_embedding = self.CNN(cdd_title_embedding)
         cdd_title_embedding = self.RELU(cdd_title_embedding)
         if self.dropout_p > 0:
