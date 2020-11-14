@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import os
-from .utils import newsample,getId2idx,word_tokenize,getVocab,constructBasicDict
+from .utils import newsample,getId2idx,word_tokenize_vocab,getVocab,constructBasicDict
 
 class MINDIterator():
     """ batch iterator for MIND dataset
@@ -18,7 +18,7 @@ class MINDIterator():
         self.npratio = hparams['npratio']
         self.device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device('cpu')
 
-        self.word_dict = getVocab('data/vocab_'+hparams['mode']+'.pkl')
+        self.vocab = getVocab('data/vocab_'+hparams['mode']+'.pkl')
         self.nid2index = getId2idx('data/nid2idx_'+hparams['mode']+'.json')
         self.uid2index = getId2idx('data/uid2idx_'+hparams['mode']+'.json')
     def init_news(self,news_file):
@@ -27,27 +27,36 @@ class MINDIterator():
             news_file: path of news file
         """
 
-        news_title = [""]
-
+        title_token = [[0]*self.title_size]
+        category_token = [[0]]
+        subcategory_token = [[0]]
+        
         with open(news_file,"r",encoding='utf-8') as rd:
-            # only process title
-            # to be extended
+
             for line in rd:
                 nid, vert, subvert, title, ab, url, _, _ = line.strip("\n").split(
                     self.col_spliter
                 )
 
-                title = word_tokenize(title)
-                news_title.append(title)
+                title = word_tokenize_vocab(title,self.vocab)
+                title_token.append(title[:self.title_size] + [0] * (self.title_size - len(title)))
+                category_token.append([self.vocab[vert]])
+                subcategory_token.append([self.vocab[subvert]])
 
-        self.news_title_array = np.zeros((len(news_title),self.title_size),dtype="int32")
 
-        for news_index,_ in enumerate(news_title):
-            title = news_title[news_index]
-            for word_index in range(min(self.title_size, len(title))):                
-                self.news_title_array[news_index, word_index] = self.word_dict[
-                    title[word_index].lower()
-                ]
+        "this version is fucking slower, iterator is slower than loop?"
+        # tokenizer = word_tokenize
+        # news_token_iterator = news_token_generator_group(self.news_file,tokenizer,self.vocab,self.mode)
+
+        # for news_token in news_token_iterator:
+            
+        #     title_token.append(news_token[0][:self.title_size] + [0] * (self.title_size - len(news_token[0])))
+        #     category_token.append(news_token[1])
+        #     subcategory_token.append(news_token[2])
+        
+        self.news_title_array = np.asarray(title_token)
+        self.news_category_array = np.asarray(category_token)
+        self.news_subcategory_array = np.asarray(subcategory_token)
 
     def init_behaviors(self, behaviors_file):
         """ init behavior logs given behaviors file.
@@ -122,6 +131,9 @@ class MINDIterator():
 
             for p in poss:
                 candidate_title_index = []
+                candidate_category_index = []
+                candidate_subcategory_index = []
+                
                 impr_index = []
                 user_index = []
                 label = [1] + [0] * self.npratio
@@ -129,7 +141,13 @@ class MINDIterator():
                 neg_list = newsample(negs, self.npratio)
 
                 candidate_title_index = self.news_title_array[[p] + neg_list]
+                candidate_category_index = self.news_category_array[[p] + neg_list]
+                candidate_subcategory_index = self.news_subcategory_array[[p] + neg_list]
+                
                 click_title_index = self.news_title_array[self.histories[line]]
+                click_category_index = self.news_category_array[self.histories[line]]
+                click_subcategory_index = self.news_subcategory_array[self.histories[line]]
+
                 impr_index = self.impr_indexes[line]
                 user_index.append(self.uindexes[line])
 
@@ -138,7 +156,11 @@ class MINDIterator():
                     impr_index,
                     user_index,
                     candidate_title_index,
+                    candidate_category_index,
+                    candidate_subcategory_index,
                     click_title_index,
+                    click_category_index,
+                    click_subcategory_index
                 )
 
         else:
@@ -148,6 +170,9 @@ class MINDIterator():
             for news, label in zip(impr, impr_label):
                 # indicate the candidate news title vector from impression
                 candidate_title_index = []
+                candidate_category_index = []
+                candidate_subcategory_index = []
+
                 # indicate the impression where the news in
                 impr_index = []
                 # indicate user ID
@@ -156,16 +181,27 @@ class MINDIterator():
                 label = [label]
                 # append the news title vector corresponding to news variable, in order to generate [news_title_vector]
                 candidate_title_index.append(self.news_title_array[news])
+                candidate_category_index.append(self.news_category_array[news])
+                candidate_subcategory_index.append(self.news_subcategory_array[news])
+                
                 # append the news title vector corresponding to news variable
                 click_title_index = self.news_title_array[self.histories[line]]
+                click_category_index = self.news_category_array[self.histories[line]]
+                click_subcategory_index = self.news_subcategory_array[self.histories[line]]
+
                 impr_index = self.impr_indexes[line]
                 user_index.append(self.uindexes[line])
+                
                 yield (
                     label,
                     impr_index,
                     user_index,
                     candidate_title_index,
+                    candidate_category_index,
+                    candidate_subcategory_index,
                     click_title_index,
+                    click_category_index,
+                    click_subcategory_index
                 )
 
     def load_data_from_file(self, news_file, behavior_file):
@@ -188,10 +224,17 @@ class MINDIterator():
             self.init_behaviors(behavior_file)
 
         label_list = []
-        imp_indexes = []
+        impr_indexes = []
         user_indexes = []
+
         candidate_title_indexes = []
+        candidate_category_indexes = []
+        candidate_subcategory_indexes = []
+
         click_title_indexes = []
+        click_category_indexes = []
+        click_subcategory_indexes = []
+
         cnt = 0
 
         indexes = np.arange(len(self.labels))
@@ -202,33 +245,56 @@ class MINDIterator():
         for index in indexes:
             for (
                 label,
-                imp_index,
+                impr_index,
                 user_index,
                 candidate_title_index,
+                candidate_category_index,
+                candidate_subcategory_index,
                 click_title_index,
+                click_category_index,
+                click_subcategory_index
             ) in self.parser_one_line(index):
 
                 # append one log in the batch
                 candidate_title_indexes.append(candidate_title_index)
+                candidate_category_indexes.append(candidate_category_index)
+                candidate_subcategory_indexes.append(candidate_subcategory_index)
+
                 click_title_indexes.append(click_title_index)
-                imp_indexes.append(imp_index)
+                click_category_indexes.append(click_category_index)
+                click_subcategory_indexes.append(click_subcategory_index)
+
+                impr_indexes.append(impr_index)
                 user_indexes.append(user_index)
                 label_list.append(label)
 
                 cnt += 1
                 if cnt >= self.batch_size:
+                    print(click_title_indexes)
+                    print(click_category_indexes)
+                    print(click_subcategory_indexes)
                     yield self._convert_data(
                         label_list,
-                        imp_indexes,
+                        impr_indexes,
                         user_indexes,
                         candidate_title_indexes,
+                        candidate_category_indexes,
+                        candidate_subcategory_indexes,
                         click_title_indexes,
+                        click_category_indexes,
+                        click_subcategory_indexes
                     )
                     label_list = []
-                    imp_indexes = []
+                    impr_indexes = []
                     user_indexes = []
+
                     candidate_title_indexes = []
+                    candidate_category_indexes = []
+                    candidate_subcategory_indexes = []
+
                     click_title_indexes = []
+                    click_category_indexes = []
+                    click_subcategory_indexes = []
                     cnt = 0
 
         "in case the last few examples can't fill a batch, abandon them"
@@ -236,18 +302,29 @@ class MINDIterator():
         # if cnt > 0:
         #     yield self._convert_data(
         #         label_list,
-        #         imp_indexes,
+        #         impr_indexes,
         #         user_indexes,
         #         candidate_title_indexes,
         #         click_title_indexes,
         #     )
 
-    def _convert_data(self,label_list,imp_indexes,user_indexes,candidate_title_indexes,click_title_indexes):
+    def _convert_data(
+        self,
+        label_list,
+        impr_indexes,
+        user_indexes,
+        candidate_title_indexes,
+        candidate_category_indexes,
+        candidate_subcategory_indexes,
+        click_title_indexes,
+        click_category_indexes,
+        click_subcategory_indexes
+        ):
         """Convert data of one candidate into torch.tensor that are good for further model operation, 
         
         Args:
             label_list (list): a list of ground-truth labels.
-            imp_indexes (list): a list of impression indexes.
+            impr_indexes (list): a list of impression indexes.
             user_indexes (list): a list of user indexes.
             candidate_title_indexes (list): the candidate news titles' words indices.
             click_title_indexes (list): words indices for user's clicked news titles.
@@ -257,7 +334,7 @@ class MINDIterator():
         """
 
         labels = torch.tensor(label_list, dtype=torch.float32,device=self.device)
-        # imp_indexes = torch.tensor(imp_indexes, dtype=torch.int64,device=self.device)
+        # impr_indexes = torch.tensor(impr_indexes, dtype=torch.int64,device=self.device)
         user_indexes = torch.tensor(user_indexes, dtype=torch.int64,device=self.device)
 
         # candidate_title_index_batch = torch.cat(candidate_title_indexes,dim=0).unsqueeze(dim=0)
@@ -265,13 +342,26 @@ class MINDIterator():
         candidate_title_index_batch = torch.tensor(
             candidate_title_indexes, dtype=torch.int64,device=self.device
         )
+        candidate_category_index_batch = torch.tensor(
+            candidate_category_indexes, dtype=torch.int64,device=self.device
+        )
+        candidate_subcategory_index_batch = torch.tensor(
+            candidate_subcategory_indexes, dtype=torch.int64,device=self.device
+        )
+
         click_title_index_batch = torch.tensor(click_title_indexes, dtype=torch.int64,device=self.device)
-        
+        click_category_index_batch = torch.tensor(click_category_indexes, dtype=torch.int64,device=self.device)
+        click_subcategory_index_batch = torch.tensor(click_subcategory_indexes, dtype=torch.int64,device=self.device)
+
         return {
-            "impression_index_batch": imp_indexes,
+            "impression_index_batch": impr_indexes,
             "user_index_batch": user_indexes,
             "clicked_title_batch": click_title_index_batch,
+            "clicked_category_batch":click_category_index_batch,
+            "clicked_subcategory_batch":click_subcategory_index_batch,
             "candidate_title_batch": candidate_title_index_batch,
+            "candidate_category_batch": candidate_category_index_batch,
+            "candidate_subcategory_batch": candidate_subcategory_index_batch,
             "labels": labels,
         }
 

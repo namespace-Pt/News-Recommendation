@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-10 00:06:47
-LastEditTime: 2020-11-14 01:14:38
+LastEditTime: 2020-11-14 10:05:42
 '''
 import random
 import re
@@ -28,6 +28,21 @@ def word_tokenize(sent):
     pat = re.compile(r"[\w]+|[.,!?;|]")
     if isinstance(sent, str):
         return pat.findall(sent.lower())
+    else:
+        return []
+
+def word_tokenize_vocab(sent,vocab):
+    """ Split sentence into wordID list using regex and vocabulary
+    Args:
+        sent (str): Input sentence
+        vocab : vocabulary
+
+    Return:
+        list: word list
+    """
+    pat = re.compile(r"[\w]+|[.,!?;|]")
+    if isinstance(sent, str):
+        return [vocab[x] for x in pat.findall(sent.lower())]
     else:
         return []
 
@@ -107,7 +122,7 @@ def constructVocab(news_file,attrs,save_path):
 
 def constructNid2idx(news_file,dic_file):
     """
-        Construct news to newsID dictionary
+        Construct news to newsID dictionary, index starting from 1
     """
     f = open(news_file,'r',encoding='utf-8')
     nid2index = {}
@@ -125,7 +140,7 @@ def constructNid2idx(news_file,dic_file):
 
 def constructUid2idx(behaviors_file,dic_file):
     """
-        Construct user to userID dictionary
+        Construct user to userID dictionary, index starting from 1
     """
     f = open(behaviors_file,'r',encoding='utf-8')
     uid2index = {}

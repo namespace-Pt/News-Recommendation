@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-13 19:39:12
-LastEditTime: 2020-11-14 00:52:14
+LastEditTime: 2020-11-14 10:43:37
 '''
 import torch
 import numpy as np
@@ -9,10 +9,10 @@ import os
 from torch.utils.data import Dataset,DataLoader
 from torchtext.data.utils import get_tokenizer
 from torchtext.data.functional import numericalize_tokens_from_iterator
-from .utils import newsample,getId2idx,word_tokenize,getVocab,constructBasicDict,news_token_generator_group
+from .utils import newsample,getId2idx,word_tokenize_vocab,getVocab,constructBasicDict,news_token_generator_group
 
 class MINDDataset(Dataset):
-    def __init__(self,hparams):
+    def __init__(self,hparams,news_file,behaviors_file):
         # initiate the whole iterator
         self.mode = hparams['load_mode']
         self.col_spliter = hparams['col_spliter']
@@ -21,47 +21,52 @@ class MINDDataset(Dataset):
         self.his_size = hparams['his_size']
         self.npratio = hparams['npratio']
         self.device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device('cpu')
-
+        
+        self.news_file = news_file
+        self.behaviors_file = behaviors_file
+        
         self.vocab = getVocab('data/vocab_'+hparams['mode']+'.pkl')
         self.nid2index = getId2idx('data/nid2idx_'+hparams['mode']+'.json')
         self.uid2index = getId2idx('data/uid2idx_'+hparams['mode']+'.json')
     
 
-    def _init_news(self,news_file):
-        """ init news, must be in order
-        Args:
-            news_file: path of news file
+    def _init_news(self):
+        """ 
+            init news, must be in order
         """
 
-        title_token = []
-        category_token = []
-        subcategory_token = []
+        title_token = [[0]*self.title_size]
+        category_token = [[0]]
+        subcategory_token = [[0]]
         
-        tokenizer = get_tokenizer('basic_english')
+        with open(self.news_file,"r",encoding='utf-8') as rd:
 
-        if self.mode == 1:
-            news_token_iterator = news_token_generator_group(news_file,tokenizer,self.vocab,self.mode)
+            for line in rd:
+                nid, vert, subvert, title, ab, url, _, _ = line.strip("\n").split(
+                    self.col_spliter
+                )
 
-            for news_token in news_token_iterator:
-                title_token.append(news_token[0][:self.title_size] + [0] * (self.title_size - len(news_token[0])))
+                title = word_tokenize_vocab(title,self.vocab)
+                title_token.append(title[:self.title_size] + [0] * (self.title_size - len(title)))
+                category_token.append(self.vocab[vert])
+                subcategory_token.append(self.vocab[subvert])
+
+
+        "this version is fucking slower, iterator is slower than loop?"
+        # tokenizer = word_tokenize
+        # news_token_iterator = news_token_generator_group(self.news_file,tokenizer,self.vocab,self.mode)
+
+        # for news_token in news_token_iterator:
             
-            self.news_title_array = np.asarray(title_token)
-
-        elif self.mode > 1 and self.mode < 4:
-            
-            news_token_iterator = news_token_generator_group(news_file,tokenizer,self.vocab,self.mode)
-
-            for news_token in news_token_iterator:
-                
-                title_token.append(news_token[0][:self.title_size] + [0] * (self.title_size - len(news_token[0])))
-                category_token.append(news_token[1])
-                subcategory_token.append(news_token[2])
-            
-            self.news_title_array = np.asarray(title_token)
-            self.category_title_array = np.asarray(category_token)
-            self.subcategory_title_array = np.asarray(subcategory_token)
+        #     title_token.append(news_token[0][:self.title_size] + [0] * (self.title_size - len(news_token[0])))
+        #     category_token.append(news_token[1])
+        #     subcategory_token.append(news_token[2])
+        
+        self.news_title_array = np.asarray(title_token)
+        self.news_category_array = np.asarray(category_token)
+        self.news_subcategory_array = np.asarray(subcategory_token)
     
-    def init_behaviors(self, behaviors_file):
+    def init_behaviors(self):
         """ init behavior logs given behaviors file.
 
         Args:
@@ -79,7 +84,7 @@ class MINDDataset(Dataset):
         # user ids
         self.uindexes = []
 
-        with open(behaviors_file, "r",encoding='utf-8') as rd:
+        with open(self.behaviors_file, "r",encoding='utf-8') as rd:
             impr_index = 0
             for line in rd:
                 uid, time, history, impr = line.strip("\n").split(self.col_spliter)[-4:]
@@ -102,7 +107,17 @@ class MINDDataset(Dataset):
                 self.uindexes.append(uindex)
                 impr_index += 1
 
-    def parser_one_line(self, line):
+    def __len__(self):
+        if not hasattr(self, "news_title_array"):
+            self.init_news()
+
+        if not hasattr(self, "impr_indexes"):
+            self.init_behaviors()
+        
+        return len(self.news_title_array)
+        
+
+    def __getitem__(self,idx):
         """Parse one behavior sample into |candidates| feature values, each of which consists of
         one single candidate title vector when npratio < 0 or npratio+1 candidate title vectors when npratio > 0
 
@@ -118,8 +133,8 @@ class MINDDataset(Dataset):
             candidate_title_index, clicked_title_index.
         """
         if self.npratio > 0:
-            impr_label = self.labels[line]
-            impr = self.imprs[line]
+            impr_label = self.labels[idx]
+            impr = self.imprs[idx]
 
             # user clicked news
             poss = []
@@ -134,6 +149,9 @@ class MINDDataset(Dataset):
 
             for p in poss:
                 candidate_title_index = []
+                candidate_category_index = []
+                candidate_subcategory_index = []
+                
                 impr_index = []
                 user_index = []
                 label = [1] + [0] * self.npratio
@@ -141,15 +159,24 @@ class MINDDataset(Dataset):
                 neg_list = newsample(negs, self.npratio)
 
                 candidate_title_index = self.news_title_array[[p] + neg_list]
+                candidate_category_index = self.news_category_array[[p] + neg_list]
+                candidate_subcategory_index = self.news_subcategory_array[[p] + neg_list]
+                
                 click_title_index = self.news_title_array[self.histories[line]]
+                click_category_index = self.news_category_array[self.histories[line]]
+                click_subcategory_index = self.news_subcategory_array[self.histories[line]]
+
                 impr_index = self.impr_indexes[line]
                 user_index.append(self.uindexes[line])
 
-                yield (
+
+                """ haven't try to return multiple tensors """
+                return (
                     label,
                     impr_index,
                     user_index,
                     candidate_title_index,
+                    
                     click_title_index,
                 )
 
@@ -180,24 +207,20 @@ class MINDDataset(Dataset):
                     click_title_index,
                 )
 
-    def load_data_from_file(self, news_file, behavior_file):
+    def load_data_from_file(self):
         """Read and parse data from news file and behavior file, generate batch_size of training examples, each of which contains
         an impression id, a user id, a union tensor of history clicked news' title tensor, a candidate news' title vector, a click label
         
-        Args:
-            news_file (str): A file contains several informations of news.
-            beahaviros_file (str): A file contains information of user impressions.
-
         Returns:
             obj: An iterator that will yields batch of parsed results, in the format of dict.
             
         """
 
         if not hasattr(self, "news_title_array"):
-            self.init_news(news_file)
+            self.init_news()
 
         if not hasattr(self, "impr_indexes"):
-            self.init_behaviors(behavior_file)
+            self.init_behaviors()
 
         label_list = []
         imp_indexes = []
@@ -272,8 +295,6 @@ class MINDDataset(Dataset):
         # imp_indexes = torch.tensor(imp_indexes, dtype=torch.int64,device=self.device)
         user_indexes = torch.tensor(user_indexes, dtype=torch.int64,device=self.device)
 
-        # candidate_title_index_batch = torch.cat(candidate_title_indexes,dim=0).unsqueeze(dim=0)
-        # click_title_index_batch = torch.cat(click_title_indexes,dim=0).unsqueeze(dim=0)
         candidate_title_index_batch = torch.tensor(
             candidate_title_indexes, dtype=torch.int64,device=self.device
         )
