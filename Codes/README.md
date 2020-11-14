@@ -21,7 +21,8 @@ run [model_name].ipynb
   - some useful function
 
 ### /models
-  - NPA[23]
+  - [NPA[23]](NPA.ipynb)
+  - [FIM[29]](FIM.ipynb)
 
 ## TODO
 - integrate MINDIterator to Datasets and Dataloader
