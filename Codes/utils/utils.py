@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-10 00:06:47
-LastEditTime: 2020-11-14 10:05:42
+LastEditTime: 2020-11-14 22:40:22
 '''
 import random
 import re
@@ -12,6 +12,7 @@ import os
 import pandas as pd
 import torch.nn as nn
 import numpy as np
+from tqdm import tqdm
 from sklearn.metrics import roc_auc_score,log_loss,mean_squared_error,accuracy_score,f1_score
 from torchtext.data.utils import get_tokenizer
 from torchtext.data import Dataset
@@ -276,7 +277,7 @@ def dcg_score(y_true, y_score, k=10):
     discounts = np.log2(np.arange(len(y_true)) + 2)
     return np.sum(gains / discounts)
 
-def _cal_metric(labels, preds, metrics):
+def _cal_metric(imp_indexes, labels, preds, metrics):
     """Calculate metrics,such as auc, logloss.
     
     FIXME: 
@@ -342,19 +343,28 @@ def _cal_metric(labels, preds, metrics):
                 )
                 res["hit@{0}".format(k)] = round(hit_temp, 4)
         elif metric == "group_auc":
-            group_auc = np.mean(
-                [
-                    roc_auc_score(each_labels, each_preds)
-                    for each_labels, each_preds in zip(labels, preds)
-                ]
-            )
+            result = []
+            # group_auc = np.mean(
+            #     [
+            #         roc_auc_score(each_labels, each_preds)
+            #         for each_labels, each_preds in zip(labels, preds)
+            #     ]
+            # )
+            
+            for each_imprs, each_labels, each_preds in zip(imp_indexes, labels, preds):
+                try:
+                    result.append(roc_auc_score(each_labels,each_preds))
+                except:
+                    print(each_imprs,each_labels,each_preds)
+            
+            group_auc = np.mean(result)    
             res["group_auc"] = round(group_auc, 4)
         else:
             raise ValueError("not define this metric {0}".format(metric))
     return res
 
 def group_labels(impression_ids, labels, preds):
-    """Devide labels and preds into several group according to impression_ids
+    """ Devide labels and preds into several group acscording to impression_ids
 
     Args:
         labels (list of batch_size): ground truth label list.
@@ -381,6 +391,9 @@ def group_labels(impression_ids, labels, preds):
 
     for k in all_keys:
         all_labels.append(group_labels[k])
+        if len(group_labels[k]) == 1:
+            print(k,group_labels[k])
+            
         all_preds.append(group_preds[k])
 
     return all_keys, all_labels, all_preds
@@ -404,12 +417,19 @@ def _eval(model,test_iterator):
     for batch_data_input in test_iterator:
         
         preds.extend(model.forward(batch_data_input).tolist())
+        label = batch_data_input['labels'].squeeze().tolist()
+        
         labels.extend(batch_data_input['labels'].squeeze().tolist())
         imp_indexes.extend(batch_data_input['impression_index_batch'])
-
+        
+        # intend to find bug
+        # if len(label) == 1:
+        #     print(batch_data_input['impression_index_batch'])
+            
     impr_indexes, labels, preds = group_labels(
         imp_indexes,labels, preds
     )
+    
     return impr_indexes, labels, preds
 
 def run_eval(model,test_iterator):
@@ -421,6 +441,38 @@ def run_eval(model,test_iterator):
     Returns:
         dict: A dictionary contains evaluation metrics.
     """
-    _, group_labels, group_preds = _eval(model,test_iterator)
-    res = _cal_metric(group_labels,group_preds,model.metrics.split(','))
+    imp_indexes, group_labels, group_preds = _eval(model,test_iterator)
+    res = _cal_metric(imp_indexes,group_labels,group_preds,model.metrics.split(','))
     return res
+
+def run_train(model, iterator, optimizer, loss_func):
+    ''' train model and print loss meanwhile
+    Args: 
+        model: the model to be trained
+        iterator: generator which provides data
+        optimizer: optimizer for training
+        loss_func: loss function for training
+    Returns: 
+        model: trained model
+    '''
+    for epoch in range(10):
+        train = iterator.load_data_from_file()
+        tqdm_ = tqdm(train)
+        step = 0
+        epoch_loss = 0
+
+        for x in tqdm_:
+            pred = model(x)
+            label = getLabel(model,x)
+            loss = loss_func(pred,label)
+            epoch_loss += loss
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+            step += 1
+
+            if step % 100 == 0:
+                tqdm_.set_description(
+                    "epoch {:d} , step {:d} , total_loss: {:.4f}, batch_loss: {:.4f}".format(epoch, step, epoch_loss / step, loss))
+    
+    return model

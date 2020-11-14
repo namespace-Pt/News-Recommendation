@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-05 18:05:03
-LastEditTime: 2020-11-13 18:05:38
+LastEditTime: 2020-11-14 13:48:16
 '''
 
 import torch
@@ -188,7 +188,7 @@ class NPAModel(nn.Module):
         
         Args:
             cdd_news_repr: tensor of batch_size * npratio+1/1 * filter_num
-            user_repr: tensor of batch_size * filter_num
+            user_repr: tensor of batch_size * 1 * filter_num
         
         Returns:
             score: tensor of batch_size * npratio+1/1
