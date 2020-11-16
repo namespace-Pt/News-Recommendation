@@ -17,6 +17,13 @@ run [model_name].ipynb
   - MINDIterator
     - read and parse data in MIND datasets
     - return a generator which generates *batch_size* of training examples once
+      - if `npratio > 0`
+        - generates positive candidates only
+        - negtive sampling enabled
+      - else
+        - generates both positive and negtive candidates
+        - negtive sampling disabled
+ 
 - `utils.py`
   - some useful functions
     - construct dictionary
@@ -26,12 +33,12 @@ run [model_name].ipynb
   - [NPA[23]](NPA.ipynb)
   - [FIM[29]](FIM.ipynb)
 
-### `data`: basic dictionaries
+### `/data`: basic dictionaries
   - vocab
   - nid2idx
   - uid2idx
 
-### `tips`: insight of some api
+### `/tips`: insight of some api
   - torch_tips.ipynb
     - useful api, confusing api
 
