@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-10 00:06:47
-LastEditTime: 2020-11-14 22:40:22
+LastEditTime: 2020-11-16 15:38:58
 '''
 import random
 import re
@@ -65,7 +65,7 @@ def newsample(news, ratio):
 
 
 def news_token_generator(news_file,tokenizer,attrs):
-    ''' iterate news_file, collect attrs into a string and generate it
+    ''' merge and deduplicate training news and testing news then iterate, collect attrs into a string and generate it
        
     Args: 
         tokenizer: torchtext.data.utils.tokenizer
@@ -73,6 +73,10 @@ def news_token_generator(news_file,tokenizer,attrs):
     Returns: 
         a generator over attrs in news
     '''    
+
+    # news_df_train = pd.read_table(news_file_train,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
+    # news_df_test = pd.read_table(news_file_test,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
+    # news_df = pd.concat([news_df_train,news_df_test]).drop_duplicates()
 
     news_df = pd.read_table(news_file,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
     news_iterator = news_df.iterrows()
@@ -134,6 +138,7 @@ def constructNid2idx(news_file,dic_file):
             continue
 
         nid2index[nid] = len(nid2index) + 1
+    f.close()
     
     g = open(dic_file,'w',encoding='utf-8')
     json.dump(nid2index,g,ensure_ascii=False)
@@ -152,12 +157,13 @@ def constructUid2idx(behaviors_file,dic_file):
             continue
 
         uid2index[uid] = len(uid2index) + 1
+    f.close()
     
     g = open(dic_file,'w',encoding='utf-8')
     json.dump(uid2index,g,ensure_ascii=False)
     g.close()
 
-def constructBasicDict(news_file,behavior_file,mode,attrs):
+def constructBasicDict(news_file,behaviors_file,data_mode,model_mode,attrs):
     """ construct basic dictionary
 
         Args:
@@ -165,9 +171,36 @@ def constructBasicDict(news_file,behavior_file,mode,attrs):
         behavior_file: path of behavior file
         mode: [small/large]
     """    
-    constructVocab(news_file,attrs,'./data/vocab_'+mode+'.pkl')
-    constructUid2idx(behavior_file,'./data/uid2idx_'+mode+'.json')
-    constructNid2idx(news_file,'./data/nid2idx_'+mode+'.json')
+    dict_path_v = './data/vocab_{}_{}_{}.pkl'.format(data_mode,model_mode,'_'.join(attrs))
+    dict_path_n = './data/nid2idx_{}_{}.json'.format(data_mode,model_mode)
+    dict_path_u = './data/uid2idx_{}_{}.json'.format(data_mode,model_mode)
+    
+    constructVocab(news_file,attrs,dict_path_v)
+    constructNid2idx(news_file,dict_path_n)
+    constructUid2idx(behaviors_file,dict_path_u)
+
+def tailorData(tsvFile, num):
+    ''' tailor num rows of tsvFile to create demo data file
+    
+    Args: 
+        tsvFile: str of data path
+    Returns: 
+        create tailored data file
+    '''
+    mode = re.search('D:/Data/NR_data/MINDsmall_(.*)/(.*).tsv',tsvFile).group(1)
+    target_file = re.search('D:/Data/NR_data/MINDsmall_(.*)/(.*).tsv',tsvFile).group(2)
+
+    target_file = 'D:/Data/NR_data/dev/'+target_file+'_{}.tsv'.format(mode)
+    
+    f = open(target_file,'w',encoding='utf-8')   
+    count = 0
+    with open(tsvFile,'r',encoding='utf-8') as g:
+        for line in g:
+            if count >= num:
+                f.close()
+                return
+            f.write(line)
+            count += 1
 
 def getId2idx(file):
     """
@@ -413,18 +446,25 @@ def _eval(model,test_iterator):
     preds = []
     labels = []
     imp_indexes = []
+    test = test_iterator.load_data_from_file()
 
-    for batch_data_input in test_iterator:
-        
-        preds.extend(model.forward(batch_data_input).tolist())
-        label = batch_data_input['labels'].squeeze().tolist()
-        
-        labels.extend(batch_data_input['labels'].squeeze().tolist())
-        imp_indexes.extend(batch_data_input['impression_index_batch'])
-        
-        # intend to find bug
-        # if len(label) == 1:
-        #     print(batch_data_input['impression_index_batch'])
+    if test_iterator.npratio > 0:
+        for batch_data_input in test:
+            
+            preds.extend(model.forward(batch_data_input).tolist())
+            labels.append(1)
+            imp_indexes.extend(batch_data_input['impression_index_batch'])
+            
+    else:
+        for batch_data_input in test:
+            # print(batch_data_input)
+            preds.extend(model.forward(batch_data_input).tolist())            
+            labels.extend(batch_data_input['labels'].squeeze().tolist())
+            imp_indexes.extend(batch_data_input['impression_index_batch'])
+            
+            # intend to find bug
+            # if len(label) == 1:
+            #     print(batch_data_input['impression_index_batch'])
             
     impr_indexes, labels, preds = group_labels(
         imp_indexes,labels, preds
@@ -445,17 +485,19 @@ def run_eval(model,test_iterator):
     res = _cal_metric(imp_indexes,group_labels,group_preds,model.metrics.split(','))
     return res
 
-def run_train(model, iterator, optimizer, loss_func):
+def run_train(model, iterator, optimizer, loss_func, epochs, interval=100):
     ''' train model and print loss meanwhile
     Args: 
         model: the model to be trained
         iterator: generator which provides data
         optimizer: optimizer for training
         loss_func: loss function for training
+        epochs: (int) number of epochs
+        interval: (int) within each epoch, the interval of training steps to display loss
     Returns: 
         model: trained model
     '''
-    for epoch in range(10):
+    for epoch in range(epochs):
         train = iterator.load_data_from_file()
         tqdm_ = tqdm(train)
         step = 0
@@ -471,7 +513,7 @@ def run_train(model, iterator, optimizer, loss_func):
             optimizer.zero_grad()
             step += 1
 
-            if step % 100 == 0:
+            if step % interval == 0:
                 tqdm_.set_description(
                     "epoch {:d} , step {:d} , total_loss: {:.4f}, batch_loss: {:.4f}".format(epoch, step, epoch_loss / step, loss))
     

@@ -9,7 +9,7 @@ class MINDIterator():
         Args:
         hparams: pre-defined dictionary of hyper parameters
     """
-    def __init__(self, hparams,news_file,behaviors_file,col_spliter='\t'):
+    def __init__(self, hparams,mode,news_file,behaviors_file,col_spliter='\t'):
         # initiate the whole iterator
         self.news_file = news_file
         self.behaviors_file = behaviors_file
@@ -20,9 +20,9 @@ class MINDIterator():
         self.npratio = hparams['npratio']
         self.device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device('cpu')
 
-        self.vocab = getVocab('data/vocab_'+hparams['mode']+'.pkl')
-        self.nid2index = getId2idx('data/nid2idx_'+hparams['mode']+'.json')
-        self.uid2index = getId2idx('data/uid2idx_'+hparams['mode']+'.json')
+        self.vocab = getVocab('data/vocab_{}_{}_{}.pkl'.format(hparams['mode'],mode,'_'.join(hparams['attrs'])))
+        self.nid2index = getId2idx('data/nid2idx_{}_{}.json'.format(hparams['mode'],mode))
+        self.uid2index = getId2idx('data/uid2idx_{}_{}.json'.format(hparams['mode'],mode))
     
     def init_news(self):
         """ 
