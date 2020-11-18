@@ -49,6 +49,7 @@ run [model_name].ipynb
 - [ ] understand *permute*
 - [x] construct `nid2idx` and `uid2idx` according to both training iterator and testing iterator
 - [ ] k-fold validation, concepts and implementation
+- [ ] analyze MIND dataset, calculate average user history length
 
 ## Insights
 ### Convolution

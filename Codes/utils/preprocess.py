@@ -80,14 +80,17 @@ class MINDIterator():
             impr_index = 0
             for line in rd:
                 uid, time, history, impr = line.strip("\n").split(self.col_spliter)[-4:]
-
+                
                 history = [self.nid2index[i] for i in history.split()]
                 
                 # tailor user's history or pad 0
                 history = history[:self.his_size] + [0] * (self.his_size - len(history))
-
+        
                 impr_news = [self.nid2index[i.split("-")[0]] for i in impr.split()]
-                label = [int(i.split("-")[1]) for i in impr.split()]
+                try:
+                    label = [int(i.split("-")[1]) for i in impr.split()]
+                except:
+                    print(impr,impr_index)
                 uindex = self.uid2index[uid] if uid in self.uid2index else 0
 
                 self.histories.append(history)

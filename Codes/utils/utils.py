@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-10 00:06:47
-LastEditTime: 2020-11-16 15:38:58
+LastEditTime: 2020-11-17 22:28:42
 '''
 import random
 import re
@@ -171,9 +171,9 @@ def constructBasicDict(news_file,behaviors_file,data_mode,model_mode,attrs):
         behavior_file: path of behavior file
         mode: [small/large]
     """    
-    dict_path_v = './data/vocab_{}_{}_{}.pkl'.format(data_mode,model_mode,'_'.join(attrs))
-    dict_path_n = './data/nid2idx_{}_{}.json'.format(data_mode,model_mode)
-    dict_path_u = './data/uid2idx_{}_{}.json'.format(data_mode,model_mode)
+    dict_path_v = 'data/vocab_{}_{}_{}.pkl'.format(data_mode,model_mode,'_'.join(attrs))
+    dict_path_n = 'data/nid2idx_{}_{}.json'.format(data_mode,model_mode)
+    dict_path_u = 'data/uid2idx_{}_{}.json'.format(data_mode,model_mode)
     
     constructVocab(news_file,attrs,dict_path_v)
     constructNid2idx(news_file,dict_path_n)
@@ -431,8 +431,8 @@ def group_labels(impression_ids, labels, preds):
 
     return all_keys, all_labels, all_preds
 
-def _eval(model,test_iterator):
-    """ making prediction and gather results into groups according to impression_id
+def _eval(model,test_iterator,interval):
+    """ making prediction and gather results into groups according to impression_id, display processing every interval batches
 
     Args:
         model
@@ -447,32 +447,21 @@ def _eval(model,test_iterator):
     labels = []
     imp_indexes = []
     test = test_iterator.load_data_from_file()
-
-    if test_iterator.npratio > 0:
-        for batch_data_input in test:
-            
-            preds.extend(model.forward(batch_data_input).tolist())
-            labels.append(1)
-            imp_indexes.extend(batch_data_input['impression_index_batch'])
-            
-    else:
-        for batch_data_input in test:
-            # print(batch_data_input)
-            preds.extend(model.forward(batch_data_input).tolist())            
-            labels.extend(batch_data_input['labels'].squeeze().tolist())
-            imp_indexes.extend(batch_data_input['impression_index_batch'])
-            
-            # intend to find bug
-            # if len(label) == 1:
-            #     print(batch_data_input['impression_index_batch'])
-            
+    tqdm_ = tqdm(test)
+    
+    for batch_data_input in tqdm_:
+        
+        preds.extend(model.forward(batch_data_input).tolist())            
+        labels.extend(batch_data_input['labels'].squeeze().tolist())
+        imp_indexes.extend(batch_data_input['impression_index_batch'])
+                    
     impr_indexes, labels, preds = group_labels(
         imp_indexes,labels, preds
     )
     
     return impr_indexes, labels, preds
 
-def run_eval(model,test_iterator):
+def run_eval(model,test_iterator,interval=100):
     """Evaluate the given file and returns some evaluation metrics.
     
     Args:
@@ -481,7 +470,7 @@ def run_eval(model,test_iterator):
     Returns:
         dict: A dictionary contains evaluation metrics.
     """
-    imp_indexes, group_labels, group_preds = _eval(model,test_iterator)
+    imp_indexes, group_labels, group_preds = _eval(model,test_iterator,interval)
     res = _cal_metric(imp_indexes,group_labels,group_preds,model.metrics.split(','))
     return res
 
