@@ -8,7 +8,6 @@
 
 ## 声明
 - 要引用、转载，请附本仓库链接[https://github.com/namespace-Pt/News-Recommendation]
-- 如果想要我pre做的更清楚的ppt，以及每一篇论文的笔记，请邮件联系[zpt@ruc.edu.cn]
 
 ## Highlight
 - 黄：需要看的点

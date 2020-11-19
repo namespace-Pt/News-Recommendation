@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-10 00:06:47
-LastEditTime: 2020-11-17 22:28:42
+LastEditTime: 2020-11-18 15:29:41
 '''
 import random
 import re
@@ -254,8 +254,12 @@ def mrr_score(y_true, y_score):
     Returns:
         np.ndarray: mrr scores.
     """
+    # descending rank prediction score, get corresponding index of candidate news
     order = np.argsort(y_score)[::-1]
+    # get ground truth for these indexes
     y_true = np.take(y_true, order)
+    # check whether the prediction news with max score is the one being clicked
+    # calculate the inverse of its index
     rr_score = y_true / (np.arange(len(y_true)) + 1)
     return np.sum(rr_score) / np.sum(y_true)
 
