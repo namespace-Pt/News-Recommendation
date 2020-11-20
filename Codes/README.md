@@ -44,10 +44,8 @@ run [model_name].ipynb
 ## TODO
 - [x] integrate MINDIterator to Datasets and Dataloader
   - motivation: split data with more flexibility, enable distribution
-
 - [ ] understand *permute*
 - [x] construct `nid2idx` and `uid2idx` according to both training iterator and testing iterator
-- [ ] k-fold validation, concepts and implementation
 - [ ] analyze MIND dataset, calculate average user history length
 
 ## Insights
