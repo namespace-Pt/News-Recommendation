@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-10 00:06:47
-LastEditTime: 2020-11-18 15:29:41
+LastEditTime: 2020-11-20 10:14:28
 '''
 import random
 import re
@@ -392,7 +392,8 @@ def _cal_metric(imp_indexes, labels, preds, metrics):
                 try:
                     result.append(roc_auc_score(each_labels,each_preds))
                 except:
-                    print(each_imprs,each_labels,each_preds)
+                    print("error in impression:{}, labels of which is {}, predictions of which are {}".format(each_imprs,each_labels,each_preds))
+                    continue
             
             group_auc = np.mean(result)    
             res["group_auc"] = round(group_auc, 4)
@@ -450,15 +451,16 @@ def _eval(model,test_iterator,interval):
     preds = []
     labels = []
     imp_indexes = []
-    test = test_iterator.load_data_from_file()
-    tqdm_ = tqdm(test)
+    # test = test_iterator.load_data_from_file()
+    tqdm_ = tqdm(enumerate(test_iterator))
     
-    for batch_data_input in tqdm_:
+    for i,batch_data_input in tqdm_:
         
         preds.extend(model.forward(batch_data_input).tolist())            
         labels.extend(batch_data_input['labels'].squeeze().tolist())
-        imp_indexes.extend(batch_data_input['impression_index_batch'])
-                    
+        imp_indexes.extend(batch_data_input['impression_index'].tolist())
+    
+    
     impr_indexes, labels, preds = group_labels(
         imp_indexes,labels, preds
     )
@@ -491,12 +493,11 @@ def run_train(model, iterator, optimizer, loss_func, epochs, interval=100):
         model: trained model
     '''
     for epoch in range(epochs):
-        train = iterator.load_data_from_file()
-        tqdm_ = tqdm(train)
+        tqdm_ = tqdm(enumerate(iterator))
         step = 0
         epoch_loss = 0
 
-        for x in tqdm_:
+        for step,x in tqdm_:
             pred = model(x)
             label = getLabel(model,x)
             loss = loss_func(pred,label)
@@ -504,7 +505,6 @@ def run_train(model, iterator, optimizer, loss_func, epochs, interval=100):
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
-            step += 1
 
             if step % interval == 0:
                 tqdm_.set_description(

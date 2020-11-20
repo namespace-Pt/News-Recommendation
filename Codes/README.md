@@ -13,17 +13,16 @@ run [model_name].ipynb
 
 ## File Structure
 ### `/utils`: data loader and utility functions
-- `preprocess.py`
-  - MINDIterator
-    - read and parse data in MIND datasets
-    - return a generator which generates *batch_size* of training examples once
-      - if `npratio > 0`
-        - generates positive candidates only
-        - negtive sampling enabled
-      - else
-        - generates both positive and negtive candidates
-        - negtive sampling disabled
- 
+- `MIND.py`
+  - MIND_map
+    - map style dataset
+    - return dictionary of one behavior log
+      - negtive sampling enabled
+  - MIND_iter
+    - iterator style dataset
+    - return dictionary of one candidate news
+      - negtive sampling disabled, **point-wise**, intended for evaluating
+
 - `utils.py`
   - some useful functions
     - construct dictionary
@@ -43,9 +42,9 @@ run [model_name].ipynb
     - useful api, confusing api
 
 ## TODO
-- [ ] integrate MINDIterator to Datasets and Dataloader
-  - motivation: split data with more flexibility
-  - **falied**, need to explore datasets which returns several tensors
+- [x] integrate MINDIterator to Datasets and Dataloader
+  - motivation: split data with more flexibility, enable distribution
+
 - [ ] understand *permute*
 - [x] construct `nid2idx` and `uid2idx` according to both training iterator and testing iterator
 - [ ] k-fold validation, concepts and implementation

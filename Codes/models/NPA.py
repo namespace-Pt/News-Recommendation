@@ -1,17 +1,17 @@
 '''
 Author: Pt
 Date: 2020-11-05 18:05:03
-LastEditTime: 2020-11-14 13:48:16
+LastEditTime: 2020-11-20 10:24:33
 '''
 
 import torch
 import torch.nn as nn
 
 class NPAModel(nn.Module):
-    def __init__(self,hparams,vocab):
+    def __init__(self,hparams,vocab,npratio):
         super().__init__()
         
-        self.npratio = hparams['npratio']
+        self.npratio = npratio
         self.dropout_p = hparams['dropout_p']
         self.metrics = hparams['metrics']
 
@@ -201,10 +201,10 @@ class NPAModel(nn.Module):
         return score.squeeze()
 
     def forward(self,x):
-        self._user_projection(x['user_index_batch'].type(torch.float32))
+        self._user_projection(x['user_index'].float().to(self.device))
         word_query = self._word_query_projection()
         news_query = self._news_query_projection()
-        cdd_news_batch = x['candidate_title_batch']
+        cdd_news_batch = x['candidate_title'].long().to(self.device)
 
         if self.npratio > 0:
             cdd_news_reprs = torch.zeros((self.batch_size,self.npratio+1,self.filter_num),dtype=torch.float32,device=self.device)
@@ -215,7 +215,7 @@ class NPAModel(nn.Module):
         else:
             cdd_news_reprs = self._news_encoder(cdd_news_batch.squeeze(),word_query).unsqueeze(dim=1)
         
-        user_repr = self._user_encoder(x['clicked_title_batch'],news_query,word_query)
+        user_repr = self._user_encoder(x['clicked_title'].long().to(self.device),news_query,word_query)
         
         score = self._click_predictor(cdd_news_reprs.view(self.batch_size,-1,self.filter_num),user_repr.unsqueeze(dim=1))
         return score

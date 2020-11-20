@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-14 16:00:00
-LastEditTime: 2020-11-14 21:30:17
+LastEditTime: 2020-11-20 01:28:10
 Description: Implementation of Finegrained Interest Matching method for neural news recommendation 
 '''
 
@@ -10,9 +10,9 @@ import math
 import torch.nn as nn
 
 class FIMModel(nn.Module):
-    def __init__(self,hparams,vocab):
+    def __init__(self,hparams,vocab,npratio):
         super().__init__()
-        self.npratio = hparams['npratio']
+        self.npratio = npratio
         self.metrics = hparams['metrics']
 
         self.batch_size = hparams['batch_size']
@@ -124,12 +124,12 @@ class FIMModel(nn.Module):
         return score
 
     def forward(self,x):
-        cdd_news_set = torch.cat([x['candidate_title_batch'],x['candidate_category_batch'],x['candidate_subcategory_batch']],dim=2).view(-1,self.signal_length)
+        cdd_news_set = torch.cat([x['candidate_title'].long().to(self.device),x['candidate_category'].long().to(self.device),x['candidate_subcategory'].long().to(self.device)],dim=2).view(-1,self.signal_length)
 
         cdd_news_reprs = self._news_encoder(cdd_news_set).view(self.batch_size,-1,self.level,self.filter_num,self.signal_length)
 
         # compress batch_size and his_size into dim0
-        his_news_set = torch.cat([x['clicked_title_batch'],x['clicked_category_batch'],x['clicked_subcategory_batch']],dim=2).view(-1,self.signal_length)
+        his_news_set = torch.cat([x['clicked_title'].long().to(self.device),x['clicked_category'].long().to(self.device),x['clicked_subcategory'].long().to(self.device)],dim=2).view(-1,self.signal_length)
 
         his_news_reprs = self._news_encoder(his_news_set)
         
