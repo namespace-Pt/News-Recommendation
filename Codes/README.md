@@ -10,8 +10,29 @@ cuda == 10.1
 ```shell
 run [model_name].ipynb
 ```
+you can alse run **python scripts** in terminal directly
+```shell
+python scripts/[model_name].py
+```
+*remember to customize your paths and hyper parameters*
 
 ## File Structure
+### `/data`: basic dictionaries
+  - vocab
+  - nid2idx
+  - uid2idx
+
+### `/models`: achieved models
+  - [NPA[23]](NPA.ipynb)
+  - [FIM[29]](FIM.ipynb)
+
+### `/scripts`: python scripts of models
+  - same as `[model_name].ipynb`, you can run it in terminal  
+
+### `/tips`: insight of some api
+  - torch_tips.ipynb
+    - useful api, confusing api
+
 ### `/utils`: data loader and utility functions
 - `MIND.py`
   - MIND_map
@@ -27,19 +48,6 @@ run [model_name].ipynb
   - some useful functions
     - construct dictionary
     - wrap training and testing/evaluating
-
-### `/models`: achieved models
-  - [NPA[23]](NPA.ipynb)
-  - [FIM[29]](FIM.ipynb)
-
-### `/data`: basic dictionaries
-  - vocab
-  - nid2idx
-  - uid2idx
-
-### `/tips`: insight of some api
-  - torch_tips.ipynb
-    - useful api, confusing api
 
 ## TODO
 - [x] integrate MINDIterator to Datasets and Dataloader
