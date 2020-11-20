@@ -19,7 +19,6 @@
 - Jaccard:给定$x = (1,0,0),y=(0,0,1)$，则
   $$Jaccard(x,y) = \frac{|x\cap y|}{|x\cup y|} = \frac{1}{2}$$
 - Access partern：点击同一个文章的不同用户的分布
-- cross-validation ![](Resources/cross-validation.png)
 - $u$、$v$是$n$维行向量：
   - inner product$ = u^Tv$
   - outer product$ = uv^T$
@@ -39,6 +38,7 @@
 - [CNN](https://towardsdatascience.com/a-comprehensive-guide-to-convolutional-neural-networks-the-eli5-way-3bd2b1164a53),[CNN_torch](https://towardsdatascience.com/pytorch-basics-how-to-train-your-neural-net-intro-to-cnn-26a14c2ea29)
 - [Transformer](http://jalammar.github.io/illustrated-transformer/)
 - [LSTM](https://colah.github.io/posts/2015-08-Understanding-LSTMs/)
+- [Layer Normalization](https://mlexplained.com/2018/01/13/weight-normalization-and-layer-normalization-explained-normalization-in-deep-learning-part-2/)
 - [Mathematics for Machine Learning](https://mml-book.github.io/)
 
 ## Toolkits
@@ -234,7 +234,7 @@
 - word-doc矩阵初步降维
   - word hashing[13]
 - sample
-  - 随机的挑选![](Resources/让训练数据不要收到特定时期的流行新闻的影响.png)
+  - 随机的挑选
   - 应该将是否存在新用户的情况分开讨论对比
 
 ## 训练

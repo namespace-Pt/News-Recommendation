@@ -6,12 +6,16 @@ torch == 1.6.0
 cuda == 10.1
 ```
 
+## Dataset
+download MIND dataset [**here**](https://msnews.github.io/), and customize data path in `[model_name].ipynb` and `scripts/[model_name].py`
+
 ## Instruction
 ```shell
 run [model_name].ipynb
 ```
 you can alse run **python scripts** in terminal directly
 ```shell
+cd Codes/
 python scripts/[model_name].py
 ```
 *remember to customize your paths and hyper parameters*

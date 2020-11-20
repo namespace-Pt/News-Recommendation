@@ -429,9 +429,6 @@ def group_labels(impression_ids, labels, preds):
 
     for k in all_keys:
         all_labels.append(group_labels[k])
-        if len(group_labels[k]) == 1:
-            print(k,group_labels[k])
-            
         all_preds.append(group_preds[k])
 
     return all_keys, all_labels, all_preds
