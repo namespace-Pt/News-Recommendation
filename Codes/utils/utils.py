@@ -9,6 +9,7 @@ import json
 import pickle
 import torch
 import os
+import math
 import pandas as pd
 import torch.nn as nn
 import numpy as np
@@ -477,11 +478,11 @@ def run_eval(model,test_iterator,interval=100):
     res = _cal_metric(imp_indexes,group_labels,group_preds,model.metrics.split(','))
     return res
 
-def run_train(model, iterator, optimizer, loss_func, epochs, interval=100):
+def run_train(model, dataloader, optimizer, loss_func, writer, epochs, interval=100):
     ''' train model and print loss meanwhile
     Args: 
         model: the model to be trained
-        iterator: generator which provides data
+        dataloader: generator which provides data
         optimizer: optimizer for training
         loss_func: loss function for training
         epochs: (int) number of epochs
@@ -490,9 +491,9 @@ def run_train(model, iterator, optimizer, loss_func, epochs, interval=100):
         model: trained model
     '''
     for epoch in range(epochs):
-        tqdm_ = tqdm(enumerate(iterator))
+        epoch_loss = math.inf
+        tqdm_ = tqdm(enumerate(dataloader))
         step = 0
-        epoch_loss = 0
 
         for step,x in tqdm_:
             pred = model(x)
@@ -504,7 +505,11 @@ def run_train(model, iterator, optimizer, loss_func, epochs, interval=100):
             optimizer.zero_grad()
 
             if step % interval == 0:
+
                 tqdm_.set_description(
-                    "epoch {:d} , step {:d} , total_loss: {:.4f}, batch_loss: {:.4f}".format(epoch, step, epoch_loss / step, loss))
-    
+                    "epoch {:d} , step {:d} , total_loss: {:.4f}".format(epoch, step, epoch_loss / step))
+        
+        writer.add_scalar('epoch_loss',
+                            epoch_loss,
+                            epoch)
     return model

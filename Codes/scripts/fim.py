@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-20 01:10:32
-LastEditTime: 2020-11-20 10:54:21
+LastEditTime: 2020-11-21 22:08:02
 Description: 
 '''
 import os
@@ -21,6 +21,7 @@ from models.FIM import FIMModel
 if __name__ == "__main__":
     hparams = {
         'mode':'demo',
+        'npratio':4,
         'batch_size':5,
         'title_size':18,
         'his_size':50,
@@ -50,7 +51,7 @@ if __name__ == "__main__":
 
     device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device("cpu")
 
-    dataset_train = MIND_map(hparams=hparams,mode='train',npratio=4,news_file=news_file_train,behaviors_file=behavior_file_train)
+    dataset_train = MIND_map(hparams=hparams,mode='train',news_file=news_file_train,behaviors_file=behavior_file_train)
 
     dataset_test = MIND_iter(hparams=hparams,mode='test',news_file=news_file_test,behaviors_file=behavior_file_test)
 
@@ -66,12 +67,12 @@ if __name__ == "__main__":
 
     # you can load my model or train yours
     if os.path.exists(save_path):
-        fimModel = FIMModel(vocab=vocab_train,hparams=hparams,npratio=4).to(device)
+        fimModel = FIMModel(vocab=vocab_train,hparams=hparams).to(device)
         fimModel.load_state_dict(torch.load(save_path))
         fimModel.eval()
 
     else:
-        fimModel = FIMModel(vocab=vocab_train,hparams=hparams,npratio=4).to(device)
+        fimModel = FIMModel(vocab=vocab_train,hparams=hparams).to(device)
         fimModel.train()
 
     if fimModel.training:

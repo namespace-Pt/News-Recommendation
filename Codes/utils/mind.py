@@ -15,9 +15,9 @@ class MIND_map(Dataset):
         Args:
         hparams: pre-defined dictionary of hyper parameters
     """
-    def __init__(self,hparams,mode,npratio,news_file,behaviors_file,col_spliter='\t'):
+    def __init__(self,hparams,mode,news_file,behaviors_file,col_spliter='\t'):
         # initiate the whole iterator
-        self.npratio = npratio
+        self.npratio = hparams['npratio']
         self.news_file = news_file
         self.behaviors_file = behaviors_file
         self.col_spliter = col_spliter        

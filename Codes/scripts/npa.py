@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-20 01:10:32
-LastEditTime: 2020-11-20 10:43:23
+LastEditTime: 2020-11-21 22:08:27
 Description: 
 '''
 import os
@@ -21,6 +21,7 @@ from models.NPA import NPAModel
 if __name__ == "__main__":
     hparams = {
         'mode':'demo',
+        'npratio':4,
         'batch_size':5,#100,
         'title_size':30,
         'his_size':20,
@@ -51,7 +52,7 @@ if __name__ == "__main__":
 
     device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device("cpu")
 
-    dataset_train = MIND_map(hparams=hparams,mode='train',npratio=4,news_file=news_file_train,behaviors_file=behavior_file_train)
+    dataset_train = MIND_map(hparams=hparams,mode='train',news_file=news_file_train,behaviors_file=behavior_file_train)
 
     dataset_test = MIND_iter(hparams=hparams,mode='test',news_file=news_file_test,behaviors_file=behavior_file_test)
 
@@ -62,17 +63,17 @@ if __name__ == "__main__":
     vocab_test = dataset_test.vocab
     vocab_test.load_vectors(embedding)
 
-    loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],shuffle=True,pin_memory=True,num_workers=3)
+    loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],shuffle=True,pin_memory=True,num_workers=3,drop_last=True)
     loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
 
     # you can load my model or train yours
     if os.path.exists(save_path):
-        npaModel = NPAModel(vocab=vocab_train,hparams=hparams,npratio=4).to(device)
+        npaModel = NPAModel(vocab=vocab_train,hparams=hparams).to(device)
         npaModel.load_state_dict(torch.load(save_path))
         npaModel.eval()
 
     else:
-        npaModel = NPAModel(vocab=vocab_train,hparams=hparams,npratio=4).to(device)
+        npaModel = NPAModel(vocab=vocab_train,hparams=hparams).to(device)
         npaModel.train()
 
     if npaModel.training:
