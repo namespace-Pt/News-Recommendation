@@ -25,6 +25,9 @@ python scripts/[model_name].py
   - vocab
   - nid2idx
   - uid2idx
+  - `/tb`
+    - `[model_name]/`
+      - log file for `Tensorboard`
 
 ### `/models`: achieved models
   - [NPA[23]](NPA.ipynb)

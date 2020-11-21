@@ -234,7 +234,7 @@ def getLoss(model):
 
 def getLabel(model,x):
     """
-        parse labels to label indexes 
+        parse labels to label indexes, used in NLLoss
     """
     if model.npratio > 0:
         index = torch.arange(0,model.npratio + 1,device=model.device).expand(model.batch_size,-1)
@@ -434,11 +434,12 @@ def group_labels(impression_ids, labels, preds):
 
     return all_keys, all_labels, all_preds
 
-def _eval(model,test_iterator,interval):
+def _eval(model,dataloader,interval):
     """ making prediction and gather results into groups according to impression_id, display processing every interval batches
 
     Args:
-        model
+        model(torch.nn.Module)
+        dataloader(torch.utils.data.DataLoader): provide data
 
     Returns:
         impression_id: impression ids after group
@@ -449,8 +450,7 @@ def _eval(model,test_iterator,interval):
     preds = []
     labels = []
     imp_indexes = []
-    # test = test_iterator.load_data_from_file()
-    tqdm_ = tqdm(enumerate(test_iterator))
+    tqdm_ = tqdm(enumerate(dataloader))
     
     for i,batch_data_input in tqdm_:
         
@@ -465,28 +465,31 @@ def _eval(model,test_iterator,interval):
     
     return impr_indexes, labels, preds
 
-def run_eval(model,test_iterator,interval=100):
+def run_eval(model,dataloader,interval=100):
     """Evaluate the given file and returns some evaluation metrics.
     
     Args:
-        filename (str): A file name that will be evaluated.
+        model(nn.Module)
+        dataloader(torch.utils.data.DataLoader): provide data
+        interval(int): within each epoch, the interval of steps to display loss
 
     Returns:
         dict: A dictionary contains evaluation metrics.
     """
-    imp_indexes, group_labels, group_preds = _eval(model,test_iterator,interval)
+    imp_indexes, group_labels, group_preds = _eval(model,dataloader,interval)
     res = _cal_metric(imp_indexes,group_labels,group_preds,model.metrics.split(','))
     return res
 
 def run_train(model, dataloader, optimizer, loss_func, writer, epochs, interval=100):
     ''' train model and print loss meanwhile
     Args: 
-        model: the model to be trained
-        dataloader: generator which provides data
-        optimizer: optimizer for training
-        loss_func: loss function for training
-        epochs: (int) number of epochs
-        interval: (int) within each epoch, the interval of training steps to display loss
+        model(torch.nn.Module): the model to be trained
+        dataloader(torch.utils.data.DataLoader): provide data
+        optimizer(torch.nn.optim): optimizer for training
+        loss_func(torch.nn.Loss): loss function for training
+        writer(torch.utils.tensorboard.SummaryWriter): tensorboard writer
+        epochs(int): number of epochs
+        interval(int): within each epoch, the interval of training steps to display loss
     Returns: 
         model: trained model
     '''

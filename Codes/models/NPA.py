@@ -86,18 +86,14 @@ class NPAModel(nn.Module):
         return news_query
 
     def _attention_word(self,query,keys):
-        """ apply original attention mechanism
-            first unsqueeze the query for computation,
-            then use inner-product to get batch of attn_results,
-            then use softmax to get normalized weights of each title of each example in the batch,
-            finally multiply batch of keys(title emebdding) by attn_weights
+        """ apply original attention mechanism over words in news
         
         Args:
-            query: tensor of batch_size * preference_dim
-            keys: tensor of batch_size * filter_num * title_size
+            query: tensor of [set_size, preference_dim]
+            keys: tensor of [set_size, filter_num, title_size]
         
         Returns:
-            attn_aggr: tensor of batch_size * filter_num, (batch of news embedding)
+            attn_aggr: tensor of [set_size, filter_num], which is set of news embedding
         """
 
         # return tensor of batch_size * 1 * filter_num
@@ -113,18 +109,14 @@ class NPAModel(nn.Module):
         return attn_aggr
 
     def _attention_news(self,query,keys):
-        """ apply original attention mechanism
-            first unsqueeze the query for computation,
-            then use inner-product to get batch of attn_results,
-            then use softmax to get normalized weights of each news in the batch,
-            finally multiply batch of keys(news emebdding) by attn_weights
+        """ apply original attention mechanism over news in user history
         
         Args:
-            query: tensor of batch_size * preference_dim
-            keys: tensor of batch_size * filter_num * his_size
+            query: tensor of [batch_size, preference_dim]
+            keys: tensor of [batch_size, filter_num, his_size]
         
         Returns:
-            attn_aggr: tensor of batch_size * filter_num, (batch of user embedding)
+            attn_aggr: tensor of [batch_size, filter_num], which is batch of user embedding
         """
 
         # return tensor of batch_size * 1 * filter_num
@@ -143,11 +135,11 @@ class NPAModel(nn.Module):
         """ encode set of news to news representations of [batch_size, his_size/npratio+1/1, filter_num]
         
         Args:
-            news_batch: tensor of batch_size * his_size/npratio+1/1 * title_size
-            word_query: tensor of set_size * preference_dim      
+            news_batch: tensor of [batch_size, his_size/npratio+1/1, title_size]
+            word_query: tensor of [set_size, preference_dim]
         
         Returns:
-            news_repr: tensor of set_size * filter_num 
+            news_repr: tensor of [set_size, filter_num] 
         """
 
         # important not to directly apply view function
@@ -162,6 +154,7 @@ class NPAModel(nn.Module):
             cdd_title_embedding = self.DropOut(cdd_title_embedding)
         
         if news_batch.shape[1] > 1:
+            # repeat tensor npratio+1/his_size times along dim=0, because they all correspond to the same user thus the same query
             word_query = torch.repeat_interleave(word_query,repeats=news_batch.shape[1],dim=0)
 
         news_repr = self._attention_word(word_query,cdd_title_embedding)
@@ -172,12 +165,12 @@ class NPAModel(nn.Module):
         """ encode batch of user history clicked news to user representations of [batch_size,filter_num]
         
         Args:
-            his_news_batch: tensor of batch_size * his_size * title_size
-            news_query: tensor of batch_size * preference_dim
-            word_query: tensor of batch_size * preference_dim     
+            his_news_batch: tensor of [batch_size, his_size, title_size]
+            news_query: tensor of [batch_size, preference_dim]
+            word_query: tensor of [batch_size, preference_dim]    
         
         Returns:
-            user_repr: tensor of batch_size * filter_num 
+            user_repr: tensor of [batch_size, filter_num] 
         """
         his_news_reprs = self._news_encoder(his_news_batch,word_query).view(self.batch_size,self.his_size,self.filter_num).permute(0,2,1)
         user_reprs = self._attention_news(news_query,his_news_reprs)
@@ -188,11 +181,11 @@ class NPAModel(nn.Module):
         """ calculate batch of click probability
         
         Args:
-            cdd_news_repr: tensor of batch_size * npratio+1/1 * filter_num
-            user_repr: tensor of batch_size * 1 * filter_num
+            cdd_news_repr: tensor of [batch_size, npratio+1/1, filter_num]
+            user_repr: tensor of [batch_size, 1, filter_num]
         
         Returns:
-            score: tensor of batch_size * npratio+1/1
+            score: tensor of [batch_size, npratio+1/1]
         """
         score = torch.bmm(cdd_news_repr,user_repr.permute(0,2,1))
         if self.npratio > 0:
@@ -209,7 +202,7 @@ class NPAModel(nn.Module):
 
         if self.npratio > 0:
             cdd_news_reprs = self._news_encoder(cdd_news_batch,word_query).view(self.batch_size,self.npratio + 1,self.filter_num)
-            
+
         else:
             cdd_news_reprs = self._news_encoder(cdd_news_batch,word_query).unsqueeze(dim=1)
         

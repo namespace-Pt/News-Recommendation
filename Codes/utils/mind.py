@@ -10,10 +10,13 @@ from torch.utils.data import Dataset,IterableDataset
 from .utils import newsample,getId2idx,word_tokenize_vocab,getVocab,constructBasicDict
 
 class MIND_map(Dataset):
-    """ batch iterator for MIND dataset
+    """ Map style dataset
 
-        Args:
-        hparams: pre-defined dictionary of hyper parameters
+    Args:
+        hparams(dict): pre-defined dictionary of hyper parameters
+        mode(str): train/test
+        news_file(str): path of news_file
+        behaviors_file(str): path of behaviors_file
     """
     def __init__(self,hparams,mode,news_file,behaviors_file,col_spliter='\t'):
         # initiate the whole iterator
@@ -104,19 +107,13 @@ class MIND_map(Dataset):
                 impr_index += 1
 
     def __getitem__(self, idx):
-        """Parse one behavior sample into |candidates| feature values, each of which consists of
-        one single candidate title vector when npratio < 0 or npratio+1 candidate title vectors when npratio > 0
+        """ parse behavior log No.idx to training example
 
-        if npratio is larger than 0, return negtive sampled result.
-
-        npratio is for negtive sampling (used in softmax)
-        
         Args:
-            idx (int): sample index/impression index
+            idx (int): impression index, start from zero
 
         Returns:
-            list: Parsed results including label, impression id , user id, 
-            candidate_title_index, clicked_title_index.
+            dict of training data, including |npratio+1| candidate news word vector, |his_size+1| clicked news word vector etc.
         """
         if not hasattr(self, "news_title_array"):
             self.init_news()
@@ -176,10 +173,13 @@ class MIND_map(Dataset):
             }
 
 class MIND_iter(IterableDataset):
-    """ batch iterator for MIND dataset
+    """ Iterator style dataset
 
-        Args:
-        hparams: pre-defined dictionary of hyper parameters
+    Args:
+        hparams(dict): pre-defined dictionary of hyper parameters
+        mode(str): train/test
+        news_file(str): path of news_file
+        behaviors_file(str): path of behaviors_file
     """
     def __init__(self,hparams,mode,news_file,behaviors_file,col_spliter='\t'):
         # initiate the whole iterator
@@ -261,19 +261,10 @@ class MIND_iter(IterableDataset):
                 impr_index += 1
 
     def __iter__(self):
-        """Parse one behavior sample into |candidates| feature values, each of which consists of
-        one single candidate title vector when npratio < 0 or npratio+1 candidate title vectors when npratio > 0
+        """ parse behavior logs into training examples
 
-        if npratio is larger than 0, return negtive sampled result.
-
-        npratio is for negtive sampling (used in softmax)
-        
-        Args:
-            idx (int): sample index/impression index
-
-        Returns:
-            list: Parsed results including label, impression id , user id, 
-            candidate_title_index, clicked_title_index.
+        Yields:
+            dict of training data, including 1 candidate news word vector, |his_size+1| clicked news word vector etc.
         """
         if not hasattr(self, "news_title_array"):
             self.init_news()
