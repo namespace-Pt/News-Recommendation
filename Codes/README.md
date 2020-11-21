@@ -26,7 +26,7 @@ python scripts/[model_name].py
   - nid2idx
   - uid2idx
   - `/tb`
-    - `[model_name]/`
+    - `/[model_name]`
       - log file for `Tensorboard`
 
 ### `/models`: achieved models
