@@ -7,7 +7,7 @@ cuda == 10.1
 ```
 
 ## Dataset
-download MIND dataset [HERE](https://msnews.github.io/), and customize data path in `[model_name].ipynb` and `scripts/[model_name].py`
+download MIND dataset [HERE](https://msnews.github.io/), and customize data path in `manual/[model_name].ipynb` and `scripts/[model_name].py`
 
 ## Instruction
 *both need customing paths and hyper parameters in advance*
