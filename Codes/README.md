@@ -10,14 +10,17 @@ cuda == 10.1
 download MIND dataset [**here**](https://msnews.github.io/), and customize data path in `[model_name].ipynb` and `scripts/[model_name].py`
 
 ## Instruction
-```shell
-run manual/[model_name].ipynb
-```
-*after customizing your paths and hyper parameters*, you can alse run **python scripts** in terminal provided `data_scale`, `epochs`, and `mode` parameters
-```shell
-cd Codes/
-python server_scripts/[model_name].py large/small/demo 10 train/eval
-```
+*both need customing paths and hyper parameters in advance*
+- you can run the specific notebook to train and test the model
+  ```shell
+  run manual/[model_name].ipynb
+  ```
+
+- you can alse run **python scripts** in terminal provided `data_scale`, `epochs`, and `mode` parameters. **eg:**
+  ```shell
+  cd Codes/
+  python server_scripts/[model_name].py large 10 train
+  ```
 
 ## File Structure
 ### `/data`: basic dictionaries
@@ -30,15 +33,18 @@ python server_scripts/[model_name].py large/small/demo 10 train/eval
 
 ### `/manual`: jupyter notebooks for training and testing models
   - [NPA.ipynb](manual/NPA.ipynb)
+    - [[23] Npa Neural news recommendation with personalized attention](https://dl.acm.org/doi/abs/10.1145/3292500.3330665)
   - [FIM.ipynb](manual/FIM.ipynb)
+    - [[29] Fine-grained Interest Matching for Neural News Recommendation](https://www.aclweb.org/anthology/2020.acl-main.77.pdf)
+
   - [Preprocess.ipynb](manual/Preprocess.ipynb)
     - viewing data
   - [torch-tips.ipynb](manual/torch-tips.ipynb)
     - manipulation over *pytorch*
 
 ### `/models`: achieved models
-  - [[23] Npa Neural news recommendation with personalized attention](https://dl.acm.org/doi/abs/10.1145/3292500.3330665)
-  - [[29] Fine-grained Interest Matching for Neural News Recommendation](https://www.aclweb.org/anthology/2020.acl-main.77.pdf)
+  - NPA
+  - FIM
   - [[51] Differentiable Top-K Operator with Optimal Transport](https://arxiv.org/pdf/2002.06504.pdf)
   - [[22] Neural News Recommendation with Multi-Head Self-Attention](https://www.aclweb.org/anthology/D19-1671.pdf),
   - [[52] Attention is All You Need](https://proceedings.neurips.cc/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf)
