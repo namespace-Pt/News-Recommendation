@@ -7,7 +7,7 @@ cuda == 10.1
 ```
 
 ## Dataset
-download MIND dataset [**here**](https://msnews.github.io/), and customize data path in `[model_name].ipynb` and `scripts/[model_name].py`
+download MIND dataset [HERE](https://msnews.github.io/), and customize data path in `[model_name].ipynb` and `scripts/[model_name].py`
 
 ## Instruction
 *both need customing paths and hyper parameters in advance*
@@ -33,9 +33,7 @@ download MIND dataset [**here**](https://msnews.github.io/), and customize data 
 
 ### `/manual`: jupyter notebooks for training and testing models
   - [NPA.ipynb](manual/NPA.ipynb)
-    - [[23] Npa Neural news recommendation with personalized attention](https://dl.acm.org/doi/abs/10.1145/3292500.3330665)
   - [FIM.ipynb](manual/FIM.ipynb)
-    - [[29] Fine-grained Interest Matching for Neural News Recommendation](https://www.aclweb.org/anthology/2020.acl-main.77.pdf)
 
   - [Preprocess.ipynb](manual/Preprocess.ipynb)
     - viewing data
@@ -44,10 +42,13 @@ download MIND dataset [**here**](https://msnews.github.io/), and customize data 
 
 ### `/models`: achieved models
   - NPA
+    - [[23] Npa Neural news recommendation with personalized attention](https://dl.acm.org/doi/abs/10.1145/3292500.3330665)
   - FIM
-  - [[51] Differentiable Top-K Operator with Optimal Transport](https://arxiv.org/pdf/2002.06504.pdf)
-  - [[22] Neural News Recommendation with Multi-Head Self-Attention](https://www.aclweb.org/anthology/D19-1671.pdf),
-  - [[52] Attention is All You Need](https://proceedings.neurips.cc/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf)
+    - [[29] Fine-grained Interest Matching for Neural News Recommendation](https://www.aclweb.org/anthology/2020.acl-main.77.pdf)
+  - Soft Top-k Operator 
+    - [[51] Differentiable Top-K Operator with Optimal Transport](https://arxiv.org/pdf/2002.06504.pdf)
+  - Multi-head Self-attention
+    - according to [[22] Neural News Recommendation with Multi-Head Self-Attention](https://www.aclweb.org/anthology/D19-1671.pdf)
 
 ### `/server_scripts`: python scripts of models
   - you can run models in *Ubuntu* server
@@ -64,7 +65,7 @@ download MIND dataset [**here**](https://msnews.github.io/), and customize data 
       - negtive sampling disabled, **point-wise**, intended for evaluating
 
 - `utils.py`
-  - some useful functions
+  - some helper functions
     - construct dictionary
     - wrap training and testing/evaluating
 
@@ -82,5 +83,3 @@ download MIND dataset [**here**](https://msnews.github.io/), and customize data 
 
 ### Layer Normalization
 - *mean and variance* is calculated on each sample rather over the whole batch
-
-### [Pytorch Manipulation](tips/torch_tips.ipynb)
