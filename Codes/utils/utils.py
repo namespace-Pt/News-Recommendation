@@ -511,8 +511,11 @@ def run_train(model, dataloader, optimizer, loss_func, writer, epochs, interval=
 
                 tqdm_.set_description(
                     "epoch {:d} , step {:d} , total_loss: {:.4f}".format(epoch, step, epoch_loss / step))
-        
-        writer.add_scalar('epoch_loss',
-                            epoch_loss,
-                            epoch)
+
+                writer.add_scalar('data_loss',
+                            epoch_loss/step,
+                            epoch*len(dataloader)+step)
+        # writer.add_scalar('epoch_loss',
+        #                     epoch_loss,
+        #                     epoch)
     return model

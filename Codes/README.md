@@ -11,14 +11,13 @@ download MIND dataset [**here**](https://msnews.github.io/), and customize data 
 
 ## Instruction
 ```shell
-run [model_name].ipynb
+run manual/[model_name].ipynb
 ```
-you can alse run **python scripts** in terminal directly
+*after customizing your paths and hyper parameters*, you can alse run **python scripts** in terminal provided `data_scale`, `epochs`, and `mode` parameters
 ```shell
 cd Codes/
-python scripts/[model_name].py
+python server_scripts/[model_name].py large/small/demo 10 train/eval
 ```
-*remember to customize your paths and hyper parameters*
 
 ## File Structure
 ### `/data`: basic dictionaries
@@ -29,16 +28,23 @@ python scripts/[model_name].py
     - `/[model_name]`
       - log file for `Tensorboard`
 
+### `/manual`: jupyter notebooks for training and testing models
+  - [NPA.ipynb](manual/NPA.ipynb)
+  - [FIM.ipynb](manual/FIM.ipynb)
+  - [Preprocess.ipynb](manual/Preprocess.ipynb)
+    - viewing data
+  - [torch-tips.ipynb](manual/torch-tips.ipynb)
+    - manipulation over *pytorch*
+
 ### `/models`: achieved models
-  - [NPA[23]](NPA.ipynb)
-  - [FIM[29]](FIM.ipynb)
+  - [[23] Npa Neural news recommendation with personalized attention](https://dl.acm.org/doi/abs/10.1145/3292500.3330665)
+  - [[29] Fine-grained Interest Matching for Neural News Recommendation](https://www.aclweb.org/anthology/2020.acl-main.77.pdf)
+  - [[51] Differentiable Top-K Operator with Optimal Transport](https://arxiv.org/pdf/2002.06504.pdf)
+  - [[22] Neural News Recommendation with Multi-Head Self-Attention](https://www.aclweb.org/anthology/D19-1671.pdf),
+  - [[52] Attention is All You Need](https://proceedings.neurips.cc/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf)
 
-### `/scripts`: python scripts of models
-  - same as `[model_name].ipynb`, you can run it in terminal  
-
-### `/tips`: insight of some api
-  - torch_tips.ipynb
-    - useful api, confusing api
+### `/server_scripts`: python scripts of models
+  - you can run models in *Ubuntu* server
 
 ### `/utils`: data loader and utility functions
 - `MIND.py`

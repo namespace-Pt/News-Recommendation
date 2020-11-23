@@ -81,7 +81,7 @@ class FIMModel(nn.Module):
             news_set: tensor of [set_size, signal_length]
         
         Returns:
-            news_embedding_stack: dict of tensor of [set_size, filter_num, signal_length]
+            news_embedding_stack: dict of tensor of [set_size, level, filter_num, signal_length]
         """
         news_embedding = self.embedding[news_set].permute(0,2,1).to(self.device)
         news_embedding_dilations = self._HDC(news_embedding)
