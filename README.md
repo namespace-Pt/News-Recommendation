@@ -310,4 +310,8 @@
 [45] Sequential Recommendation with User Memory Networks  
 [46] Leveraging Demonstrations for Reinforcement Recommendation Reasoning over Knowledge Graphs   
 [47] EntityDuet Neural Ranking Understanding the Role of Knowledge Graph Semantics  
-[48] Octopus Comprehensive and Elastic User Representation for the Generation of Recommendation
+[48] Octopus Comprehensive and Elastic User Representation for the Generation of Recommendation  
+[49] End-to-End Neural Ad-hoc Ranking with Kernel Pooling  
+[50] Categorical reparameterization with gumbel-softmax  
+[51] Deep k-Nearest Neighbors Towards Confident,Interpretable and Robust Deep Learning   
+[52] differentiable-top-k-operator-with-optimal-transport  

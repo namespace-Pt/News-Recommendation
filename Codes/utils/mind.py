@@ -29,9 +29,9 @@ class MIND_map(Dataset):
         self.his_size = hparams['his_size']
         self.device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device('cpu')
 
-        self.vocab = getVocab('data/vocab_{}_{}_{}.pkl'.format(hparams['mode'],mode,'_'.join(hparams['attrs'])))
-        self.nid2index = getId2idx('data/nid2idx_{}_{}.json'.format(hparams['mode'],mode))
-        self.uid2index = getId2idx('data/uid2idx_{}_{}.json'.format(hparams['mode'],mode))
+        self.vocab = getVocab('data/dictionaries/vocab_{}_{}_{}.pkl'.format(hparams['mode'],mode,'_'.join(hparams['attrs'])))
+        self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_{}.json'.format(hparams['mode'],mode))
+        self.uid2index = getId2idx('data/dictionaries/uid2idx_{}_{}.json'.format(hparams['mode'],mode))
     
     def __len__(self):
         if not hasattr(self, "news_title_array"):
@@ -191,9 +191,9 @@ class MIND_iter(IterableDataset):
         self.his_size = hparams['his_size']
         self.device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device('cpu')
 
-        self.vocab = getVocab('data/vocab_{}_{}_{}.pkl'.format(hparams['mode'],mode,'_'.join(hparams['attrs'])))
-        self.nid2index = getId2idx('data/nid2idx_{}_{}.json'.format(hparams['mode'],mode))
-        self.uid2index = getId2idx('data/uid2idx_{}_{}.json'.format(hparams['mode'],mode))
+        self.vocab = getVocab('data/dictionaries/vocab_{}_{}_{}.pkl'.format(hparams['mode'],mode,'_'.join(hparams['attrs'])))
+        self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_{}.json'.format(hparams['mode'],mode))
+        self.uid2index = getId2idx('data/dictionaries/uid2idx_{}_{}.json'.format(hparams['mode'],mode))
     
     def init_news(self):
         """ 

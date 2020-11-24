@@ -8,15 +8,12 @@ import re
 import json
 import pickle
 import torch
-import os
-import math
 import pandas as pd
 import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 from sklearn.metrics import roc_auc_score,log_loss,mean_squared_error,accuracy_score,f1_score
 from torchtext.data.utils import get_tokenizer
-from torchtext.data import Dataset
 from torchtext.vocab import build_vocab_from_iterator
 
 def word_tokenize(sent):
@@ -172,9 +169,9 @@ def constructBasicDict(news_file,behaviors_file,data_mode,model_mode,attrs):
         behavior_file: path of behavior file
         mode: [small/large]
     """    
-    dict_path_v = 'data/vocab_{}_{}_{}.pkl'.format(data_mode,model_mode,'_'.join(attrs))
-    dict_path_n = 'data/nid2idx_{}_{}.json'.format(data_mode,model_mode)
-    dict_path_u = 'data/uid2idx_{}_{}.json'.format(data_mode,model_mode)
+    dict_path_v = 'data/dictionaries/vocab_{}_{}_{}.pkl'.format(data_mode,model_mode,'_'.join(attrs))
+    dict_path_n = 'data/dictionaries/nid2idx_{}_{}.json'.format(data_mode,model_mode)
+    dict_path_u = 'data/dictionaries/uid2idx_{}_{}.json'.format(data_mode,model_mode)
     
     constructVocab(news_file,attrs,dict_path_v)
     constructNid2idx(news_file,dict_path_n)
@@ -480,7 +477,7 @@ def run_eval(model,dataloader,interval=100):
     res = _cal_metric(imp_indexes,group_labels,group_preds,model.metrics.split(','))
     return res
 
-def run_train(model, dataloader, optimizer, loss_func, writer, epochs, interval=100):
+def run_train(model, dataloader, optimizer, loss_func, writer=None, epochs=10, interval=100):
     ''' train model and print loss meanwhile
     Args: 
         model(torch.nn.Module): the model to be trained
@@ -493,16 +490,20 @@ def run_train(model, dataloader, optimizer, loss_func, writer, epochs, interval=
     Returns: 
         model: trained model
     '''
+    total_loss = 0
+
     for epoch in range(epochs):
-        epoch_loss = math.inf
+        epoch_loss = 0
         tqdm_ = tqdm(enumerate(dataloader))
-        step = 0
 
         for step,x in tqdm_:
             pred = model(x)
             label = getLabel(model,x)
             loss = loss_func(pred,label)
+
             epoch_loss += loss
+            total_loss += loss
+
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
@@ -510,12 +511,15 @@ def run_train(model, dataloader, optimizer, loss_func, writer, epochs, interval=
             if step % interval == 0:
 
                 tqdm_.set_description(
-                    "epoch {:d} , step {:d} , total_loss: {:.4f}".format(epoch, step, epoch_loss / step))
+                    "epoch {:d} , step {:d} , loss: {:.4f}".format(epoch, step, epoch_loss / step))
 
-                writer.add_scalar('data_loss',
-                            epoch_loss/step,
-                            epoch*len(dataloader)+step)
-        # writer.add_scalar('epoch_loss',
-        #                     epoch_loss,
-        #                     epoch)
+                if writer:
+                    writer.add_scalar('data_loss',
+                            total_loss/(epoch * len(dataloader) + step),
+                            epoch * len(dataloader) + step)
+        if writer:
+            writer.add_scalar('epoch_loss',
+                            epoch_loss/len(dataloader),
+                            epoch)
+                
     return model
