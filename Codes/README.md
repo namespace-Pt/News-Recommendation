@@ -19,7 +19,7 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
 - you can alse run **python scripts** in terminal provided `data_scale`, `epochs`, and `mode` parameters. **eg:**
   ```shell
   cd Codes/
-  python server_scripts/[model_name].py large 10 train
+  python scripts/[model_name].py large 10 train
   ```
 
 ## File Structure
