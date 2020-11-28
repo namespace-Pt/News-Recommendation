@@ -50,8 +50,8 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
   - Multi-head Self-attention
     - according to [[22] Neural News Recommendation with Multi-Head Self-Attention](https://www.aclweb.org/anthology/D19-1671.pdf)
 
-### `/server_scripts`: python scripts of models
-  - you can run models in *Ubuntu* server
+### `/scripts`: python scripts of models
+  - you can run models in `shell`
 
 ### `/utils`: data loader and utility functions
 - `MIND.py`
@@ -72,9 +72,11 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
 ## TODO
 - [x] integrate MINDIterator to Datasets and Dataloader
   - motivation: split data with more flexibility, enable distribution
-- [ ] understand *permute*
+- [x] understand *permute*
 - [x] construct `nid2idx` and `uid2idx` according to both training iterator and testing iterator
-- [ ] analyze MIND dataset, calculate average user history length
+- [x] analyze MIND dataset, calculate average user history length
+- [ ] generate negtiva examples with both strength and confidence
+- [ ] figure out why NPA and FIM has poor performance
 
 ## Insights
 ### Convolution
@@ -83,3 +85,6 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
 
 ### Layer Normalization
 - *mean and variance* is calculated on each sample rather over the whole batch
+
+### Learning to Rank
+- say we got a vector for the relatedness between *query* and *doc*, then we feed the vector into a *MLP(i.e. Multi-Layer Perceptron)* to project the vector into a single value, which stands for the *score*. The above procedure is namely **Learning to Rank** because the weights of *MLP* can be learnt automatically.

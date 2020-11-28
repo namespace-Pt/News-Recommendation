@@ -7,7 +7,7 @@ Description: MIND dataset
 import torch
 import numpy as np
 from torch.utils.data import Dataset,IterableDataset
-from .utils import newsample,getId2idx,word_tokenize_vocab,getVocab,constructBasicDict
+from .utils import newsample,getId2idx,word_tokenize_vocab,getVocab
 
 class MIND_map(Dataset):
     """ Map style dataset
@@ -272,8 +272,6 @@ class MIND_iter(IterableDataset):
         if not hasattr(self, "impr_indexes"):
             self.init_behaviors()
         
-        indexes = np.arange(len(self.labels))
-
         for index,impr_label in enumerate(self.labels):
             impr = self.imprs[index]
         

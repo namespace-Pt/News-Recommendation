@@ -10,15 +10,13 @@ os.chdir('/home/peitian_zhang/Codes/NR')
 sys.path.append('/home/peitian_zhang/Codes/NR')
 
 import torch
-import datetime
-import torch.nn as nn
 import torch.optim as optim
 from datetime import datetime
 from torchtext.vocab import FastText
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
 from utils.MIND import MIND_iter,MIND_map
-from utils.utils import getLoss,getLabel,constructBasicDict,run_eval,run_train
+from utils.utils import getLoss,constructBasicDict,run_eval,run_train
 from models.NPA import NPAModel
 
 if __name__ == "__main__":
