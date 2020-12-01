@@ -41,8 +41,8 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
 
   - [Preprocess.ipynb](manual/Preprocess.ipynb)
     - viewing data
-  - [torch-tips.ipynb](manual/torch-tips.ipynb)
-    - manipulation over *pytorch*
+  - [torch_tips.ipynb](manual/torch_tips.ipynb)
+    - manipulation over `PyTorch`
 
 ### `/models`: achieved models
   - NPA
