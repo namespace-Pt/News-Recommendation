@@ -62,8 +62,8 @@ def newsample(news, ratio):
         return random.sample(news, ratio)
 
 
-def news_token_generator(news_file,tokenizer,attrs):
-    ''' merge and deduplicate training news and testing news then iterate, collect attrs into a string and generate it
+def news_token_generator(news_file_train,news_file_test,tokenizer,attrs):
+    ''' merge and deduplicate training news and testing news then iterate, collect attrs into a single sentence and generate it
        
     Args: 
         tokenizer: torchtext.data.utils.tokenizer
@@ -72,11 +72,11 @@ def news_token_generator(news_file,tokenizer,attrs):
         a generator over attrs in news
     '''    
 
-    # news_df_train = pd.read_table(news_file_train,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
-    # news_df_test = pd.read_table(news_file_test,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
-    # news_df = pd.concat([news_df_train,news_df_test]).drop_duplicates()
+    news_df_train = pd.read_table(news_file_train,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
+    news_df_test = pd.read_table(news_file_test,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
+    news_df = pd.concat([news_df_train,news_df_test]).drop_duplicates()
 
-    news_df = pd.read_table(news_file,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
+    # news_df = pd.read_table(news_file,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
     news_iterator = news_df.iterrows()
 
     for _,i in news_iterator:
@@ -86,96 +86,101 @@ def news_token_generator(news_file,tokenizer,attrs):
         
         yield tokenizer(' '.join(content))
 
-def news_token_generator_group(news_file,tokenizer,vocab,mode):
-    ''' iterate news_file, collect attrs and generate them respectively
-       
-    Args: 
-        tokenizer: torchtext.data.utils.tokenizer
-        mode: int defining how many attributes to be generated
-    Returns: 
-        generates wordID vector of each attrs, gathered into a list
-    '''
-    news_df = pd.read_table(news_file,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
-    news_iterator = news_df.iterrows()
-    
-    attrs = ['title','category','subcategory','abstract']
-    for _,i in news_iterator:
-        result = []
-        indicator = 0
-        while indicator < mode:
-            result.append([vocab[x] for x in tokenizer(i[attrs[indicator]])])
-            indicator += 1
-        yield result 
-
-def constructVocab(news_file,attrs,save_path):
+def constructVocab(news_file_train,news_file_test,attrs,save_path):
     """
         Build field using torchtext for tokenization
     
     Returns:
         torchtext.vocabulary 
-    """    
-    
-    tokenizer = get_tokenizer('basic_english')
+    """
 
-    vocab = build_vocab_from_iterator(news_token_generator(news_file,tokenizer,attrs))
+    tokenizer = get_tokenizer('basic_english')
+    vocab = build_vocab_from_iterator(news_token_generator(news_file_train,news_file_test,tokenizer,attrs))
 
     output = open(save_path,'wb')
     pickle.dump(vocab,output)
     output.close()
 
-def constructNid2idx(news_file,dic_file):
+def constructNid2idx(news_file_train,news_file_test,dic_file_train,dic_file_test):
     """
         Construct news to newsID dictionary, index starting from 1
     """
-    f = open(news_file,'r',encoding='utf-8')
+    f = open(news_file_train,'r',encoding='utf-8')
+
     nid2index = {}
     for line in f:
         nid,_,_,_,_,_,_,_ = line.strip("\n").split('\t')
 
         if nid in nid2index:
             continue
-
         nid2index[nid] = len(nid2index) + 1
-    f.close()
     
-    g = open(dic_file,'w',encoding='utf-8')
-    json.dump(nid2index,g,ensure_ascii=False)
-    g.close()
+    f.close()
+    h = open(dic_file_train,'w',encoding='utf-8')
+    json.dump(nid2index,h,ensure_ascii=False)
+    h.close()
 
-def constructUid2idx(behaviors_file,dic_file):
+    g = open(news_file_test,'r',encoding='utf-8')
+
+    nid2index = {}
+    for line in g:
+        nid,_,_,_,_,_,_,_ = line.strip("\n").split('\t')
+
+        if nid in nid2index:
+            continue
+        nid2index[nid] = len(nid2index) + 1
+    
+    f.close()
+    h = open(dic_file_test,'w',encoding='utf-8')
+    json.dump(nid2index,h,ensure_ascii=False)
+    h.close()
+    
+
+def constructUid2idx(behaviors_file_train,behaviors_file_test,dic_file):
     """
         Construct user to userID dictionary, index starting from 1
     """
-    f = open(behaviors_file,'r',encoding='utf-8')
+    f = open(behaviors_file_train,'r',encoding='utf-8')
+    g = open(behaviors_file_test,'r',encoding='utf-8')
+
     uid2index = {}
     for line in f:
         _,uid,_,_,_ = line.strip("\n").split('\t')
 
         if uid in uid2index:
             continue
-
         uid2index[uid] = len(uid2index) + 1
-    f.close()
-    
-    g = open(dic_file,'w',encoding='utf-8')
-    json.dump(uid2index,g,ensure_ascii=False)
-    g.close()
 
-def constructBasicDict(news_file,behaviors_file,data_mode,model_mode,attrs):
+    for line in g:
+        _,uid,_,_,_ = line.strip("\n").split('\t')
+
+        if uid in uid2index:
+            continue
+        uid2index[uid] = len(uid2index) + 1
+
+    f.close()
+    g.close()
+    
+    h = open(dic_file,'w',encoding='utf-8')
+    json.dump(uid2index,h,ensure_ascii=False)
+    h.close()
+
+def constructBasicDict(news_file_pair,behaviors_file_pair,data_mode,attrs):
     """ construct basic dictionary
 
         Args:
-        news_file: path of news file
-        behavior_file: path of behavior file
-        mode: [small/large]
-    """    
-    dict_path_v = 'data/dictionaries/vocab_{}_{}_{}.pkl'.format(data_mode,model_mode,'_'.join(attrs))
-    dict_path_n = 'data/dictionaries/nid2idx_{}_{}.json'.format(data_mode,model_mode)
-    dict_path_u = 'data/dictionaries/uid2idx_{}_{}.json'.format(data_mode,model_mode)
+        news_file_pair: tuple of paths of news file, first entry is training set, the other is testing set
+        behavior_file_pair: tuple of paths of behavior file, first entry is training set, the other is testing set
+        mode: [demo/small/large]
+    """
+    dict_path_v = 'data/dictionaries/vocab_{}_{}.pkl'.format(data_mode,'_'.join(attrs))
+    dict_path_n_train = 'data/dictionaries/nid2idx_{}_train.json'.format(data_mode)
+    dict_path_n_test = 'data/dictionaries/nid2idx_{}_test.json'.format(data_mode)
+    dict_path_u = 'data/dictionaries/uid2idx_{}.json'.format(data_mode)
     
-    constructVocab(news_file,attrs,dict_path_v)
-    constructNid2idx(news_file,dict_path_n)
-    constructUid2idx(behaviors_file,dict_path_u)
+    constructVocab(news_file_pair[0],news_file_pair[1],attrs,dict_path_v)
+    constructNid2idx(news_file_pair[0],news_file_pair[1],dict_path_n_train,dict_path_n_test)
+    constructUid2idx(behaviors_file_pair[0],behaviors_file_pair[1],dict_path_u)
 
 def tailorData(tsvFile, num):
     ''' tailor num rows of tsvFile to create demo data file

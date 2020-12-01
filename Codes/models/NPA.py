@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 
 class NPAModel(nn.Module):
-    def __init__(self,hparams,vocab):
+    def __init__(self,hparams,vocab,uid2idx):
         super().__init__()
         
         self.npratio = hparams['npratio']
@@ -25,14 +25,17 @@ class NPAModel(nn.Module):
         self.preference_dim =hparams['preference_dim']
 
         self.device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device('cpu')
-
+        
         # pretrained embedding
         self.embedding = vocab.vectors
         # elements in the slice along dim will sum up to 1 
         self.softmax = nn.functional.softmax
 
         # project userID to dense vector e_u of user_dim
-        self.userProject = nn.Linear(1,self.user_dim)
+        # self.userProject = nn.Linear(1,self.user_dim)
+        
+        # trainable lookup layer for user embedding
+        self.user_embedding = nn.Parameter(torch.rand((len(uid2idx),self.user_dim)))
         # project e_u to word query preference vector of preference_dim
         self.wordQueryProject = nn.Linear(self.user_dim,self.preference_dim)
         # project e_u to word news preference vector of preference_dim
@@ -49,12 +52,15 @@ class NPAModel(nn.Module):
         self.DropOut = nn.Dropout(p=self.dropout_p)
 
     def _user_projection(self,user_index_batch):
-        """ project user ID to dense vector e_u of [batch_size,user_dim] and store it for further use
+        """ embed user ID to dense vector e_u of [batch_size,user_dim] through lookup table and store it for further use
         
         Args:
-            x: one training batch example           
+            user_index_batch: tensor of [batch_size, 1]      
         """
-        e_u = self.userProject(user_index_batch)
+        
+        # e_u = self.userProject(user_index_batch)
+        e_u = self.user_embedding[user_index_batch.squeeze()]
+
         if self.dropout_p > 0:
             e_u = self.DropOut(e_u)
         self.e_u = e_u
@@ -195,7 +201,7 @@ class NPAModel(nn.Module):
         return score.squeeze()
 
     def forward(self,x):
-        self._user_projection(x['user_index'].float().to(self.device))
+        self._user_projection(x['user_index'].to(self.device))
         word_query = self._word_query_projection()
         news_query = self._news_query_projection()
         cdd_news_batch = x['candidate_title'].long().to(self.device)

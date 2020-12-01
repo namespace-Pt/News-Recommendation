@@ -24,9 +24,13 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
 
 ## File Structure
 ### `/data`: basic dictionaries
-  - vocab
-  - nid2idx
-  - uid2idx
+  - dictionary mapping News ID to increasing integer, training set and testing set are separate because order of news ids has effect on neither training or testing
+    - `nid2idx_[data_mode]_train.json`
+    - `nid2idx_[data_mode]_test.json`
+  - dictionary mapping News ID to increasing integer, training set and testing set are unified because user may appear in both training and testing phases which are namely *long-tail users*. However, some users may only appear in testing set, which fomulates *cold start problem*.
+    - `uid2idx_[data_mode].json`
+  - vocabulary mapping word wokens to increasing integer (**instance of torchtest.vocab**) , which can be applied with pre-trained word embeddings.
+    - `vocab_[data_mode].pkl`
   - `/tb`
     - `/[model_name]`
       - log file for `Tensorboard`
@@ -75,8 +79,9 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
 - [x] understand *permute*
 - [x] construct `nid2idx` and `uid2idx` according to both training iterator and testing iterator
 - [x] analyze MIND dataset, calculate average user history length
-- [ ] generate negtiva examples with both strength and confidence
-- [ ] figure out why NPA and FIM has poor performance
+- [ ] generate negtiva examples
+- [ ] rewrite NPA, user embedding, not user projection
+- [ ] figure out why FIM suffers
 
 ## Insights
 ### Convolution
