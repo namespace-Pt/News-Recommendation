@@ -227,7 +227,7 @@ def getLoss(model):
     """
         get loss function for model
     """
-    if model.npratio > 0:
+    if model.cdd_size > 1:
         loss = nn.NLLLoss()
     else:
         loss = nn.BCELoss()
@@ -238,8 +238,8 @@ def getLabel(model,x):
     """
         parse labels to label indexes, used in NLLoss
     """
-    if model.npratio > 0:
-        index = torch.arange(0,model.npratio + 1,device=model.device).expand(model.batch_size,-1)
+    if model.cdd_size > 1:
+        index = torch.arange(0,model.cdd_size,device=model.device).expand(model.batch_size,-1)
         label = x['labels']==1
         label = index[label]
     else:
@@ -456,8 +456,14 @@ def _eval(model,dataloader,interval):
     
     for i,batch_data_input in tqdm_:
         
-        preds.extend(model.forward(batch_data_input).tolist())            
-        labels.extend(batch_data_input['labels'].squeeze().tolist())
+        preds.extend(model.forward(batch_data_input).tolist())
+        try:
+            label = batch_data_input['labels'].squeeze().tolist()
+        except:
+            print(label)       
+            raise ValueError
+        
+        labels.extend(label)
         imp_indexes.extend(batch_data_input['impression_index'].tolist())
     
     

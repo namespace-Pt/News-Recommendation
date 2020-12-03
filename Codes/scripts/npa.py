@@ -32,7 +32,7 @@ if __name__ == "__main__":
         'user_dim':50,
         'preference_dim':200,
         'metrics':'group_auc,ndcg@4,mean_mrr',
-        'gpu':'cuda:0',
+        'gpu':'cpu',
         'attrs': ['title'],
         'epochs':int(sys.argv[2])
     }
@@ -62,28 +62,26 @@ if __name__ == "__main__":
     loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],shuffle=True,pin_memory=True,num_workers=20,drop_last=True)
     loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
     
-    writer = SummaryWriter('data/tb/npa/' + datetime.now().strftime("%Y%m%d-%H%M%S"))
-
     if sys.argv[3] == 'eval':
         npaModel = NPAModel(vocab=vocab,hparams=hparams,uid2idx=dataset_train.uid2index).to(device)
         npaModel.load_state_dict(torch.load(save_path))
         npaModel.eval()
+        
+
     elif sys.argv[3] == 'train':
         npaModel = NPAModel(vocab=vocab,hparams=hparams,uid2idx=dataset_train.uid2index).to(device)
         npaModel.train()
 
     if npaModel.training:
+        writer = SummaryWriter('data/tb/npa/' + hparams['mode'])
         print("training...")
         loss_func = getLoss(npaModel)
         optimizer = optim.Adam(npaModel.parameters(),lr=0.001)
         npaModel = run_train(npaModel,loader_train,optimizer,loss_func,writer,epochs=hparams['epochs'], interval=10)
-  
+        torch.save(npaModel.state_dict(), save_path)
+        print("save success!")
+
     print("evaluating...")
-    npaModel.eval()
-    npaModel.vocab = vocab
     npaModel.npratio = -1
-
+    npaModel.eval()
     print(run_eval(npaModel,loader_test))
-
-    npaModel.npratio = hparams['npratio']
-    torch.save(npaModel.state_dict(), save_path)

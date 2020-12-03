@@ -80,8 +80,9 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
 - [x] construct `nid2idx` and `uid2idx` according to both training iterator and testing iterator
 - [x] analyze MIND dataset, calculate average user history length
 - [ ] generate negtiva examples
-- [ ] rewrite NPA, user embedding, not user projection
+- [x] rewrite NPA, user embedding, not user projection
 - [ ] figure out why FIM suffers
+- [ ] cosine similarity computation inspection
 
 ## Insights
 ### Convolution

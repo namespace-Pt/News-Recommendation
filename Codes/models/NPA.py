@@ -11,7 +11,7 @@ class NPAModel(nn.Module):
     def __init__(self,hparams,vocab,uid2idx):
         super().__init__()
         
-        self.npratio = hparams['npratio']
+        self.cdd_size = (hparams['npratio'] + 1) if hparams['npratio'] > 0 else 1
         self.dropout_p = hparams['dropout_p']
         self.metrics = hparams['metrics']
 
@@ -138,10 +138,10 @@ class NPAModel(nn.Module):
         return attn_aggr
 
     def _news_encoder(self,news_batch,word_query):
-        """ encode set of news to news representations of [batch_size, his_size/npratio+1/1, filter_num]
+        """ encode set of news to news representations of [batch_size, cdd_size, filter_num]
         
         Args:
-            news_batch: tensor of [batch_size, his_size/npratio+1/1, title_size]
+            news_batch: tensor of [batch_size, cdd_size, title_size]
             word_query: tensor of [set_size, preference_dim]
         
         Returns:
@@ -149,18 +149,18 @@ class NPAModel(nn.Module):
         """
 
         # important not to directly apply view function
-        # return tensor of batch_size * his_size/npratio+1 * embedding_dim * title_size
+        # return tensor of batch_size * cdd_size * embedding_dim * title_size
         cdd_title_embedding = self.embedding[news_batch].to(self.device)
         cdd_title_embedding = cdd_title_embedding.view(-1,self.title_size,self.embedding_dim).permute(0,2,1)
         
-        # return tensor of batch_size * his_size/npratio+1/1 * filter_num * title_size
+        # return tensor of batch_size * cdd_size * filter_num * title_size
         cdd_title_embedding = self.CNN(cdd_title_embedding)
         cdd_title_embedding = self.RELU(cdd_title_embedding)
         if self.dropout_p > 0:
             cdd_title_embedding = self.DropOut(cdd_title_embedding)
         
         if news_batch.shape[1] > 1:
-            # repeat tensor npratio+1/his_size times along dim=0, because they all correspond to the same user thus the same query
+            # repeat tensor cdd_size times along dim=0, because they all correspond to the same user thus the same query
             word_query = torch.repeat_interleave(word_query,repeats=news_batch.shape[1],dim=0)
 
         news_repr = self._attention_word(word_query,cdd_title_embedding)
@@ -187,14 +187,14 @@ class NPAModel(nn.Module):
         """ calculate batch of click probability
         
         Args:
-            cdd_news_repr: tensor of [batch_size, npratio+1/1, filter_num]
+            cdd_news_repr: tensor of [batch_size, cdd_size, filter_num]
             user_repr: tensor of [batch_size, 1, filter_num]
         
         Returns:
-            score: tensor of [batch_size, npratio+1/1]
+            score: tensor of [batch_size, cdd_size]
         """
         score = torch.bmm(cdd_news_repr,user_repr.permute(0,2,1))
-        if self.npratio > 0:
+        if self.cdd_size > 1:
             score = nn.functional.log_softmax(score,dim=1)
         else:
             score = torch.sigmoid(score)
@@ -206,8 +206,8 @@ class NPAModel(nn.Module):
         news_query = self._news_query_projection()
         cdd_news_batch = x['candidate_title'].long().to(self.device)
 
-        if self.npratio > 0:
-            cdd_news_reprs = self._news_encoder(cdd_news_batch,word_query).view(self.batch_size,self.npratio + 1,self.filter_num)
+        if self.cdd_size > 1:
+            cdd_news_reprs = self._news_encoder(cdd_news_batch,word_query).view(self.batch_size,self.cdd_size,self.filter_num)
 
         else:
             cdd_news_reprs = self._news_encoder(cdd_news_batch,word_query).unsqueeze(dim=1)
