@@ -198,7 +198,7 @@ class MIND_iter(IterableDataset):
         news_file(str): path of news_file
         behaviors_file(str): path of behaviors_file
     """
-    def __init__(self,hparams,news_file,behaviors_file,col_spliter='\t'):
+    def __init__(self,hparams,news_file,behaviors_file,mode='test',col_spliter='\t'):
         # initiate the whole iterator
         self.news_file = news_file
         self.behaviors_file = behaviors_file
@@ -209,7 +209,7 @@ class MIND_iter(IterableDataset):
         self.device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device('cpu')
 
         self.vocab = getVocab('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['mode'],'_'.join(hparams['attrs'])))
-        self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_test.json'.format(hparams['mode']))
+        self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_{}.json'.format(hparams['mode'],mode))
         self.uid2index = getId2idx('data/dictionaries/uid2idx_{}.json'.format(hparams['mode']))
     
     def init_news(self):
