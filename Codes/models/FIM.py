@@ -130,7 +130,7 @@ class FIMModel(nn.Module):
         return score
 
     def forward(self,x):
-        # compress batch_size and his_size into dim0
+        # compress batch_size and cdd_size into dim0
         cdd_news_set = torch.cat([x['candidate_title'].long().to(self.device),x['candidate_category'].long().to(self.device),x['candidate_subcategory'].long().to(self.device)],dim=2).view(-1,self.signal_length)
         cdd_news_reprs = self._news_encoder(cdd_news_set).view(self.batch_size,-1,self.level,self.signal_length, self.filter_num)
         

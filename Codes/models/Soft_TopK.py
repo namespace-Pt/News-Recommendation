@@ -1,12 +1,11 @@
 import torch
-import function
 
 def sinkhorn_forward(C,mu,nu,epsilon,max_iter):
     bs,n,k_ = C.size()
     v = torch.ones([bs,1,k_])/(k_)
     G = torch.exp(-C/epsilon)
     if torch.cuda.is_available():
-        v = v.cuda()
+        v = v.cuda(0)
     for i in range(max_iter):
         u = mu/(G * v).sum(-1,keepdim=True)
         v = nu/(G * u).sum(-2,keepdim=True)
@@ -19,8 +18,8 @@ def sinkhorn_forward_stablized(C,mu,nu,epsilon,max_iter):
     f = torch.zeros([bs,n,1])
     g = torch.zeros([bs,1,k+1])
     if torch.cuda.is_available():
-        f=f.cuda()
-        g=g.cuda()
+        f=f.cuda(0)
+        g=g.cuda(0)
         
     epsilon_log_mu = epsilon * torch.log(mu)
     epsilon_log_nu = epsilon * torch.log(nu)
@@ -65,14 +64,14 @@ def sinkhorn_backward(grad_output_Gamma,Gamma,mu,nu,epsilon):
     grad_C = (-G1+G2+G3)/epsilon#[bs,n,k+1]
     return grad_C
 
-class TopKFunc():
+class TopKFunc(torch.autograd.Function):
     @staticmethod
     def forward(ctx,C,mu,nu,epsilon,max_iter):
         with torch.no_grad():
             if epsilon>1e-2:
                 Gamma = sinkhorn_forward(C,mu,nu,epsilon,max_iter)
                 if bool(torch.any(Gamma != Gamma)):
-                    print('NanappearedinGamma,re-computing...')
+                    print('Nan appeared in Gamma,re-computing...')
                     Gamma = sinkhorn_forward_stablized(C,mu,nu,epsilon,max_iter)
             else:
                 Gamma = sinkhorn_forward_stablized(C,mu,nu,epsilon,max_iter)
@@ -94,14 +93,14 @@ class TopKFunc():
 
 class TopK_custom(torch.nn.Module):
     def __init__(self,k,epsilon = 0.1,max_iter = 200):
-        super(TopK_custom1,self).__init__()
+        super(TopK_custom,self).__init__()
         self.k = k
         self.epsilon = epsilon
         self.anchors = torch.FloatTensor([k-i for i in range(k+1)]).view([1,1,k+1])
         self.max_iter = max_iter
 
         if torch.cuda.is_available():
-            self.anchors = self.anchors.cuda()
+            self.anchors = self.anchors.cuda(0)
 
     def forward(self,scores):
         bs,n = scores.size()
@@ -117,13 +116,13 @@ class TopK_custom(torch.nn.Module):
         C = (scores-self.anchors)**2
         C = C/(C.max().detach())
         mu = torch.ones([1,n,1],requires_grad = False)/n
-        nu = [1./nfor_inrange(self.k)]
+        nu = [1./n for _ in range(self.k)]
         nu.append((n-self.k)/n)
         nu = torch.FloatTensor(nu).view([1,1,self.k+1])
         if torch.cuda.is_available():
-            mu = mu.cuda()
-            nu = nu.cuda()
+            mu = mu.cuda(0)
+            nu = nu.cuda(0)
         
         Gamma = TopKFunc.apply(C,mu,nu,self.epsilon,self.max_iter)
         A = Gamma[:,:,:self.k] * n
-        return A,None
+        return A

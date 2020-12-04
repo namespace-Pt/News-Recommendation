@@ -51,8 +51,9 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
     - [[29] Fine-grained Interest Matching for Neural News Recommendation](https://www.aclweb.org/anthology/2020.acl-main.77.pdf)
   - Soft Top-k Operator 
     - [[51] Differentiable Top-K Operator with Optimal Transport](https://arxiv.org/pdf/2002.06504.pdf)
-  - Multi-head Self-attention
+  - NRMS_encoder
     - according to [[22] Neural News Recommendation with Multi-Head Self-Attention](https://www.aclweb.org/anthology/D19-1671.pdf)
+  - KNRM
 
 ### `/scripts`: python scripts of models
   - you can run models in `shell`

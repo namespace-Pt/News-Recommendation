@@ -57,9 +57,9 @@ def newsample(news, ratio):
         list: output of sample list.
     """
     if ratio > len(news):
-        return news + [0] * (ratio - len(news))
+        return news + [0] * (ratio - len(news)), [ratio-len(news)]
     else:
-        return random.sample(news, ratio)
+        return random.sample(news, ratio), [0]
 
 
 def news_token_generator(news_file_train,news_file_test,tokenizer,attrs):

@@ -45,7 +45,7 @@ if __name__ == "__main__":
     behavior_file_test = '/home/peitian_zhang/Data/MIND/MIND'+hparams['mode']+'_dev/behaviors.tsv'
     behavior_file_pair = (behavior_file_train,behavior_file_test)
 
-    save_path = '/home/peitian_zhang/Codes/NR/models/model_param/FIM_'+ hparams['mode'] +'.model'
+    save_path = '/home/peitian_zhang/Codes/NR/models/model_params/FIM_'+ hparams['mode'] +'.model'
 
     if not os.path.exists('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['mode'],'_'.join(hparams['attrs']))):
         constructBasicDict(news_file_pair,behavior_file_pair,hparams['mode'],hparams['attrs'])
@@ -71,10 +71,9 @@ if __name__ == "__main__":
     elif sys.argv[3] == 'train':
         fimModel = FIMModel(vocab=vocab,hparams=hparams).to(device)
         fimModel.train()
-    
 
     if fimModel.training:
-        writer = SummaryWriter('data/tb/fim/' + hparams['mode'])
+        writer = SummaryWriter('data/tb/fim/' + hparams['mode'] + '/' + datetime.now().strftime("%Y%m%d-%H"))
         print("training...")
         loss_func = getLoss(fimModel)
         optimizer = optim.Adam(fimModel.parameters(),lr=0.001)
@@ -84,5 +83,5 @@ if __name__ == "__main__":
 
     print("evaluating...")
     fimModel.eval()
-    fimModel.npratio = -1
+    fimModel.cdd_size = 1
     print(run_eval(fimModel,loader_test))

@@ -34,8 +34,8 @@ class NPAModel(nn.Module):
         # project userID to dense vector e_u of user_dim
         # self.userProject = nn.Linear(1,self.user_dim)
         
-        # trainable lookup layer for user embedding
-        self.user_embedding = nn.Parameter(torch.rand((len(uid2idx),self.user_dim)))
+        # trainable lookup layer for user embedding, important to have len(uid2idx) + 1 rows because user indexes start from 1
+        self.user_embedding = nn.Parameter(torch.rand((len(uid2idx) + 1,self.user_dim)))
         # project e_u to word query preference vector of preference_dim
         self.wordQueryProject = nn.Linear(self.user_dim,self.preference_dim)
         # project e_u to word news preference vector of preference_dim
