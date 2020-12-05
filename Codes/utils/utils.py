@@ -395,7 +395,7 @@ def _cal_metric(imp_indexes, labels, preds, metrics):
                 try:
                     result.append(roc_auc_score(each_labels,each_preds))
                 except:
-                    print("error in impression:{}, labels of which is {}, predictions of which are {}".format(each_imprs,each_labels,each_preds))
+                    print("auc computaion error in impression:{}, labels of which is {}, predictions of which are {}".format(each_imprs,each_labels,each_preds))
                     continue
             
             group_auc = np.mean(result)    
@@ -431,8 +431,11 @@ def group_labels(impression_ids, labels, preds):
     all_preds = []
 
     for k in all_keys:
-        all_labels.append(group_labels[k])
-        all_preds.append(group_preds[k])
+        if 1 in group_labels[k]:
+            all_labels.append(group_labels[k])
+            all_preds.append(group_preds[k])
+        else:
+            print("impression {} has been stripped because of lacking 1 label".format(k))
 
     return all_keys, all_labels, all_preds
 
@@ -457,11 +460,9 @@ def _eval(model,dataloader,interval):
     for i,batch_data_input in tqdm_:
         
         preds.extend(model.forward(batch_data_input).tolist())
-        try:
-            label = batch_data_input['labels'].squeeze().tolist()
-        except:
-            print(label)       
-            raise ValueError
+       
+        label = batch_data_input['labels'].squeeze().tolist()
+        
         
         labels.extend(label)
         imp_indexes.extend(batch_data_input['impression_index'].tolist())
