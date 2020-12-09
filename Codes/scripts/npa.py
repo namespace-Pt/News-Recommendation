@@ -31,7 +31,7 @@ if __name__ == "__main__":
         'embedding_dim':300,
         'user_dim':50,
         'preference_dim':200,
-        'metrics':'group_auc,ndcg@4,mean_mrr',
+        'metrics':'group_auc,ndcg@5,ndcg@10,mean_mrr',
         'gpu':'cuda:0',
         'attrs': ['title'],
         'epochs':int(sys.argv[2])
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     behavior_file_test = '/home/peitian_zhang/Data/MIND/MIND'+hparams['mode']+'_dev/behaviors.tsv'
     behavior_file_pair = (behavior_file_train,behavior_file_test)
 
-    save_path = '/home/peitian_zhang/Codes/NR/models/model_params/NPA_'+ hparams['mode'] +'.model'
+    save_path = '/home/peitian_zhang/Codes/NR/models/model_params/NPA_{}_{}'.format(hparams['mode'],hparams['epochs']) +'.model'
 
     if not os.path.exists('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['mode'],'_'.join(hparams['attrs']))):
         constructBasicDict(news_file_pair,behavior_file_pair,hparams['mode'],hparams['attrs'])

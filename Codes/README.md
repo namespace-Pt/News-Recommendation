@@ -44,16 +44,18 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
   - [torch_tips.ipynb](manual/torch_tips.ipynb)
     - manipulation over `PyTorch`
 
-### `/models`: achieved models
+### `/models`: reproduced models
   - NPA
     - [[23] Npa Neural news recommendation with personalized attention](https://dl.acm.org/doi/abs/10.1145/3292500.3330665)
   - FIM
     - [[29] Fine-grained Interest Matching for Neural News Recommendation](https://www.aclweb.org/anthology/2020.acl-main.77.pdf)
+  - NRMS
+    - [[22] Neural News Recommendation with Multi-Head Self-Attention](https://www.aclweb.org/anthology/D19-1671.pdf)
+  - KNRM
+    - [[49] End-to-End Neural Ad-hoc Ranking with Kernel Pooling](https://dl.acm.org/doi/pdf/10.1145/3077136.3080809)
   - Soft Top-k Operator 
     - [[51] Differentiable Top-K Operator with Optimal Transport](https://arxiv.org/pdf/2002.06504.pdf)
-  - NRMS_encoder
-    - according to [[22] Neural News Recommendation with Multi-Head Self-Attention](https://www.aclweb.org/anthology/D19-1671.pdf)
-  - KNRM
+    - *copy code from paper*
 
 ### `/scripts`: python scripts of models
   - you can run models in `shell`
@@ -80,10 +82,12 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
 - [x] understand *permute*
 - [x] construct `nid2idx` and `uid2idx` according to both training iterator and testing iterator
 - [x] analyze MIND dataset, calculate average user history length
-- [ ] generate negtiva examples
 - [x] rewrite NPA, user embedding, not user projection
-- [ ] figure out why FIM suffers
-- [ ] cosine similarity computation inspection
+- [x] figure out why FIM suffers
+- [x] cosine similarity computation inspection
+- [ ] generate negtiva examples
+- [ ] BERT cls
+- [ ] transformer encoder
 
 ## Insights
 ### Convolution

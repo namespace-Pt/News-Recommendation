@@ -28,10 +28,11 @@ if __name__ == "__main__":
         'his_size':50,
         'kernel_size':3,
         'npratio':4,
+        'dropout_p':0.2,
         'dilation_level':3,
         'filter_num':150,
         'embedding_dim':300,
-        'metrics':'group_auc,ndcg@4,mean_mrr',
+        'metrics':'group_auc,ndcg@5,ndcg@10,mean_mrr',
         'gpu':'cuda:0',
         'attrs': ['title','category','subcategory'],
         'epochs':int(sys.argv[2])
@@ -45,7 +46,7 @@ if __name__ == "__main__":
     behavior_file_test = '/home/peitian_zhang/Data/MIND/MIND'+hparams['mode']+'_dev/behaviors.tsv'
     behavior_file_pair = (behavior_file_train,behavior_file_test)
 
-    save_path = '/home/peitian_zhang/Codes/NR/models/model_params/FIM_'+ hparams['mode'] +'.model'
+    save_path = '/home/peitian_zhang/Codes/NR/models/model_params/FIM_{}_{}'.format(hparams['mode'],hparams['epochs']) +'.model'
 
     if not os.path.exists('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['mode'],'_'.join(hparams['attrs']))):
         constructBasicDict(news_file_pair,behavior_file_pair,hparams['mode'],hparams['attrs'])
@@ -53,7 +54,7 @@ if __name__ == "__main__":
     device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device("cpu")
 
     dataset_train = MIND_map(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train)
-    dataset_test = MIND_iter(hparams=hparams,news_file=news_file_test,behaviors_file=behavior_file_test)
+    dataset_test = MIND_iter(hparams=hparams,mode='test',news_file=news_file_test,behaviors_file=behavior_file_test)
 
     vocab = dataset_train.vocab
     embedding = GloVe(dim=300,cache='.vector_cache')

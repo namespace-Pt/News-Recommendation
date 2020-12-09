@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-05 18:05:03
-LastEditTime: 2020-11-20 10:24:33
+LastEditTime: 2020-12-09 15:41:02
 '''
 
 import torch
@@ -25,7 +25,7 @@ class NPAModel(nn.Module):
         self.preference_dim =hparams['preference_dim']
 
         self.device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device('cpu')
-        
+       
         # pretrained embedding
         self.embedding = vocab.vectors
         # elements in the slice along dim will sum up to 1 

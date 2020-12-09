@@ -1,7 +1,7 @@
 '''
 Author: Pt
 Date: 2020-11-14 16:00:00
-LastEditTime: 2020-11-20 01:28:10
+LastEditTime: 2020-12-09 17:23:50
 Description: Implementation of Finegrained Interest Matching method for neural news recommendation 
 '''
 
@@ -17,6 +17,7 @@ class FIMModel(nn.Module):
         self.cdd_size = (hparams['npratio'] + 1) if hparams['npratio'] > 0 else 1
         self.batch_size = hparams['batch_size']
         self.level = hparams['dilation_level']
+        self.dropout_p = hparams['dropout_p']
         
         # concatenate category embedding and subcategory embedding
         self.signal_length = hparams['title_size'] + 1 + 1
@@ -39,6 +40,7 @@ class FIMModel(nn.Module):
 
         self.ReLU = nn.ReLU()
         self.LayerNorm = nn.LayerNorm(self.filter_num)
+        self.DropOut = nn.Dropout(p=self.dropout_p)
         self.SeqCNN3D = nn.Sequential(
             nn.Conv3d(in_channels=3,out_channels=32,kernel_size=[3,3,3],padding=1),
             nn.ReLU(),
@@ -88,7 +90,7 @@ class FIMModel(nn.Module):
         Returns:
             news_embedding_dilations: tensor of [set_size, level, signal_length, filter_num]
         """
-        news_embedding = self.embedding[news_set].to(self.device)
+        news_embedding = self.DropOut(self.embedding[news_set].to(self.device))
         news_embedding_dilations = self._HDC(news_embedding)
         return news_embedding_dilations
     

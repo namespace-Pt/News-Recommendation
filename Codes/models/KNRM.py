@@ -1,10 +1,10 @@
 import torch
 import torch.nn as nn
 class KNRMModel(nn.Module):
-    def __init__(self):
+    def __init__(self,device):
         super().__init__()
-        self.device = torch.device('cuda:0')
-        self.mus = torch.arange(-0.9,1.1,0.1,device=self.device)
+        self.device = device
+        self.mus = torch.arange(-0.1,0.2,0.1,device=self.device)
         self.kernel_num = len(self.mus)
         self.sigmas = torch.tensor([0.1]*(self.kernel_num - 1) + [0.001], device=self.device)
 

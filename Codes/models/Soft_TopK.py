@@ -12,6 +12,7 @@ def sinkhorn_forward(C,mu,nu,epsilon,max_iter):
     Gamma = u * G * v
     return Gamma
 
+
 def sinkhorn_forward_stablized(C,mu,nu,epsilon,max_iter):
     bs,n,k_ = C.size()
     k = k_-1

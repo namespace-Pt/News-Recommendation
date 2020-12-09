@@ -190,10 +190,14 @@ def tailorData(tsvFile, num):
     Returns: 
         create tailored data file
     '''
-    mode = re.search('D:/Data/NR_data/MINDsmall_(.*)/(.*).tsv',tsvFile).group(1)
-    target_file = re.search('D:/Data/NR_data/MINDsmall_(.*)/(.*).tsv',tsvFile).group(2)
+    pattern = re.search('(.*)MIND(.*)_(.*)/(.*).tsv',tsvFile)
 
-    target_file = 'D:/Data/NR_data/dev/'+target_file+'_{}.tsv'.format(mode)
+    directory = pattern.group(1)
+    mode = pattern.group(3)
+    target_file = pattern.group(4)
+
+    target_file = directory + 'MINDdemo' + '_{}/'.format(mode) + target_file + '.tsv'.format(mode)
+    print(target_file)
     
     f = open(target_file,'w',encoding='utf-8')   
     count = 0
