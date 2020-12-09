@@ -10,14 +10,13 @@ os.chdir('/home/peitian_zhang/Codes/NR')
 sys.path.append('/home/peitian_zhang/Codes/NR')
 
 import torch
-import torch.nn as nn
 import torch.optim as optim
 from datetime import datetime
 from torchtext.vocab import GloVe
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
 from utils.MIND import MIND_iter,MIND_map
-from utils.utils import getLoss,getLabel,constructBasicDict,run_eval,run_train
+from utils.utils import getLoss,constructBasicDict,run_eval,run_train
 from models.FIM import FIMModel
 
 if __name__ == "__main__":
@@ -46,7 +45,7 @@ if __name__ == "__main__":
     behavior_file_test = '/home/peitian_zhang/Data/MIND/MIND'+hparams['mode']+'_dev/behaviors.tsv'
     behavior_file_pair = (behavior_file_train,behavior_file_test)
 
-    save_path = '/home/peitian_zhang/Codes/NR/models/model_params/FIM_{}_{}'.format(hparams['mode'],hparams['epochs']) +'.model'
+    save_path = 'models/model_params/FIM_{}_{}'.format(hparams['mode'],hparams['epochs']) +'.model'
 
     if not os.path.exists('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['mode'],'_'.join(hparams['attrs']))):
         constructBasicDict(news_file_pair,behavior_file_pair,hparams['mode'],hparams['attrs'])

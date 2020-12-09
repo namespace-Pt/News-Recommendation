@@ -135,7 +135,7 @@ class NRMSModel(nn.Module):
             # project the embedding of each words to query subspace
             # keep the original embedding of each words as values
             multi_head_self_attn_value = torch.cat(self_attn_outputs,dim=-1)
-            multi_head_self_attn_key = torch.nn.functional.tanh(self.keyProject_words(multi_head_self_attn_value))
+            multi_head_self_attn_key = torch.tanh(self.keyProject_words(multi_head_self_attn_value))
 
             additive_attn_embedding = self._word_attention(self.query_words, multi_head_self_attn_key,multi_head_self_attn_value)
 
@@ -147,7 +147,7 @@ class NRMSModel(nn.Module):
             # project the embedding of each words to query subspace
             # keep the original embedding of each words as values
             multi_head_self_attn_value = torch.cat(self_attn_outputs,dim=-1)
-            multi_head_self_attn_key = torch.nn.functional.tanh(self.keyProject_news(multi_head_self_attn_value))
+            multi_head_self_attn_key = torch.tanh(self.keyProject_news(multi_head_self_attn_value))
 
             additive_attn_embedding = self._news_attention(self.query_news, multi_head_self_attn_key,multi_head_self_attn_value)
 

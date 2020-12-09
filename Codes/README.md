@@ -47,10 +47,13 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
 ### `/models`: reproduced models
   - NPA
     - [[23] Npa Neural news recommendation with personalized attention](https://dl.acm.org/doi/abs/10.1145/3292500.3330665)
+    - ![](../Resources/npa_large_10.png)
   - FIM
     - [[29] Fine-grained Interest Matching for Neural News Recommendation](https://www.aclweb.org/anthology/2020.acl-main.77.pdf)
+    - ![](../Resources/fim_small_6.png)
   - NRMS
     - [[22] Neural News Recommendation with Multi-Head Self-Attention](https://www.aclweb.org/anthology/D19-1671.pdf)
+    - ![](../Resources/nrms_samll_5.png)
   - KNRM
     - [[49] End-to-End Neural Ad-hoc Ranking with Kernel Pooling](https://dl.acm.org/doi/pdf/10.1145/3077136.3080809)
   - Soft Top-k Operator 

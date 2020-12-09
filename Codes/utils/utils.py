@@ -491,6 +491,7 @@ def run_eval(model,dataloader,interval=100):
     """
     imp_indexes, group_labels, group_preds = _eval(model,dataloader,interval)
     res = _cal_metric(imp_indexes,group_labels,group_preds,model.metrics.split(','))
+    print("evaluation results:{}".format(res))
     return res
 
 def run_train(model, dataloader, optimizer, loss_func, writer=None, epochs=10, interval=100):
