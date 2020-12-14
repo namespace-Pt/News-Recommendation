@@ -53,7 +53,7 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
     - ![](../Resources/fim_small_6.png)
   - NRMS
     - [[22] Neural News Recommendation with Multi-Head Self-Attention](https://www.aclweb.org/anthology/D19-1671.pdf)
-    - ![](../Resources/nrms_samll_5.png)
+    - ![](../Resources/nrms_large_6.png)
   - KNRM
     - [[49] End-to-End Neural Ad-hoc Ranking with Kernel Pooling](https://dl.acm.org/doi/pdf/10.1145/3077136.3080809)
   - Soft Top-k Operator 

@@ -10,6 +10,7 @@ import torch.nn as nn
 class NPAModel(nn.Module):
     def __init__(self,hparams,vocab,uid2idx):
         super().__init__()
+        self.name = hparams['name']
         
         self.cdd_size = (hparams['npratio'] + 1) if hparams['npratio'] > 0 else 1
         self.dropout_p = hparams['dropout_p']
@@ -24,10 +25,10 @@ class NPAModel(nn.Module):
         self.user_dim = hparams['user_dim']
         self.preference_dim =hparams['preference_dim']
 
-        self.device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device('cpu')
+        self.device = torch.device(hparams['device'])
        
         # pretrained embedding
-        self.embedding = vocab.vectors
+        self.embedding = vocab.vectors.to(self.device)
         # elements in the slice along dim will sum up to 1 
         self.softmax = nn.functional.softmax
 
@@ -150,7 +151,7 @@ class NPAModel(nn.Module):
 
         # important not to directly apply view function
         # return tensor of batch_size * cdd_size * embedding_dim * title_size
-        cdd_title_embedding = self.embedding[news_batch].to(self.device)
+        cdd_title_embedding = self.embedding[news_batch]
         cdd_title_embedding = cdd_title_embedding.view(-1,self.title_size,self.embedding_dim).permute(0,2,1)
         
         # return tensor of batch_size * cdd_size * filter_num * title_size

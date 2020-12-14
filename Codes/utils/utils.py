@@ -494,7 +494,7 @@ def run_eval(model,dataloader,interval=100):
     print("evaluation results:{}".format(res))
     return res
 
-def run_train(model, dataloader, optimizer, loss_func, writer=None, epochs=10, interval=100):
+def run_train(model, dataloader, optimizer, loss_func, writer=None, epochs=10, interval=100, hparams=None):
     ''' train model and print loss meanwhile
     Args: 
         model(torch.nn.Module): the model to be trained
@@ -504,6 +504,7 @@ def run_train(model, dataloader, optimizer, loss_func, writer=None, epochs=10, i
         writer(torch.utils.tensorboard.SummaryWriter): tensorboard writer
         epochs(int): number of epochs
         interval(int): within each epoch, the interval of training steps to display loss
+        save_epoch(bool): whether to save the model after every epoch
     Returns: 
         model: trained model
     '''
@@ -538,5 +539,8 @@ def run_train(model, dataloader, optimizer, loss_func, writer=None, epochs=10, i
             writer.add_scalar('epoch_loss',
                             epoch_loss/len(dataloader),
                             epoch)
-                
+        if hparams:
+            save_path = 'models/model_params/{}_{}_{}'.format(hparams['name'],hparams['mode'],epoch+1) +'.model'
+            torch.save(model.state_dict(), save_path)
+    
     return model

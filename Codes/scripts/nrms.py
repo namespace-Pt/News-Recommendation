@@ -16,6 +16,7 @@ from models.NRMS import NRMSModel
 if __name__ == "__main__":
     hparams = {
         'mode':sys.argv[1],
+        'name':'nrms',
         'batch_size':64,
         'title_size':30,
         'his_size':50,
@@ -28,7 +29,7 @@ if __name__ == "__main__":
         'kernel_num':11,
         'epochs':int(sys.argv[2]),
         'metrics':'group_auc,ndcg@5,ndcg@10,mean_mrr',
-        'gpu':'cuda:0',
+        'device':'cuda:0',
         'attrs': ['title'],
     }
 
@@ -40,11 +41,11 @@ if __name__ == "__main__":
     behavior_file_test = '/home/peitian_zhang/Data/MIND/MIND'+hparams['mode']+'_dev/behaviors.tsv'
     behavior_file_pair = (behavior_file_train,behavior_file_test)
 
-    save_path = 'models/model_params/NRMS_{}_{}'.format(hparams['mode'],hparams['epochs']) +'.model'
+    save_path = 'models/model_params/{}_{}_{}'.format(hparams['name'],hparams['mode'],hparams['epochs']) +'.model'
     if not os.path.exists('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['mode'],'_'.join(hparams['attrs']))):
         constructBasicDict(news_file_pair,behavior_file_pair,hparams['mode'],hparams['attrs'])
 
-    device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device(hparams['device']) if torch.cuda.is_available() else torch.device("cpu")
 
     dataset_train = MIND_map(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train)
     dataset_test = MIND_iter(hparams=hparams,news_file=news_file_test,behaviors_file=behavior_file_test, mode='test')
@@ -56,28 +57,26 @@ if __name__ == "__main__":
     loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],shuffle=True,pin_memory=True,num_workers=3,drop_last=True)
     loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
 
+    nrmsModel = NRMSModel(vocab=vocab,hparams=hparams).to(device)
+
     if sys.argv[3] == 'eval':
-        nrmsModel = NRMSModel(vocab=vocab,hparams=hparams).to(device)
         nrmsModel.load_state_dict(torch.load(save_path))
         nrmsModel.eval()
         
 
     elif sys.argv[3] == 'train':
-        nrmsModel = NRMSModel(vocab=vocab,hparams=hparams).to(device)
         nrmsModel.train()
-        writer = SummaryWriter('data/tb/nrms/' + hparams['mode'] + '/' + datetime.now().strftime("%Y%m%d-%H"))
+        writer = SummaryWriter('data/tb/{}/{}/{}/'.format(hparams['name'], hparams['mode'], datetime.now().strftime("%Y%m%d-%H")))
 
     if nrmsModel.training:
         print("training...")
         loss_func = getLoss(nrmsModel)
         optimizer = optim.Adam(nrmsModel.parameters(),lr=0.001)
-        nrmsModel = run_train(nrmsModel,loader_train,optimizer,loss_func,epochs=hparams['epochs'], interval=10)
-        writer = SummaryWriter('data/tb/nrms/' + hparams['mode'] + '/' + datetime.now().strftime("%Y%m%d-%H"))
+        nrmsModel = run_train(nrmsModel,loader_train,optimizer,loss_func,writer=writer,epochs=hparams['epochs'], interval=10)
+        torch.save(nrmsModel.state_dict(), save_path)
+        print("save success!")
 
     print("evaluating...")
     nrmsModel.eval()
     nrmsModel.cdd_size = 1
     run_eval(nrmsModel,loader_test)
-
-    nrmsModel.cdd_size = 5
-    torch.save(nrmsModel.state_dict(), save_path)

@@ -5,10 +5,12 @@ import torch.nn as nn
 class NRMSModel(nn.Module):
     def __init__(self,hparams,vocab):
         super().__init__()
+        self.name = hparams['name']
+        
         self.cdd_size = (hparams['npratio'] + 1) if hparams['npratio'] > 0 else 1
         self.metrics = hparams['metrics']
-        self.device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device('cpu')
-        self.embedding = vocab.vectors
+        self.device = torch.device(hparams['device'])
+        self.embedding = vocab.vectors.to(self.device)
 
         self.batch_size = hparams['batch_size']
         self.signal_length = hparams['title_size']
@@ -162,7 +164,7 @@ class NRMSModel(nn.Module):
         Returns:
             news_reprs: tensor of [batch_size, cdd_size, repr_dim]
         """
-        news_embedding = self.DropOut(self.embedding[news_batch].to(self.device))
+        news_embedding = self.DropOut(self.embedding[news_batch])
         news_reprs = self._multi_head_self_attention(news_embedding,1)
         return news_reprs
     

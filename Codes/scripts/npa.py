@@ -22,6 +22,7 @@ from models.NPA import NPAModel
 if __name__ == "__main__":
     hparams = {
         'mode':sys.argv[1],
+        'name':'npa',
         'batch_size':100,
         'title_size':30,
         'his_size':50,   
@@ -32,7 +33,7 @@ if __name__ == "__main__":
         'user_dim':50,
         'preference_dim':200,
         'metrics':'group_auc,ndcg@5,ndcg@10,mean_mrr',
-        'gpu':'cuda:0',
+        'device':'cuda:0',
         'attrs': ['title'],
         'epochs':int(sys.argv[2])
     }
@@ -45,12 +46,12 @@ if __name__ == "__main__":
     behavior_file_test = '/home/peitian_zhang/Data/MIND/MIND'+hparams['mode']+'_dev/behaviors.tsv'
     behavior_file_pair = (behavior_file_train,behavior_file_test)
 
-    save_path = 'models/model_params/NPA_{}_{}'.format(hparams['mode'],hparams['epochs']) +'.model'
+    save_path = 'models/model_params/{}_{}_{}'.format(hparams['name'],hparams['mode'],hparams['epochs']) +'.model'
 
     if not os.path.exists('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['mode'],'_'.join(hparams['attrs']))):
         constructBasicDict(news_file_pair,behavior_file_pair,hparams['mode'],hparams['attrs'])
 
-    device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device("cpu")
+    device = torch.device(hparams['device']) if torch.cuda.is_available() else torch.device("cpu")
 
     dataset_train = MIND_map(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train)
     dataset_test = MIND_iter(hparams=hparams,news_file=news_file_test,behaviors_file=behavior_file_test)
@@ -61,17 +62,17 @@ if __name__ == "__main__":
 
     loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],shuffle=True,pin_memory=True,num_workers=20,drop_last=True)
     loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
+
+    npaModel = NPAModel(vocab=vocab,hparams=hparams,uid2idx=dataset_train.uid2index).to(device)
     
     if sys.argv[3] == 'eval':
-        npaModel = NPAModel(vocab=vocab,hparams=hparams,uid2idx=dataset_train.uid2index).to(device)
         npaModel.load_state_dict(torch.load(save_path))
         npaModel.eval()
         
 
     elif sys.argv[3] == 'train':
-        npaModel = NPAModel(vocab=vocab,hparams=hparams,uid2idx=dataset_train.uid2index).to(device)
         npaModel.train()
-        writer = SummaryWriter('data/tb/npa/' + hparams['mode'] + '/' + datetime.now().strftime("%Y%m%d-%H"))
+        writer = SummaryWriter('data/tb/{}/{}/{}/'.format(hparams['name'], hparams['mode'], datetime.now().strftime("%Y%m%d-%H")))
 
     if npaModel.training:
         print("training...")
@@ -84,4 +85,4 @@ if __name__ == "__main__":
     print("evaluating...")
     npaModel.cdd_size = 1
     npaModel.eval()
-    print(run_eval(npaModel,loader_test))
+    run_eval(npaModel,loader_test)

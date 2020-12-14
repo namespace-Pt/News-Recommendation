@@ -12,6 +12,7 @@ import torch.nn as nn
 class FIMModel(nn.Module):
     def __init__(self,hparams,vocab):
         super().__init__()
+        self.name = hparams['name']
         self.metrics = hparams['metrics']
 
         self.cdd_size = (hparams['npratio'] + 1) if hparams['npratio'] > 0 else 1
@@ -27,10 +28,10 @@ class FIMModel(nn.Module):
         self.filter_num = hparams['filter_num']
         self.embedding_dim = hparams['embedding_dim']
 
-        self.device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+        self.device = hparams['device']
 
         # pretrained embedding
-        self.embedding = vocab.vectors
+        self.embedding = vocab.vectors.to(self.device)
         # elements in the slice along dim will sum up to 1 
         self.softmax = nn.functional.softmax
         
@@ -90,7 +91,7 @@ class FIMModel(nn.Module):
         Returns:
             news_embedding_dilations: tensor of [set_size, level, signal_length, filter_num]
         """
-        news_embedding = self.DropOut(self.embedding[news_set].to(self.device))
+        news_embedding = self.DropOut(self.embedding[news_set])
         news_embedding_dilations = self._HDC(news_embedding)
         return news_embedding_dilations
     

@@ -27,7 +27,6 @@ class MIND_map(Dataset):
         self.batch_size = hparams['batch_size']
         self.title_size = hparams['title_size']
         self.his_size = hparams['his_size']
-        self.device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device('cpu')
 
         self.vocab = getVocab('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['mode'],'_'.join(hparams['attrs'])))
         self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_train.json'.format(hparams['mode']))
@@ -206,7 +205,6 @@ class MIND_iter(IterableDataset):
         self.batch_size = hparams['batch_size']
         self.title_size = hparams['title_size']
         self.his_size = hparams['his_size']
-        self.device = torch.device(hparams['gpu']) if torch.cuda.is_available() else torch.device('cpu')
 
         self.vocab = getVocab('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['mode'],'_'.join(hparams['attrs'])))
         self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_{}.json'.format(hparams['mode'],mode))
