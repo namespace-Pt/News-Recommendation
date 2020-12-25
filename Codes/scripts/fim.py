@@ -77,7 +77,7 @@ if __name__ == "__main__":
         print("training...")
         loss_func = getLoss(fimModel)
         optimizer = optim.Adam(fimModel.parameters(),lr=0.001)
-        fimModel = run_train(fimModel,loader_train,optimizer,loss_func,writer, epochs=hparams['epochs'], interval=10, hparams=hparams)
+        fimModel = run_train(fimModel,loader_train,optimizer,loss_func,writer, epochs=hparams['epochs'], interval=10)
         torch.save(fimModel.state_dict(), save_path)
         print("save success!")
 

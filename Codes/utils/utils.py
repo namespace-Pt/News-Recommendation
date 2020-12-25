@@ -509,7 +509,7 @@ def run_train(model, dataloader, optimizer, loss_func, writer=None, epochs=10, i
         model: trained model
     '''
     total_loss = 0
-
+    
     for epoch in range(epochs):
         epoch_loss = 0
         tqdm_ = tqdm(enumerate(dataloader))
@@ -524,17 +524,21 @@ def run_train(model, dataloader, optimizer, loss_func, writer=None, epochs=10, i
 
             loss.backward()
             optimizer.step()
-            optimizer.zero_grad()
-
+                    
             if step % interval == 0:
 
                 tqdm_.set_description(
                     "epoch {:d} , step {:d} , loss: {:.4f}".format(epoch, step, epoch_loss / step))
-
                 if writer:
+                    for name, param in model.named_parameters():
+                        writer.add_histogram(name, param, step)
+
                     writer.add_scalar('data_loss',
                             total_loss/(epoch * len(dataloader) + step),
                             epoch * len(dataloader) + step)
+            optimizer.zero_grad()
+
+            
         if writer:
             writer.add_scalar('epoch_loss',
                             epoch_loss/len(dataloader),
