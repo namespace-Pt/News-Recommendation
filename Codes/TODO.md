@@ -1,0 +1,4 @@
+- 1.12
+  - [x] knrm mask值
+  - [ ] transformer交互
+  - [ ] 加负例交互

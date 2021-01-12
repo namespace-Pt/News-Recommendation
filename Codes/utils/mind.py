@@ -4,7 +4,6 @@ Date: 2020-11-19 21:58:13
 LastEditTime: 2020-11-20 10:41:37
 Description: MIND dataset
 '''
-import torch
 import numpy as np
 from torch.utils.data import Dataset,IterableDataset
 from .utils import newsample,getId2idx,word_tokenize_vocab,getVocab
@@ -49,6 +48,8 @@ class MIND_map(Dataset):
         title_token = [[0]*self.title_size]
         category_token = [[0]]
         subcategory_token = [[0]]
+
+        title_pad = [[self.title_size]]
         
         with open(self.news_file,"r",encoding='utf-8') as rd:
 
@@ -59,12 +60,16 @@ class MIND_map(Dataset):
 
                 title = word_tokenize_vocab(title,self.vocab)
                 title_token.append(title[:self.title_size] + [0] * (self.title_size - len(title)))
+                title_pad.append([max(self.title_size - len(title), 0)])
+
                 category_token.append([self.vocab[vert]])
                 subcategory_token.append([self.vocab[subvert]])
         
         self.news_title_array = np.asarray(title_token)
         self.news_category_array = np.asarray(category_token)
         self.news_subcategory_array = np.asarray(subcategory_token)
+
+        self.title_pad = np.asarray(title_pad)
 
     def init_behaviors(self):
         """ 
@@ -94,7 +99,6 @@ class MIND_map(Dataset):
                 self.his_pad.append(max(self.his_size - len(history),0))
                 # tailor user's history or pad 0
                 history = history[:self.his_size] + [0] * (self.his_size - len(history))
-        
                 impr_news = [self.nid2index[i.split("-")[0]] for i in impr.split()]
                 
                 label = [int(i.split("-")[1]) for i in impr.split()]
@@ -147,7 +151,7 @@ class MIND_map(Dataset):
             candidate_category_index = []
             candidate_subcategory_index = []
             user_index = []
-            click_mask = np.zeros((self.his_size,1),dtype=bool)
+            his_mask = np.zeros((self.his_size,1),dtype=bool)
             
             label = [1] + [0] * self.npratio
 
@@ -160,13 +164,20 @@ class MIND_map(Dataset):
             click_title_index = self.news_title_array[self.histories[idx]]
             click_category_index = self.news_category_array[self.histories[idx]]
             click_subcategory_index = self.news_subcategory_array[self.histories[idx]]
+            # pad in title
+            candidate_title_pad = [(self.title_size - i[0])*[1] + i[0]*[0] for i in self.title_pad[[p] + neg_list]]
+            click_title_pad = [(self.title_size - i[0])*[1] + i[0]*[0] for i in self.title_pad[self.histories[idx]]]
+            # print(self.title_pad[[p] + neg_list])
+            # print(self.title_pad[self.histories[idx]])
+            # print(candidate_title_pad)
+            # print(click_title_pad)
 
             # in case the user has no history records, do not mask
             if self.his_pad[idx] == self.his_size or self.his_pad[idx] == 0:
-                click_mask = click_mask
+                his_mask = his_mask
             else:
                 # print(self.his_pad[idx])
-                click_mask[-self.his_pad[idx]:] = [True]
+                his_mask[-self.his_pad[idx]:] = [True]
 
             # impression_index not needed in training
             # impr_index = self.impr_indexes[idx]
@@ -176,13 +187,15 @@ class MIND_map(Dataset):
             return {
                 "user_index": np.asarray(user_index),
                 "neg_pad": np.asarray(neg_pad),
-                "click_mask": click_mask,
+                "his_mask": his_mask,
                 "clicked_title": click_title_index,
                 "clicked_category":click_category_index,
                 "clicked_subcategory":click_subcategory_index,
+                "clicked_title_pad": np.asarray(click_title_pad),
                 "candidate_title": candidate_title_index,
                 "candidate_category": candidate_category_index,
                 "candidate_subcategory": candidate_subcategory_index,
+                "candidate_title_pad": np.asarray(candidate_title_pad),
                 # important to transfer to array, otherwise produces error in converted tensor
                 # FIXME understand why
                 "labels": np.asarray(label)
@@ -218,6 +231,8 @@ class MIND_iter(IterableDataset):
         title_token = [[0]*self.title_size]
         category_token = [[0]]
         subcategory_token = [[0]]
+
+        title_pad = [[self.title_size]]
         
         with open(self.news_file,"r",encoding='utf-8') as rd:
 
@@ -228,12 +243,16 @@ class MIND_iter(IterableDataset):
 
                 title = word_tokenize_vocab(title,self.vocab)
                 title_token.append(title[:self.title_size] + [0] * (self.title_size - len(title)))
+                title_pad.append([max(self.title_size - len(title), 0)])
+
                 category_token.append([self.vocab[vert]])
                 subcategory_token.append([self.vocab[subvert]])
         
         self.news_title_array = np.asarray(title_token)
         self.news_category_array = np.asarray(category_token)
         self.news_subcategory_array = np.asarray(subcategory_token)
+
+        self.title_pad = np.asarray(title_pad)
 
     def init_behaviors(self):
         """ 
@@ -304,7 +323,7 @@ class MIND_iter(IterableDataset):
                 # indicate user ID
                 user_index = []
                 # indicate history mask
-                click_mask = np.zeros((self.his_size,1),dtype=bool)
+                his_mask = np.zeros((self.his_size,1),dtype=bool)
 
                 # indicate whether the news is clicked
                 label = [label]
@@ -320,13 +339,17 @@ class MIND_iter(IterableDataset):
 
                 impr_index = self.impr_indexes[index]
                 user_index.append(self.uindexes[index])
+
+                candidate_title_pad = [(self.title_size - self.title_pad[news][0])*[1] + self.title_pad[news][0]*[0]]
+                click_title_pad = [(self.title_size - i[0])*[1] + i[0]*[0] for i in self.title_pad[self.histories[index]]]
+
             
                 # in case the user has no history records, do not mask
                 if self.his_pad[index] == self.his_size or self.his_pad[index] == 0:
-                    click_mask = click_mask
+                    his_mask = his_mask
                 else:
                     # print(self.his_pad[idx])
-                    click_mask[-self.his_pad[index]:] = [True]
+                    his_mask[-self.his_pad[index]:] = [True]
                 
                 yield {
                     "impression_index": impr_index,
@@ -334,12 +357,14 @@ class MIND_iter(IterableDataset):
                     "clicked_title": click_title_index,
                     "clicked_category":click_category_index,
                     "clicked_subcategory":click_subcategory_index,
-                    "click_mask":click_mask,
+                    "clicked_title_pad": np.asarray(click_title_pad),
+                    "his_mask":his_mask,
                     
                     # similarly, important to convert to numpy array rather than retaining list
                     "candidate_title": np.asarray(candidate_title_index),
                     "candidate_category": np.asarray(candidate_category_index),
                     "candidate_subcategory": np.asarray(candidate_subcategory_index),
+                    "candidate_title_pad": np.asarray(candidate_title_pad),
                     "labels": np.asarray(label)
                 }
     

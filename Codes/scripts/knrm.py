@@ -17,6 +17,7 @@ if __name__ == "__main__":
     hparams = {
         'mode':sys.argv[1],
         'name':'knrm',
+        'train_embedding': False,
         'epochs':int(sys.argv[2]),
         'batch_size':100,
         'title_size':20,
@@ -25,7 +26,7 @@ if __name__ == "__main__":
         'embedding_dim':300,
         'kernel_num':11,
         'metrics':'group_auc,ndcg@5,ndcg@10,mean_mrr',
-        'device':'cuda:0',
+        'device':'cuda:1',
         'attrs': ['title'],
     }
 
