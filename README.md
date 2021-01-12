@@ -15,36 +15,6 @@
 - 绿：不认识的单词
 **在[45]之后黄色代表不认识的单词，绿色代表需要看的点**
 
-## Glossary
-- Jaccard:给定$x = (1,0,0),y=(0,0,1)$，则
-  $$Jaccard(x,y) = \frac{|x\cap y|}{|x\cup y|} = \frac{1}{2}$$
-- Access partern：点击同一个文章的不同用户的分布
-- $u$、$v$是$n$维行向量：
-  - inner product$ = u^Tv$
-  - outer product$ = uv^T$
-- Click Through Rate(CTR):$CTR = \frac{clicked}{viewed}$
-- i.i.d: independent and identically distributed，独立同分布
-- lookup (table):设$W \in \mathbb{R}^n*m$为用户的lookup table，一行对应一条embedding，$u$的embedding为$W[u]$，一般随机初始化或者预训练得到
-- Co-visitation[1]，记录用户点击过当前article后又点击了哪些，之后点击的每一篇以衰减的时间为权重；即维护一个图，节点是所有article，边代表co-visitation，即任一个用户点击i后点了j，就把i->j连一条边，边的权重会随时间衰减
-- Hadamard product：element-wise product over 2 vectors of the same size
-- Confusion Matrix
-  - TP
-    - TPR(sensitivity)
-  - FP: false positive, means false determine on False Example (classified to True)
-    - FPR(specificity)
-  - FN: false negtive, means false determine on True Example (classified to False)
-## Blogs
-- [Q-Learning](https://www.mlq.ai/deep-reinforcement-learning-q-learning/)
-- [CNN](https://towardsdatascience.com/a-comprehensive-guide-to-convolutional-neural-networks-the-eli5-way-3bd2b1164a53),[CNN_torch](https://towardsdatascience.com/pytorch-basics-how-to-train-your-neural-net-intro-to-cnn-26a14c2ea29)
-- [Transformer](http://jalammar.github.io/illustrated-transformer/)
-- [LSTM](https://colah.github.io/posts/2015-08-Understanding-LSTMs/)
-- [Layer Normalization](https://mlexplained.com/2018/01/13/weight-normalization-and-layer-normalization-explained-normalization-in-deep-learning-part-2/)
-- [Mathematics for Machine Learning](https://mml-book.github.io/)
-
-## Toolkits
-- NLP工具：GATE
-- libFM
-
 # 新闻推荐
 ## Notation
 - 接受推荐的用户记为$u$，某一新闻记为$v$
