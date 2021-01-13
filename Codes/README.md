@@ -82,7 +82,6 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
 
 ## TODO
 - [x] integrate MINDIterator to Datasets and Dataloader
-  - motivation: split data with more flexibility, enable distribution
 - [x] understand *permute*
 - [x] construct `nid2idx` and `uid2idx` according to both training iterator and testing iterator
 - [x] analyze MIND dataset, calculate average user history length
@@ -91,8 +90,10 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
 - [x] cosine similarity computation inspection
 - [ ] generate negtiva examples
 - [ ] BERT cls
-- [ ] transformer encoder
-
+- [x] transformer encoder
+- [x] knrm mask值
+- [x] transformer交互
+- [ ] 加负例交互 
 ## Insights
 ### Convolution
 - calculate *signal_length* $L_{out}$ after convolution:

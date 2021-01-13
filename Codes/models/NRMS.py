@@ -70,7 +70,7 @@ class NRMSModel(nn.Module):
             mode: 0/1, 1 for words self attention, 0 for news self attention
 
         Returns:
-            self_attn_output: tensor of [batch_size, *, embedding_dim]
+            self_attn_output: tensor of [batch_size, *, value_dim]
         """
         if mode:
             query = self.queryProject_words[head_idx](input)
@@ -92,9 +92,10 @@ class NRMSModel(nn.Module):
         """ apply word-level attention
 
         Args:
-            attn_word_embedding_key: tensor of [batch_size, *, signal_length, query_dim]
-            attn_word_embedding_value: tensor of [batch_size, *, signal_length, repr_dim]
-        
+            query: tensor of [1, query_dim]
+            key: tensor of [batch_size, *, signal_length, query_dim]
+            value: tensor of [batch_size, *, signal_length, repr_dim]
+
         Returns:
             attn_output: tensor of [batch_size, *, repr_dim]
         """

@@ -5,16 +5,22 @@ LastEditTime: 2020-11-20 10:14:28
 '''
 import random
 import re
+import os
 import json
 import pickle
 import torch
 import pandas as pd
 import torch.nn as nn
 import numpy as np
+import torch.optim as optim
 from tqdm import tqdm
+from datetime import datetime
 from sklearn.metrics import roc_auc_score,log_loss,mean_squared_error,accuracy_score,f1_score
 from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator
+from torch.utils.tensorboard import SummaryWriter
+from torch.utils.data import DataLoader
+from torchtext.vocab import GloVe
 
 def word_tokenize(sent):
     """ Split sentence into word list using regex.
@@ -494,15 +500,15 @@ def run_eval(model,dataloader,interval=100):
     print("evaluation results:{}".format(res))
     return res
 
-def run_train(model, dataloader, optimizer, loss_func, writer=None, epochs=10, interval=100, hparams=None):
+def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, interval=100):
     ''' train model and print loss meanwhile
     Args: 
         model(torch.nn.Module): the model to be trained
         dataloader(torch.utils.data.DataLoader): provide data
         optimizer(torch.nn.optim): optimizer for training
         loss_func(torch.nn.Loss): loss function for training
+        hparams(dict): hyper parameters
         writer(torch.utils.tensorboard.SummaryWriter): tensorboard writer
-        epochs(int): number of epochs
         interval(int): within each epoch, the interval of training steps to display loss
         save_epoch(bool): whether to save the model after every epoch
     Returns: 
@@ -510,7 +516,7 @@ def run_train(model, dataloader, optimizer, loss_func, writer=None, epochs=10, i
     '''
     total_loss = 0
     
-    for epoch in range(epochs):
+    for epoch in range(hparams['epochs']):
         epoch_loss = 0
         tqdm_ = tqdm(enumerate(dataloader))
 
@@ -531,7 +537,7 @@ def run_train(model, dataloader, optimizer, loss_func, writer=None, epochs=10, i
                     "epoch {:d} , step {:d} , loss: {:.4f}".format(epoch, step, epoch_loss / step))
                 if writer:
                     for name, param in model.named_parameters():
-                        writer.add_histogram(name, param, step)
+                        writer.add_histogram(name, param, epoch * len(dataloader) + step)
 
                     writer.add_scalar('data_loss',
                             total_loss/(epoch * len(dataloader) + step),
@@ -543,8 +549,90 @@ def run_train(model, dataloader, optimizer, loss_func, writer=None, epochs=10, i
             writer.add_scalar('epoch_loss',
                             epoch_loss/len(dataloader),
                             epoch)
-        if hparams:
-            save_path = 'models/model_params/{}_{}_{}'.format(hparams['name'],hparams['mode'],epoch+1) +'.model'
-            torch.save(model.state_dict(), save_path)
-    
+        try:
+            if hparams['save_each_epoch']:
+                save_path = 'models/model_params/{}_{}_{}'.format(hparams['name'],hparams['mode'],epoch+1) +'.model'
+                torch.save(model.state_dict(), save_path)
+                print("saved model of epoch {}".format(epoch+1))
+        except:
+            pass
+
     return model
+
+def train(model, hparams, loader_train, loader_test, save_path, loader_validate=None, tb=False, interval=10):
+    """ wrap training process
+    
+    Args:
+        model(torch.nn.Module): the model to be trained
+        loader_train(torch.utils.data.DataLoader): provide data
+        hparams(dict): hyper paramaters
+        en: shell parameter
+    """
+    model.train()
+    if tb:
+        writer = SummaryWriter('data/tb/{}/{}/{}/'.format(hparams['name'], hparams['mode'], datetime.now().strftime("%Y%m%d-%H")))
+
+    print("training...")
+    loss_func = getLoss(model)
+    optimizer = optim.Adam(model.parameters(),lr=0.001)
+    writer = None
+
+    
+    try:
+        if hparams['save_each_epoch']:
+            print("save each epoch")
+            model = run_train(model,loader_train,optimizer,loss_func,hparams,epochs=hparams['epochs'], interval=interval, writer=writer)
+    except:
+        model = run_train(model,loader_train,optimizer,loss_func,,epochs=hparams['epochs'], interval=interval, writer=writer)
+
+    torch.save(model.state_dict(), save_path)
+    print("save success!")
+    print("evaluating...")
+    model.eval()
+    model.cdd_size = 1
+    run_eval(model, loader_test)
+
+    if loader_validate is not None:
+        print("validating...")
+        run_eval(model, loader_validate)
+
+def prepare(hparams, validate=False):
+    from .MIND import MIND_iter, MIND_map
+    """ prepare dataloader and several paths
+    
+    Args:
+        hparams(dict): hyper parameters
+    
+    Returns:
+        loader_train
+        loader_test
+        loader_validate
+    """
+    news_file_train = '/home/peitian_zhang/Data/MIND/MIND'+hparams['mode']+'_train/news.tsv'
+    news_file_test = '/home/peitian_zhang/Data/MIND/MIND'+hparams['mode']+'_dev/news.tsv'
+    news_file_pair = (news_file_train,news_file_test)
+
+    behavior_file_train = '/home/peitian_zhang/Data/MIND/MIND'+hparams['mode']+'_train/behaviors.tsv'
+    behavior_file_test = '/home/peitian_zhang/Data/MIND/MIND'+hparams['mode']+'_dev/behaviors.tsv'
+    behavior_file_pair = (behavior_file_train,behavior_file_test)
+
+    save_path = 'models/model_params/{}_{}_{}'.format(hparams['name'],hparams['mode'],hparams['epochs']) +'.model'
+
+    if not os.path.exists('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['mode'],'_'.join(hparams['attrs']))):
+        constructBasicDict(news_file_pair,behavior_file_pair,hparams['mode'],hparams['attrs'])
+
+    dataset_train = MIND_map(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train)
+    dataset_test = MIND_iter(hparams=hparams,news_file=news_file_test,behaviors_file=behavior_file_test, mode='test')
+    dataset_validate = MIND_iter(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, mode='train')
+
+    vocab = dataset_train.vocab
+    embedding = GloVe(dim=300,cache='.vector_cache')
+    vocab.load_vectors(embedding)
+
+    loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],shuffle=True,pin_memory=True,num_workers=3,drop_last=True)
+    loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
+    if validate:
+        loader_validate = DataLoader(dataset_validate,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
+        return vocab, loader_train, loader_test, loader_validate
+    else:
+        return vocab, loader_train, loader_test

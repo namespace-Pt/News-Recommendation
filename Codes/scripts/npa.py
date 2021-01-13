@@ -35,7 +35,7 @@ if __name__ == "__main__":
         'metrics':'group_auc,ndcg@5,ndcg@10,mean_mrr',
         'device':'cuda:0',
         'attrs': ['title'],
-        'epochs':int(sys.argv[2])
+        'epochs':int(sys.argv[3])
     }
 
     news_file_train = '/home/peitian_zhang/Data/MIND/MIND'+hparams['mode']+'_train/news.tsv'
@@ -65,12 +65,12 @@ if __name__ == "__main__":
 
     npaModel = NPAModel(vocab=vocab,hparams=hparams,uid2idx=dataset_train.uid2index).to(device)
     
-    if sys.argv[3] == 'eval':
+    if sys.argv[2] == 'eval':
         npaModel.load_state_dict(torch.load(save_path))
         npaModel.eval()
         
 
-    elif sys.argv[3] == 'train':
+    elif sys.argv[2] == 'train':
         npaModel.train()
         writer = SummaryWriter('data/tb/{}/{}/{}/'.format(hparams['name'], hparams['mode'], datetime.now().strftime("%Y%m%d-%H")))
 
@@ -78,7 +78,7 @@ if __name__ == "__main__":
         print("training...")
         loss_func = getLoss(npaModel)
         optimizer = optim.Adam(npaModel.parameters(),lr=0.001)
-        npaModel = run_train(npaModel,loader_train,optimizer,loss_func,writer,epochs=hparams['epochs'], interval=10)
+        npaModel = run_train(npaModel,loader_train,optimizer,loss_func,hparams,writer,interval=10)
         torch.save(npaModel.state_dict(), save_path)
         print("save success!")
 
