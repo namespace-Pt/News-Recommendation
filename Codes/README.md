@@ -16,10 +16,10 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
   run manual/[model_name].ipynb
   ```
 
-- you can alse run **python scripts** in terminal provided `data_scale`, `epochs`, and `mode` parameters. **eg:**
+- you can alse run **python scripts** in terminal provided `data_scale`, `mode`, and `epoch` parameters. **eg:**
   ```shell
   cd Codes/
-  python scripts/[model_name].py large 10 train
+  python scripts/[model_name].py large train 10
   ```
 
 ## File Structure
