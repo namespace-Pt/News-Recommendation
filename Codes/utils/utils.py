@@ -576,18 +576,16 @@ def train(model, hparams, loader_train, loader_test, save_path, loader_validate=
     loss_func = getLoss(model)
     optimizer = optim.Adam(model.parameters(),lr=0.001)
     writer = None
-
     
     try:
         if hparams['save_each_epoch']:
-            print("save each epoch")
-            model = run_train(model,loader_train,optimizer,loss_func,hparams,epochs=hparams['epochs'], interval=interval, writer=writer)
+            model = run_train(model,loader_train,optimizer,loss_func,hparams,writer=writer,interval=interval)
     except:
-        model = run_train(model,loader_train,optimizer,loss_func,,epochs=hparams['epochs'], interval=interval, writer=writer)
+        model = run_train(model,loader_train,optimizer,loss_func,hparams,writer=writer,interval=interval)
 
     torch.save(model.state_dict(), save_path)
     print("save success!")
-    print("evaluating...")
+    print("testing...")
     model.eval()
     model.cdd_size = 1
     run_eval(model, loader_test)
@@ -616,8 +614,6 @@ def prepare(hparams, validate=False):
     behavior_file_test = '/home/peitian_zhang/Data/MIND/MIND'+hparams['mode']+'_dev/behaviors.tsv'
     behavior_file_pair = (behavior_file_train,behavior_file_test)
 
-    save_path = 'models/model_params/{}_{}_{}'.format(hparams['name'],hparams['mode'],hparams['epochs']) +'.model'
-
     if not os.path.exists('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['mode'],'_'.join(hparams['attrs']))):
         constructBasicDict(news_file_pair,behavior_file_pair,hparams['mode'],hparams['attrs'])
 
@@ -631,6 +627,7 @@ def prepare(hparams, validate=False):
 
     loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],shuffle=True,pin_memory=True,num_workers=3,drop_last=True)
     loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
+    
     if validate:
         loader_validate = DataLoader(dataset_validate,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
         return vocab, loader_train, loader_test, loader_validate

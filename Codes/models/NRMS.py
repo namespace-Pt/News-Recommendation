@@ -1,4 +1,3 @@
-import math
 import torch
 import torch.nn as nn
 
@@ -42,7 +41,7 @@ class NRMSModel(nn.Module):
         """ calculate scaled attended output of values
         
         Args:
-            query: tensor of [batch_size, *, query_num, key_dim]
+            query: tensor of [*, query_num, key_dim]
             key: tensor of [batch_size, *, key_num, key_dim]
             value: tensor of [batch_size, *, key_num, value_dim]
         
@@ -54,7 +53,7 @@ class NRMSModel(nn.Module):
         assert query.shape[-1] == key.shape[-1]
         key = key.transpose(-2,-1)
 
-        attn_weights = torch.matmul(query,key)/math.sqrt(self.embedding_dim)
+        attn_weights = torch.matmul(query,key)/torch.sqrt(torch.tensor([self.embedding_dim],dtype=torch.float,device=self.device))
         attn_weights = self.softmax(attn_weights)
         
         attn_output = torch.matmul(attn_weights,value)
@@ -99,7 +98,7 @@ class NRMSModel(nn.Module):
         Returns:
             attn_output: tensor of [batch_size, *, repr_dim]
         """
-        query = query.expand(key.shape[0], key.shape[1], 1, self.query_dim)
+        # query = query.expand(key.shape[0], key.shape[1], 1, self.query_dim)
 
         attn_output = self._scaled_dp_attention(query,key,value).squeeze(dim=2)
 

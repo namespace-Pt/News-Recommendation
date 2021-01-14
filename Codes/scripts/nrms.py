@@ -8,6 +8,7 @@ from utils.utils import run_eval,train,prepare
 from models.NRMS import NRMSModel
 
 if __name__ == "__main__":
+
     hparams = {
         'mode':sys.argv[1],
         'name':'nrms',

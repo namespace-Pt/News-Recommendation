@@ -8,22 +8,21 @@ from utils.utils import run_eval,train,prepare
 from models.baseline_transformer import GCAModel
 
 if __name__ == "__main__":
-    
+
     hparams = {
         'mode':sys.argv[1],
         'name':'baseline-transformer',
         'train_embedding':False,
         'save_each_epoch':True,
-        'batch_size':64,
+        'batch_size':32,
         'title_size':20,
-        'his_size':15,
+        'his_size':30,
         'npratio':4,
         'dropout_p':0.2,
         'query_dim':200,
         'embedding_dim':300,
         'value_dim':16,
         'head_num':16,
-        'kernel_num':11,
         'epochs':int(sys.argv[3]),
         'metrics':'group_auc,ndcg@5,ndcg@10,mean_mrr',
         'device':'cuda:0',
