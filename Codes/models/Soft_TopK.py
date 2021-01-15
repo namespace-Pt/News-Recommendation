@@ -9,10 +9,9 @@ def sinkhorn_forward(C, mu, nu, epsilon, max_iter):
 
     bs, _, k_ = C.size()
 
-    v = torch.ones([bs, 1, k_])/(k_)
+    v = (torch.ones([bs, 1, k_])/(k_)).to(mu.device)
     G = torch.exp(-C/epsilon)
-    if torch.cuda.is_available():
-        v = v.cuda()
+    
 
     for _ in range(max_iter):
         u = mu/(G*v).sum(-1, keepdim=True)
@@ -28,11 +27,9 @@ def sinkhorn_forward_stablized(C, mu, nu, epsilon, max_iter):
     bs, n, k_ = C.size()
     k = k_-1
 
-    f = torch.zeros([bs, n, 1])
-    g = torch.zeros([bs, 1, k+1])
-    if torch.cuda.is_available():
-        f = f.cuda()
-        g = g.cuda()
+    f = torch.zeros([bs, n, 1]).to(mu.device)
+    g = torch.zeros([bs, 1, k+1]).to(mu.device)
+    
     epsilon_log_mu = epsilon*torch.log(mu)
     epsilon_log_nu = epsilon*torch.log(nu)
     def min_epsilon_row(Z, epsilon):
@@ -121,12 +118,9 @@ class TopK_custom(torch.nn.Module):
         super(TopK_custom, self).__init__()
         self.k = k
         self.epsilon = epsilon
-        self.anchors = torch.FloatTensor([0,1]).view([1,1, 2])
+        self.anchors = torch.FloatTensor([0,1]).view([1,1, 2]).to(device)
         self.max_iter = max_iter
         self.device = device
-
-        if torch.cuda.is_available():
-            self.anchors = self.anchors.cuda()
 
     def forward(self, scores):
         bs, n = scores.size()
@@ -144,12 +138,10 @@ class TopK_custom(torch.nn.Module):
         C = (scores-self.anchors)**2
         C = C / (C.max().detach())
         #print(C)
-        mu = torch.ones([1, n, 1], requires_grad=False)/n
-        nu = torch.FloatTensor([self.k/n, (n-self.k)/n]).view([1, 1, 2])
+        mu = (torch.ones([1, n, 1], requires_grad=False)/n).to(self.device)
+        nu = torch.FloatTensor([self.k/n, (n-self.k)/n]).view([1, 1, 2]).to(self.device)
 
-        if torch.cuda.is_available():
-            mu = mu.cuda()
-            nu = nu.cuda()
+        
 
         Gamma = TopKFunc1.apply(C, mu, nu, self.epsilon, self.max_iter)
         #print(Gamma)

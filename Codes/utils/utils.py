@@ -569,19 +569,16 @@ def train(model, hparams, loader_train, loader_test, save_path, loader_validate=
         en: shell parameter
     """
     model.train()
+    writer = None
+    
     if tb:
         writer = SummaryWriter('data/tb/{}/{}/{}/'.format(hparams['name'], hparams['mode'], datetime.now().strftime("%Y%m%d-%H")))
 
     print("training...")
     loss_func = getLoss(model)
     optimizer = optim.Adam(model.parameters(),lr=0.001)
-    writer = None
-    
-    try:
-        if hparams['save_each_epoch']:
-            model = run_train(model,loader_train,optimizer,loss_func,hparams,writer=writer,interval=interval)
-    except:
-        model = run_train(model,loader_train,optimizer,loss_func,hparams,writer=writer,interval=interval)
+   
+    model = run_train(model,loader_train,optimizer,loss_func,hparams,writer=writer,interval=interval)
 
     torch.save(model.state_dict(), save_path)
     print("save success!")

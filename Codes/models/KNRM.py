@@ -89,6 +89,7 @@ class KNRMModel(nn.Module):
         pooling_sum = torch.sum(pooling_matrices, dim=-2)
         
         log_pooling_sum = torch.log(torch.clamp(pooling_sum, min=1e-10)) * mask_cdd * 0.01
+        # print(log_pooling_sum)
         pooling_vectors = torch.sum(log_pooling_sum, dim=-2)
         return pooling_vectors
 
@@ -122,7 +123,13 @@ class KNRMModel(nn.Module):
     def forward(self, x):
         fusion_matrices = self._fusion(x['candidate_title'].long().to(self.device),x['clicked_title'].long().to(self.device))
         pooling_vectors = self._kernel_pooling(fusion_matrices, x['candidate_title_pad'].float().to(self.device).view(self.batch_size, self.cdd_size, 1, self.signal_length, 1), x['clicked_title_pad'].float().to(self.device).view(self.batch_size, 1, self.his_size, 1, self.signal_length, 1))
-        pooling_vector = self._his_combine(pooling_vectors)
-        # score = self._click_predictor(pooling_vectors.view(self.batch_size, self.cdd_size, -1))
-        score = self._click_predictor(pooling_vector)
+
+        # aggregate with attention
+        # pooling_vector = self._his_combine(pooling_vectors)
+
+        # aggregate with mean value
+        his_mask_count = (self.his_size - torch.sum(x['his_mask'].to(self.device),dim=-2)).view(-1,1,1)
+        pooling_vectors_mean = torch.sum(pooling_vectors, dim=-2)/his_mask_count
+
+        score = self._click_predictor(pooling_vectors_mean)
         return score

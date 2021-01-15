@@ -47,20 +47,22 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
 ### `/models`: reproduced models
   - NPA
     - [[23] Npa Neural news recommendation with personalized attention](https://dl.acm.org/doi/abs/10.1145/3292500.3330665)
-    - ![](../Resources/npa_large_10.png)
+    <!-- - ![](../Resources/npa_large_10.png) -->
   - FIM
     - [[29] Fine-grained Interest Matching for Neural News Recommendation](https://www.aclweb.org/anthology/2020.acl-main.77.pdf)
-    - ![](../Resources/fim_small_6.png)
+    <!-- - ![](../Resources/fim_small_6.png) -->
   - NRMS
     - [[22] Neural News Recommendation with Multi-Head Self-Attention](https://www.aclweb.org/anthology/D19-1671.pdf)
-    - ![](../Resources/nrms_large_6.png)
+    <!-- - ![](../Resources/nrms_large_6.png) -->
   - KNRM
     - [[49] End-to-End Neural Ad-hoc Ranking with Kernel Pooling](https://dl.acm.org/doi/pdf/10.1145/3077136.3080809)
-    - ![](../Resources/knrm_small_10.png)
+    <!-- - ![](../Resources/knrm_small_10.png) -->
   - Soft Top-k Operator 
     - [[51] Differentiable Top-K Operator with Optimal Transport](https://arxiv.org/pdf/2002.06504.pdf)
     - *copy code from paper*
-
+#### Performance
+**run on `MINDsmall`** 
+![](../Resources/experiment.png)
 ### `/scripts`: python scripts of models
   - you can run models in `shell`
 
@@ -88,12 +90,16 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
 - [x] rewrite NPA, user embedding, not user projection
 - [x] figure out why FIM suffers
 - [x] cosine similarity computation inspection
-- [ ] generate negtiva examples
+- [x] generate negtiva examples
 - [ ] BERT cls
 - [x] transformer encoder
 - [x] knrm mask值
 - [x] transformer交互
-- [ ] 加负例交互 
+- [x] interact with negtive samples
+  - negtive samples unavailable
+- [ ] test multi-head encoder and cnn encoder
+- [ ] test complete transformer
+
 ## Insights
 ### Convolution
 - calculate *signal_length* $L_{out}$ after convolution:
