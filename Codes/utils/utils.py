@@ -591,7 +591,7 @@ def train(model, hparams, loader_train, loader_test, save_path, loader_validate=
         print("validating...")
         run_eval(model, loader_validate)
 
-def prepare(hparams, validate=False):
+def prepare(hparams, validate=False, path='/home/peitian_zhang/Data/MIND'):
     from .MIND import MIND_iter, MIND_map
     """ prepare dataloader and several paths
     
@@ -603,12 +603,12 @@ def prepare(hparams, validate=False):
         loader_test
         loader_validate
     """
-    news_file_train = '/home/peitian_zhang/Data/MIND/MIND'+hparams['mode']+'_train/news.tsv'
-    news_file_test = '/home/peitian_zhang/Data/MIND/MIND'+hparams['mode']+'_dev/news.tsv'
+    news_file_train = path+'/MIND'+hparams['mode']+'_train/news.tsv'
+    news_file_test = path+'/MIND'+hparams['mode']+'_dev/news.tsv'
     news_file_pair = (news_file_train,news_file_test)
 
-    behavior_file_train = '/home/peitian_zhang/Data/MIND/MIND'+hparams['mode']+'_train/behaviors.tsv'
-    behavior_file_test = '/home/peitian_zhang/Data/MIND/MIND'+hparams['mode']+'_dev/behaviors.tsv'
+    behavior_file_train = path+'/MIND'+hparams['mode']+'_train/behaviors.tsv'
+    behavior_file_test = path+'/MIND'+hparams['mode']+'_dev/behaviors.tsv'
     behavior_file_pair = (behavior_file_train,behavior_file_test)
 
     if not os.path.exists('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['mode'],'_'.join(hparams['attrs']))):

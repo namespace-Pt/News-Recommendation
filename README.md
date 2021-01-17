@@ -249,7 +249,7 @@
 [14] Combining Content-Based and Collaborative Filtering in an Online Newspaper  
 [15] Neural Networks: Tricks of the Trade (Second edition)  
 [16] Deepfm afactorizationmachine based neural network for ctr prediction  
-[17] News session based recommendation susing deep neural networks  
+[17] News session based recommendations using deep neural networks  
 [18] Towards better representation learning for personalized news recommendation a multi-channel deep fusion approach  
 [19] Session-based recommendations with recurrent neural networks  
 [20] Neural News Recommendation with Attentive Multi-View Learning  

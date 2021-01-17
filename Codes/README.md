@@ -7,10 +7,11 @@ cuda == 10.1
 ```
 
 ## Dataset
-download MIND dataset [HERE](https://msnews.github.io/), and customize data path in `manual/[model_name].ipynb` and `scripts/[model_name].py`
-
+download MIND dataset [HERE](https://msnews.github.io/)
 ## Instruction
-*both need customing paths and hyper parameters in advance*
+- **you can customize your dataset path in two ways:**
+  - modify default value of `path` in `prepare()` in `utils.py` to your own **top directory of `MINDxxxx`**
+  - explicitly pass `path` parameter your own **top directory of `MINDxxxx`** when calling `prepare()`
 - you can run the specific notebook to train and test the model
   ```shell
   run manual/[model_name].ipynb
@@ -99,6 +100,8 @@ download MIND dataset [HERE](https://msnews.github.io/), and customize data path
   - negtive samples unavailable
 - [ ] test multi-head encoder and cnn encoder
 - [ ] test complete transformer
+- [ ] mask padded candidate 
+- [ ] greedy select with gumbel-softmax
 
 ## Insights
 ### Convolution

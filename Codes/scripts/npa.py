@@ -6,8 +6,8 @@ Description:
 '''
 import os
 import sys
-os.chdir('/home/peitian_zhang/Codes/NR')
-sys.path.append('/home/peitian_zhang/Codes/NR')
+os.chdir('../')
+sys.path.append('../')
 
 import torch
 import torch.optim as optim
