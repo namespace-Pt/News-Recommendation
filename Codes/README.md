@@ -63,6 +63,7 @@ download MIND dataset [HERE](https://msnews.github.io/)
     - *copy code from paper*
 #### Performance
 **run on `MINDsmall`** 
+
 ![](../Resources/experiment.png)
 ### `/scripts`: python scripts of models
   - you can run models in `shell`
@@ -98,18 +99,7 @@ download MIND dataset [HERE](https://msnews.github.io/)
 - [x] transformer交互
 - [x] interact with negtive samples
   - negtive samples unavailable
-- [ ] test multi-head encoder and cnn encoder
+- [x] test multi-head encoder and cnn encoder
 - [ ] test complete transformer
 - [ ] mask padded candidate 
 - [ ] greedy select with gumbel-softmax
-
-## Insights
-### Convolution
-- calculate *signal_length* $L_{out}$ after convolution:
-  - consider a sequence of length $L_{in}$ of signal of *in_channel*, then the output sequence is from $d * (k-1) + 1 - p$ to $L_{in} + p$, then $L_{out}$ as the number of convolution calculations can be derived as $$L_{out} = \frac{L_{in} - d * (k-1) - 1 + 2*p}{s} + 1$$where $d$ denotes *dilation rate*, $k$ denotes *kernel_size*, $p$ denotes *padding(on both sides)* and $s$ denotes *stride*
-
-### Layer Normalization
-- *mean and variance* is calculated on each sample rather over the whole batch
-
-### Learning to Rank
-- say we got a vector for the relatedness between *query* and *doc*, then we feed the vector into a *MLP(i.e. Multi-Layer Perceptron)* to project the vector into a single value, which stands for the *score*. The above procedure is namely **Learning to Rank** because the weights of *MLP* can be learnt automatically.

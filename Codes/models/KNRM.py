@@ -84,10 +84,8 @@ class KNRMModel(nn.Module):
         Returns:
             pooling_vectors: tensor of [batch_size, cdd_size, his_size, kernel_num]
         """
-
         pooling_matrices = torch.exp(-((matrices - self.mus) ** 2) / (2 * self.sigmas ** 2)) * mask_his
         pooling_sum = torch.sum(pooling_matrices, dim=-2)
-        
         log_pooling_sum = torch.log(torch.clamp(pooling_sum, min=1e-10)) * mask_cdd * 0.01
         # print(log_pooling_sum)
         pooling_vectors = torch.sum(log_pooling_sum, dim=-2)
@@ -110,9 +108,9 @@ class KNRMModel(nn.Module):
             pooling_vecors: tensor of [batch_size, cdd_size, kernel_num]
         
         Returns:
-            scpre: tensor of [batch_size, cdd_size, his_size]
+            score: tensor of [batch_size, cdd_size]
         """
-        score = self.learningToRank(pooling_vectors)
+        score = self.learningToRank(F.tanh(pooling_vectors))
 
         if self.cdd_size > 1:
             score = nn.functional.log_softmax(score,dim=1)
@@ -125,11 +123,11 @@ class KNRMModel(nn.Module):
         pooling_vectors = self._kernel_pooling(fusion_matrices, x['candidate_title_pad'].float().to(self.device).view(self.batch_size, self.cdd_size, 1, self.signal_length, 1), x['clicked_title_pad'].float().to(self.device).view(self.batch_size, 1, self.his_size, 1, self.signal_length, 1))
 
         # aggregate with attention
-        pooling_vector = self._his_combine(pooling_vectors)
+        # pooling_vector = self._his_combine(pooling_vectors)
 
         # aggregate with mean value
-        # his_mask_count = (self.his_size - torch.sum(x['his_mask'].to(self.device),dim=-2)).view(-1,1,1)
-        # pooling_vector = torch.sum(pooling_vectors, dim=-2)/his_mask_count
+        his_mask_count = (self.his_size - torch.sum(x['his_mask'].to(self.device),dim=-2)).view(-1,1,1)
+        pooling_vector = torch.sum(pooling_vectors, dim=-2)/his_mask_count
 
         # pooling_vector = torch.sum(pooling_vectors, dim=-2)
 

@@ -6,8 +6,8 @@ Description:
 '''
 import os
 import sys
-os.chdir('../')
-sys.path.append('../')
+os.chdir('/home/peitian_zhang/Codes/News-Recommendation')
+sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
 import torch
 from utils.utils import run_eval,train,prepare
@@ -28,8 +28,9 @@ if __name__ == "__main__":
         'embedding_dim':300,
         'metrics':'group_auc,ndcg@5,ndcg@10,mean_mrr',
         'device':'cuda:0',
-        'attrs': ['title','category','subcategory'],
-        'epochs':int(sys.argv[3])
+        'attrs': ['title'],
+        'epochs':int(sys.argv[3]),
+        'save_each_epoch':True
     }
 
     save_path = 'models/model_params/{}_{}_{}'.format(hparams['name'],hparams['mode'],hparams['epochs']) +'.model'
@@ -38,7 +39,7 @@ if __name__ == "__main__":
     vocab, loader_train, loader_test, loader_validate = prepare(hparams, validate=True)
     
     fimModel = FIMModel(vocab=vocab,hparams=hparams).to(device)
-
+    
     if sys.argv[2] == 'eval':
         fimModel.load_state_dict(torch.load(save_path))
         fimModel.eval()

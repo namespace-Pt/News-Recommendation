@@ -97,7 +97,7 @@ class GCAModel(nn.Module):
             attn_output: tensor of [batch_size, *, repr_dim]
         """
 
-        attn_output = self._scaled_dp_attention(query,key,value).squeeze(dim=2)
+        attn_output = self._scaled_dp_attention(query,key,value).squeeze(dim=-2)
 
         return attn_output
 

@@ -1,7 +1,7 @@
 import os
 import sys
-os.chdir('../')
-sys.path.append('../')
+os.chdir('/home/peitian_zhang/Codes/News-Recommendation')
+sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
 import torch
 from utils.utils import run_eval,train,prepare

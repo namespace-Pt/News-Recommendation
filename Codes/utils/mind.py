@@ -61,7 +61,7 @@ class MIND_map(Dataset):
                 title = word_tokenize_vocab(title,self.vocab)
                 title_token.append(title[:self.title_size] + [0] * (self.title_size - len(title)))
                 title_pad.append([max(self.title_size - len(title), 0)])
-
+                
                 category_token.append([self.vocab[vert]])
                 subcategory_token.append([self.vocab[subvert]])
         

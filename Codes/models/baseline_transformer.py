@@ -90,7 +90,7 @@ class GCAModel(nn.Module):
         """
         # query = query.expand(key.shape[0], key.shape[1], key.shape[2], 1, self.query_dim)
 
-        attn_output = self._scaled_dp_attention(query,key,value).squeeze(dim=2)
+        attn_output = self._scaled_dp_attention(query,key,value).squeeze(dim=-2)
 
         return attn_output
 

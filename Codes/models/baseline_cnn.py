@@ -95,7 +95,7 @@ class GCAModel(nn.Module):
         """
         # query = query.expand(key.shape[0], key.shape[1], key.shape[2], 1, self.query_dim)
 
-        attn_output = self._scaled_dp_attention(query,key,value).squeeze(dim=2)
+        attn_output = self._scaled_dp_attention(query,key,value).squeeze(dim=-2)
 
         return attn_output
 
@@ -163,16 +163,17 @@ class GCAModel(nn.Module):
             fusion_news_embedding: tensor of [batch_size, cdd_size, his_size, transformer_length, filter_num]
         
         Returns:
-            fusion_repr: tensor of [batch_size, cdd_size, his_size]
+            fusion_repr: tensor of [batch_size, cdd_size, repr_dim]
         """
         fusion_repr = self._multi_head_self_attention(fusion_news_embedding)#.view(self.batch_size, self.cdd_size, -1)
         fusion_repr = torch.mean(fusion_repr, dim=-2)
+
         return fusion_repr
     
     def _click_predictor(self,fusion_repr):
         """ calculate batch of click probability              
         Args:
-            pooling_vectors: tensor of [batch_size, cdd_size, kernel_num]
+            fusion_repr: tensor of [batch_size, cdd_size, repr_dim]
         
         Returns:
             score: tensor of [batch_size, cdd_size]
