@@ -11,7 +11,7 @@ if __name__ == "__main__":
     hparams = {
         'name':'npa',
         'batch_size':100,
-        'title_size':30,
+        'title_size':20,
         'his_size':50,
         'npratio':4,
         'dropout_p':0.2,

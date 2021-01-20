@@ -563,7 +563,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
         if save_each_epoch:
             save_path = 'models/model_params/{}_{}_epoch{}'.format(hparams['name'],hparams['scale'],epoch+1) +'.model'
             torch.save(model.state_dict(), save_path)
-            print("saved model of epoch {}".format(epoch+1))
+            print("saved model of epoch {}".format(epoch))
 
     return model
 

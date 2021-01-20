@@ -11,7 +11,7 @@ if __name__ == "__main__":
     hparams = {
         'name':'fim',
         'batch_size':100,
-        'title_size':30,
+        'title_size':20,
         'his_size':50,
         'kernel_size':3,
         'npratio':4,

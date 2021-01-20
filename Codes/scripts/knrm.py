@@ -11,7 +11,7 @@ if __name__ == "__main__":
     hparams = {
         'name':'knrm',
         'batch_size':100,
-        'title_size':30,
+        'title_size':20,
         'his_size':50,
         'npratio':4,
         'embedding_dim':300,

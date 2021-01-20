@@ -117,6 +117,6 @@ class GCAModel(nn.Module):
         cdd_news_embedding = self._news_encoder(x['candidate_title'].long().to(self.device))
         his_news_embedding = self._news_encoder(x['clicked_title'].long().to(self.device))
 
-        fusion_vectors = self._fusion(cdd_news_embedding, his_news_embedding)        
+        fusion_vectors = self._fusion(cdd_news_embedding, his_news_embedding)   
         score_batch = self._click_predictor(fusion_vectors)
         return score_batch

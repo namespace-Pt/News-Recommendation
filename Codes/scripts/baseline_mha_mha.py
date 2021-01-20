@@ -12,7 +12,7 @@ if __name__ == "__main__":
     hparams = {
         'name':'baseline-mha-mha',
         'batch_size':32,
-        'title_size':30,
+        'title_size':20,
         'his_size':30,
         'npratio':4,
         'dropout_p':0.2,
