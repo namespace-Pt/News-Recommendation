@@ -4,15 +4,12 @@ os.chdir('/home/peitian_zhang/Codes/News-Recommendation')
 sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
 import torch
-from utils.utils import run_eval,train,prepare
+from utils.utils import evaluate,train,prepare,load_hparams
 from models.KNRM import KNRMModel
 
 if __name__ == "__main__":    
     hparams = {
-        'mode':sys.argv[1],
         'name':'knrm',
-        'train_embedding': False,
-        'epochs':int(sys.argv[3]),
         'batch_size':100,
         'title_size':20,
         'his_size':50,
@@ -20,22 +17,18 @@ if __name__ == "__main__":
         'embedding_dim':300,
         'kernel_num':11,
         'metrics':'group_auc,ndcg@5,ndcg@10,mean_mrr',
-        'device':'cuda:1',
         'attrs': ['title'],
     }
 
-    save_path = 'models/model_params/{}_{}_{}'.format(hparams['name'],hparams['mode'],hparams['epochs']) +'.model'
-    device = torch.device(hparams['device']) if torch.cuda.is_available() else torch.device("cpu")
+    hparams = load_hparams(hparams)
+    device = torch.device(hparams['device'])
 
     vocab, loader_train, loader_test, loader_validate = prepare(hparams, validate=True)
-    
     knrmModel = KNRMModel(vocab=vocab,hparams=hparams).to(device)
 
-    if sys.argv[2] == 'eval':
-        knrmModel.load_state_dict(torch.load(save_path))
-        knrmModel.eval()
-        print("evaluating...")
-        run_eval(knrmModel,loader_test)
+    if hparams['mode'] == 'test':
+        print("testing...")
+        evaluate(knrmModel,hparams,loader_test)
 
-    elif sys.argv[2] == 'train':
-        train(knrmModel, hparams, loader_train, loader_test, save_path, loader_validate, tb=True)
+    elif hparams['mode'] == 'train':
+        train(knrmModel, hparams, loader_train, loader_test, loader_validate, tb=True)

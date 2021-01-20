@@ -183,14 +183,9 @@ class GCAModel(nn.Module):
             fusion_matrices: tensor of [batch_size, cdd_size, signal_length, signal_length]
         """
 
-        # fusion_matrixs = torch.zeros((self.batch_size, self.cdd_size, self.signal_length, self.signal_length), device=self.device)
-        # for i in range(self.signal_length):
-        #     fusion_matrixs[ :, :, i, :] = self.CosSim(cdd_org[ :, :, i, :].unsqueeze(2), his_activated)
-
         his_activated = F.normalize(his_activated, dim=-1)
         cdd_org = F.normalize(cdd_org, dim=-1)
         fusion_matrices = torch.matmul(cdd_org, his_activated.transpose(-1,-2))
-        # assert pooling_vectors.shape[1] == self.cdd_size or pooling_vectors.shape[1] == 1
         return fusion_matrices
     
     def _kernel_pooling(self, matrices, mask_cdd, mask_his):

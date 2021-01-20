@@ -17,11 +17,17 @@ download MIND dataset [HERE](https://msnews.github.io/)
   run manual/[model_name].ipynb
   ```
 
-- you can alse run **python scripts** in terminal provided `data_scale`, `mode`, and `epoch` parameters. **eg:**
+- you can alse run **python scripts** in terminal, type in `--help/-h` to get detail explanation of arguments
   ```shell
-  cd Codes/
-  python scripts/[model_name].py large train 10
+  usage: scripts/[model_name].py [-h] -s {demo,small,large} -m {train,test}
+                           [-e EPOCHS] [-bs BATCH_SIZE] [-se] [-ss SAVE_STEP]
+                           [-c {0,1}] [-te]
   ```
+  - **eg:**
+    ```shell
+    cd Codes/
+    python scripts/fim.py --scale large --mode train --epoch 2 --save_each_epoch --save_step 2000
+    ```
 
 ## File Structure
 ### `/data`: basic dictionaries
@@ -62,9 +68,21 @@ download MIND dataset [HERE](https://msnews.github.io/)
     - [[51] Differentiable Top-K Operator with Optimal Transport](https://arxiv.org/pdf/2002.06504.pdf)
     - *copy code from paper*
 #### Performance
-**run on `MINDsmall`** 
-
-![](../Resources/experiment.png)
+**run on `MINDlarge`**
+|model|AUC|MRR|NDCG@5|NDCG@10|epochs|steps|
+|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|NPA||||||
+|FIM|$0.6534$|$0.3385$|$0.4028$|$0.3096$|$0$|$5000$|
+|NRMS||||||
+|baseline-CNN-CNN|
+|baseline-CNN-MHA|
+|baseline-MHA-CNN|
+|baseline-MHA-MHA|
+|baseline-CNN-KNRM|
+|baseline-MHA-KNRM|
+|baseline-parallel|||||
+|baseline-end2end|
+|baseline-unified|
 ### `/scripts`: python scripts of models
   - you can run models in `shell`
 
@@ -99,7 +117,7 @@ download MIND dataset [HERE](https://msnews.github.io/)
 - [x] transformer交互
 - [x] interact with negtive samples
   - negtive samples unavailable
-- [x] test multi-head encoder and cnn encoder
+- [x] test multi-head encoder and CNN encoder
 - [ ] test complete transformer
 - [ ] mask padded candidate 
 - [ ] greedy select with gumbel-softmax

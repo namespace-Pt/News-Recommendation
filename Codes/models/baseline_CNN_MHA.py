@@ -12,33 +12,20 @@ class GCAModel(nn.Module):
 
         self.batch_size = hparams['batch_size']
         self.signal_length = hparams['title_size']
-        self.transformer_length = hparams['title_size'] * 2 + 1
         self.his_size = hparams['his_size']
 
         self.dropout_p = hparams['dropout_p']
 
         self.filter_num = hparams['filter_num']
-        self.head_num = hparams['head_num']
-        self.query_dim = hparams['query_dim']
         self.embedding_dim = hparams['embedding_dim']
-        self.value_dim = hparams['value_dim']
-        self.repr_dim = self.head_num * self.value_dim
-        
-        self.query_words = nn.Parameter(torch.randn((1,self.query_dim), requires_grad=True))
-        self.embedding[1] = -torch.ones((1,self.embedding_dim),device=self.device)
-
+       
         # elements in the slice along dim will sum up to 1 
         self.softmax = nn.Softmax(dim=-1)
         self.gumbel_softmax = nn.functional.gumbel_softmax
         self.ReLU = nn.ReLU()
         self.DropOut = nn.Dropout(p=hparams['dropout_p'])
-
-        self.queryProject_words = nn.ModuleList([]).extend([nn.Linear(self.filter_num,self.filter_num, bias=False) for _ in range(self.head_num)])
-        self.valueProject_words = nn.ModuleList([]).extend([nn.Linear(self.filter_num,self.value_dim, bias=False) for _ in range(self.head_num)])
-        self.keyProject_words = nn.Linear(self.repr_dim, self.query_dim, bias=True)
         
         self.CNN = nn.Conv1d(in_channels=self.embedding_dim,out_channels=self.filter_num,kernel_size=3,padding=1)
-        
         self.learningToRank = nn.Linear(self.repr_dim, 1)
         # self.learningToRank = nn.Linear(self.repr_dim * self.his_size, 1)
 

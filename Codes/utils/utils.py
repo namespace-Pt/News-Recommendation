@@ -9,6 +9,7 @@ import os
 import json
 import pickle
 import torch
+import argparse
 import pandas as pd
 import torch.nn as nn
 import numpy as np
@@ -484,23 +485,27 @@ def _eval(model,dataloader,interval):
     
     return impr_indexes, labels, preds
 
-def run_eval(model,dataloader,interval=100):
+def evaluate(model,hparams,dataloader,interval=100):
     """Evaluate the given file and returns some evaluation metrics.
     
     Args:
         model(nn.Module)
+        hparams(dict)
         dataloader(torch.utils.data.DataLoader): provide data
         interval(int): within each epoch, the interval of steps to display loss
 
     Returns:
         dict: A dictionary contains evaluation metrics.
     """
+    model.eval()
+    model.load_state_dict(torch.load(hparams['save_path']))
+    model.cdd_size = 1
     imp_indexes, group_labels, group_preds = _eval(model,dataloader,interval)
     res = _cal_metric(imp_indexes,group_labels,group_preds,model.metrics.split(','))
     print("evaluation results:{}".format(res))
     return res
 
-def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, interval=100):
+def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, interval=100, save_step=None, save_each_epoch=False):
     ''' train model and print loss meanwhile
     Args: 
         model(torch.nn.Module): the model to be trained
@@ -530,7 +535,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
 
             loss.backward()
             optimizer.step()
-                    
+            
             if step % interval == 0:
 
                 tqdm_.set_description(
@@ -543,23 +548,26 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
                             total_loss/(epoch * len(dataloader) + step),
                             epoch * len(dataloader) + step)
             optimizer.zero_grad()
+            
+            if save_step:
+                if step+1 % save_step == 0:
+                    save_path = 'models/model_params/{}_{}_step{}'.format(hparams['name'],hparams['scale'],step) +'.model'
+                    torch.save(model.state_dict(), save_path)
+                    print("saved model of step {}".format(step))
 
             
         if writer:
             writer.add_scalar('epoch_loss',
                             epoch_loss/len(dataloader),
                             epoch)
-        try:
-            if hparams['save_each_epoch']:
-                save_path = 'models/model_params/{}_{}_{}'.format(hparams['name'],hparams['mode'],epoch+1) +'.model'
-                torch.save(model.state_dict(), save_path)
-                print("saved model of epoch {}".format(epoch+1))
-        except:
-            pass
+        if save_each_epoch:
+            save_path = 'models/model_params/{}_{}_epoch{}'.format(hparams['name'],hparams['scale'],epoch+1) +'.model'
+            torch.save(model.state_dict(), save_path)
+            print("saved model of epoch {}".format(epoch+1))
 
     return model
 
-def train(model, hparams, loader_train, loader_test, save_path, loader_validate=None, tb=False, interval=10):
+def train(model, hparams, loader_train, loader_test, loader_validate=None, tb=False, interval=100):
     """ wrap training process
     
     Args:
@@ -572,24 +580,57 @@ def train(model, hparams, loader_train, loader_test, save_path, loader_validate=
     writer = None
     
     if tb:
-        writer = SummaryWriter('data/tb/{}/{}/{}/'.format(hparams['name'], hparams['mode'], datetime.now().strftime("%Y%m%d-%H")))
+        writer = SummaryWriter('data/tb/{}/{}/{}/'.format(hparams['name'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
 
     print("training...")
     loss_func = getLoss(model)
     optimizer = optim.Adam(model.parameters(),lr=0.001)
-   
-    model = run_train(model,loader_train,optimizer,loss_func,hparams,writer=writer,interval=interval)
 
+    model = run_train(model,loader_train,optimizer,loss_func,hparams,writer=writer,interval=interval,save_step=hparams['save_step'],save_each_epoch=hparams['save_each_epoch'])
+
+    ### independent of hparams['save_path']
+    save_path = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'])
     torch.save(model.state_dict(), save_path)
+
     print("save success!")
     print("testing...")
-    model.eval()
-    model.cdd_size = 1
-    run_eval(model, loader_test)
+    evaluate(model, hparams, loader_test)
 
     if loader_validate is not None:
         print("validating...")
-        run_eval(model, loader_validate)
+        evaluate(model, hparams, loader_validate)
+
+def load_hparams(hparams):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s","--scale", dest="scale", help="data scale", choices=['demo','small','large'],required=True)
+    parser.add_argument("-m","--mode", dest="mode", help="train or test", choices=['train','test'],required=True)
+    parser.add_argument("-e","--epochs", dest="epochs", help="epochs to train the model", type=int, default=10)
+    parser.add_argument("-bs","--batch_size", dest="batch_size", help="batch size", type=int)
+    parser.add_argument("-se","--save_each_epoch", dest="save_each_epoch", help="if clarified, save model of each epoch", action='store_true')
+    parser.add_argument("-ss","--save_step", dest="save_step", help="if clarified, save model at the interval of given steps", type=int)
+    parser.add_argument("-c","--cuda", dest="cuda", help="device to run on", choices=['0','1'], default='0')
+    parser.add_argument("-te","--train_embedding", dest="train_embedding", help="if clarified, word embedding will be fine-tuned", action='store_true')
+    
+    args = parser.parse_args()
+
+    hparams['epochs'] = args.epochs
+    hparams['scale'] = args.scale
+    hparams['device'] = 'cuda:' + args.cuda
+    hparams['mode'] = args.mode
+
+    # intend for testing mode
+    if args.epochs:
+        hparams['save_path'] = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'])
+    if args.batch_size:
+        hparams['batch_size'] = args.batch_size
+    if args.save_step:
+        hparams['save_path'] = 'models/model_params/{}_{}_step{}.model'.format(hparams['name'],hparams['scale'],args.save_step)
+
+    hparams['save_step'] = args.save_step
+    hparams['save_each_epoch'] = args.save_each_epoch
+    hparams['train_embedding'] = args.train_embedding
+
+    return hparams
 
 def prepare(hparams, validate=False, path='/home/peitian_zhang/Data/MIND'):
     from .MIND import MIND_iter, MIND_map
@@ -603,16 +644,16 @@ def prepare(hparams, validate=False, path='/home/peitian_zhang/Data/MIND'):
         loader_test
         loader_validate
     """
-    news_file_train = path+'/MIND'+hparams['mode']+'_train/news.tsv'
-    news_file_test = path+'/MIND'+hparams['mode']+'_dev/news.tsv'
+    news_file_train = path+'/MIND'+hparams['scale']+'_train/news.tsv'
+    news_file_test = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
     news_file_pair = (news_file_train,news_file_test)
 
-    behavior_file_train = path+'/MIND'+hparams['mode']+'_train/behaviors.tsv'
-    behavior_file_test = path+'/MIND'+hparams['mode']+'_dev/behaviors.tsv'
+    behavior_file_train = path+'/MIND'+hparams['scale']+'_train/behaviors.tsv'
+    behavior_file_test = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
     behavior_file_pair = (behavior_file_train,behavior_file_test)
 
-    if not os.path.exists('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['mode'],'_'.join(hparams['attrs']))):
-        constructBasicDict(news_file_pair,behavior_file_pair,hparams['mode'],hparams['attrs'])
+    if not os.path.exists('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['scale'],'_'.join(hparams['attrs']))):
+        constructBasicDict(news_file_pair,behavior_file_pair,hparams['scale'],hparams['attrs'])
 
     dataset_train = MIND_map(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train)
     dataset_test = MIND_iter(hparams=hparams,news_file=news_file_test,behaviors_file=behavior_file_test, mode='test')

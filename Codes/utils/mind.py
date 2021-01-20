@@ -27,9 +27,9 @@ class MIND_map(Dataset):
         self.title_size = hparams['title_size']
         self.his_size = hparams['his_size']
 
-        self.vocab = getVocab('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['mode'],'_'.join(hparams['attrs'])))
-        self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_train.json'.format(hparams['mode']))
-        self.uid2index = getId2idx('data/dictionaries/uid2idx_{}.json'.format(hparams['mode']))
+        self.vocab = getVocab('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['scale'],'_'.join(hparams['attrs'])))
+        self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_train.json'.format(hparams['scale']))
+        self.uid2index = getId2idx('data/dictionaries/uid2idx_{}.json'.format(hparams['scale']))
     
     def __len__(self):
         if not hasattr(self, "news_title_array"):
@@ -219,9 +219,9 @@ class MIND_iter(IterableDataset):
         self.title_size = hparams['title_size']
         self.his_size = hparams['his_size']
 
-        self.vocab = getVocab('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['mode'],'_'.join(hparams['attrs'])))
-        self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_{}.json'.format(hparams['mode'],mode))
-        self.uid2index = getId2idx('data/dictionaries/uid2idx_{}.json'.format(hparams['mode']))
+        self.vocab = getVocab('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['scale'],'_'.join(hparams['attrs'])))
+        self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_{}.json'.format(hparams['scale'],mode))
+        self.uid2index = getId2idx('data/dictionaries/uid2idx_{}.json'.format(hparams['scale']))
     
     def init_news(self):
         """ 

@@ -135,11 +135,7 @@ class FIMModel(nn.Module):
         his_news_set = x['clicked_title'].long().to(self.device).view(-1,self.signal_length)
         his_news_reprs = self._news_encoder(his_news_set).view(self.batch_size, self.his_size, self.level, self.signal_length, self.filter_num)
                 
-        if self.cdd_size > 1:
-            # 320 is derived from maxpooling in SeqCNN3D
-            fusion_tensors = self._fusion(cdd_news_reprs, his_news_reprs)
-        else:
-            fusion_tensors = self._fusion(cdd_news_reprs[:,0,:,:,:].unsqueeze(dim=1),his_news_reprs)
+        fusion_tensors = self._fusion(cdd_news_reprs, his_news_reprs)
             
         score = self._click_predictor(fusion_tensors).squeeze()
         return score
