@@ -607,9 +607,9 @@ def load_hparams(hparams):
     parser.add_argument("-m","--mode", dest="mode", help="train or test", choices=['train','test'],required=True)
     parser.add_argument("-e","--epochs", dest="epochs", help="epochs to train the model", type=int, default=10)
     parser.add_argument("-bs","--batch_size", dest="batch_size", help="batch size", type=int)
+    parser.add_argument("-c","--cuda", dest="cuda", help="device to run on", choices=['0','1'], default='0')
     parser.add_argument("-se","--save_each_epoch", dest="save_each_epoch", help="if clarified, save model of each epoch", action='store_true')
     parser.add_argument("-ss","--save_step", dest="save_step", help="if clarified, save model at the interval of given steps", type=int)
-    parser.add_argument("-c","--cuda", dest="cuda", help="device to run on", choices=['0','1'], default='0')
     parser.add_argument("-te","--train_embedding", dest="train_embedding", help="if clarified, word embedding will be fine-tuned", action='store_true')
     
     args = parser.parse_args()

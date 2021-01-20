@@ -14,6 +14,12 @@ see [HERE](manual/Preprocess.ipynb)
 - **you can customize your dataset path in two ways:**
   - modify default value of `path` in `prepare()` in `utils.py` to your own **top directory of `MINDxxxx`**
   - explicitly pass `path` parameter your own **top directory of `MINDxxxx`** when calling `prepare()`
+
+- **ATTENTION! default path of model parameters is**
+  ```
+  models/model_params
+  ``` 
+  
 - you can run the specific notebook to train and test the model
   ```shell
   run manual/[model_name].ipynb
@@ -25,7 +31,6 @@ see [HERE](manual/Preprocess.ipynb)
               [-bs BATCH_SIZE] [-se] [-ss SAVE_STEP] [-c {0,1}] [-te]
 
   optional arguments:
-  
     -h, --help            show this help message and exit
     -s {demo,small,large}, --scale {demo,small,large}
                           data scale
@@ -45,10 +50,15 @@ see [HERE](manual/Preprocess.ipynb)
     -te, --train_embedding
                           if clarified, word embedding will be fine-tuned
   ```
-  - **eg:**
+  - **e.g. train FIM model on MINDlarge for 2 epochs. At the end of each step, save the model, meanwhile, save model every 2000 steps**
     ```shell
     cd Codes/
     python scripts/fim.py --scale large --mode train --epoch 2 --save_each_epoch --save_step 2000
+    ```
+  - **e.g. test NPA model which were trained on MINDlarge and saved at the end of 4000 steps**
+    ```shell
+    cd Codes/
+    python scripts/fim.py -s large -m test --save_step 4000
     ```
 
 ## File Structure
