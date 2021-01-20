@@ -664,7 +664,7 @@ def prepare(hparams, validate=False, path='/home/peitian_zhang/Data/MIND'):
     embedding = GloVe(dim=300,cache='.vector_cache')
     vocab.load_vectors(embedding)
 
-    loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],shuffle=True,pin_memory=True,num_workers=3,drop_last=True)
+    loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],shuffle=True,pin_memory=True,num_workers=8,drop_last=True)
     loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
     
     if validate:

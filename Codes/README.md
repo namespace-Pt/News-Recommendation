@@ -106,10 +106,10 @@ see [HERE](manual/Preprocess.ipynb)
 |NPA|$0.6572$|$0.3057$|$0.3361$|$0.4006$|`epoch=1`|
 |FIM|$\mathbf{0.6677}$|$\mathbf{0.3202}$|$\mathbf{0.3518}$|$\mathbf{0.4147}$|`epoch=0,step=10000`|
 |NRMS|$0.6618$|$0.3179$|$0.3444$|$0.4108$|`epoch=6`|
-|baseline-CNN-CNN|
-|baseline-CNN-MHA|
-|baseline-MHA-CNN|
-|baseline-MHA-MHA|
+|baseline-CNN-CNN|||||
+|baseline-CNN-MHA|$0.6017$|forgot😅|😅|😅|run on `MINDsmall`|
+|baseline-MHA-CNN|||||
+|baseline-MHA-MHA|$0.6201$|forgot😅|😅|😅|run on `MINDsmall`|
 |baseline-CNN-KNRM|
 |baseline-MHA-KNRM|
 |baseline-parallel|||||
