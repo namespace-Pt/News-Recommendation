@@ -11,7 +11,7 @@ if __name__ == "__main__":
     hparams = {
         'name':'knrm',
         'batch_size':100,
-        'title_size':20,
+        'title_size':30,
         'his_size':50,
         'npratio':4,
         'embedding_dim':300,
@@ -27,6 +27,7 @@ if __name__ == "__main__":
     knrmModel = KNRMModel(vocab=vocab,hparams=hparams).to(device)
 
     if hparams['mode'] == 'test':
+        knrmModel.load_state_dict(torch.load(hparams['save_path']))
         print("testing...")
         evaluate(knrmModel,hparams,loader_test)
 

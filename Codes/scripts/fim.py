@@ -11,7 +11,7 @@ if __name__ == "__main__":
     hparams = {
         'name':'fim',
         'batch_size':100,
-        'title_size':20,
+        'title_size':30,
         'his_size':50,
         'kernel_size':3,
         'npratio':4,
@@ -30,6 +30,7 @@ if __name__ == "__main__":
     fimModel = FIMModel(vocab=vocab,hparams=hparams).to(device)
     
     if hparams['mode'] == 'test':
+        fimModel.load_state_dict(torch.load(hparams['save_path']))
         print("testing...")
         evaluate(fimModel,hparams,loader_test)
 

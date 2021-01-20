@@ -12,7 +12,7 @@ if __name__ == "__main__":
     hparams = {
         'name':'baseline-mha-mha',
         'batch_size':32,
-        'title_size':20,
+        'title_size':30,
         'his_size':30,
         'npratio':4,
         'dropout_p':0.2,
@@ -30,6 +30,7 @@ if __name__ == "__main__":
     gcaModel = GCAModel(vocab=vocab,hparams=hparams).to(device)
 
     if hparams['mode'] == 'test':
+        gcaModel.load_state_dict(torch.load(hparams['save_path']))
         print("testing...")
         evaluate(gcaModel,hparams,loader_test)
 

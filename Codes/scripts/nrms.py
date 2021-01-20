@@ -33,6 +33,7 @@ if __name__ == "__main__":
     nrmsModel = NRMSModel(vocab=vocab,hparams=hparams).to(device)
 
     if hparams['mode'] == 'test':
+        nrmsModel.load_state_dict(torch.load(hparams['save_path']))
         print("testing...")
         evaluate(nrmsModel,hparams,loader_test)
 

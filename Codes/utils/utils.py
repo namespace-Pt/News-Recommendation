@@ -62,11 +62,12 @@ def newsample(news, ratio):
     
     Returns:
         list: output of sample list.
+        int: count of paddings
     """
     if ratio > len(news):
-        return news + [0] * (ratio - len(news)), [ratio-len(news)]
+        return news + [0] * (ratio - len(news)), ratio-len(news)
     else:
-        return random.sample(news, ratio), [0]
+        return random.sample(news, ratio), 0
 
 
 def news_token_generator(news_file_train,news_file_test,tokenizer,attrs):
@@ -498,7 +499,6 @@ def evaluate(model,hparams,dataloader,interval=100):
         dict: A dictionary contains evaluation metrics.
     """
     model.eval()
-    model.load_state_dict(torch.load(hparams['save_path']))
     model.cdd_size = 1
     imp_indexes, group_labels, group_preds = _eval(model,dataloader,interval)
     res = _cal_metric(imp_indexes,group_labels,group_preds,model.metrics.split(','))
@@ -567,7 +567,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
 
     return model
 
-def train(model, hparams, loader_train, loader_test, loader_validate=None, tb=False, interval=100):
+def train(model, hparams, loader_train, loader_test, loader_validate=None, tb=False, interval=10, save=True):
     """ wrap training process
     
     Args:
@@ -588,11 +588,12 @@ def train(model, hparams, loader_train, loader_test, loader_validate=None, tb=Fa
 
     model = run_train(model,loader_train,optimizer,loss_func,hparams,writer=writer,interval=interval,save_step=hparams['save_step'],save_each_epoch=hparams['save_each_epoch'])
 
-    ### independent of hparams['save_path']
-    save_path = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'])
-    torch.save(model.state_dict(), save_path)
+    if save:
+        ### independent of hparams['save_path']
+        save_path = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'])
+        torch.save(model.state_dict(), save_path)
+        print("save success!")
 
-    print("save success!")
     print("testing...")
     evaluate(model, hparams, loader_test)
 
@@ -671,3 +672,49 @@ def prepare(hparams, validate=False, path='/home/peitian_zhang/Data/MIND'):
         return vocab, loader_train, loader_test, loader_validate
     else:
         return vocab, loader_train, loader_test
+
+def analyse(hparams, path='/home/peitian_zhang/Data/MIND'):
+    """
+        analyse over MIND
+    """
+    avg_title_length = 0
+    avg_abstract_length = 0
+    avg_his_length = 0
+    avg_imp_length = 0
+    cnt_his_lg_50 = 0
+    cnt_his_eq_0 = 0
+    cnt_imp_multi = 0
+
+    news_file = path+'/MIND{}_{}/news.tsv'.format(hparams['scale'],hparams['mode'])
+
+    behavior_file = path+'/MIND{}_{}/behaviors.tsv'.format(hparams['scale'],hparams['mode'])
+
+    with open(news_file,"r",encoding='utf-8') as rd:
+        count = 0
+        for idx in rd:
+            nid, vert, subvert, title, ab, url, _, _ = idx.strip("\n").split('\t')
+            avg_title_length += len(title.split(' '))
+            avg_abstract_length += len(ab.split(' '))
+            count += 1
+    avg_title_length = avg_title_length/count
+    avg_abstract_length = avg_abstract_length/count
+
+    with open(behavior_file, "r", encoding='utf-8') as rd:
+        count = 0
+        for idx in rd:
+            uid, time, history, impr = idx.strip("\n").split('\t')[-4:]
+            his = history.split(' ')
+            imp = impr.split(' ')
+            if len(his) > 50:
+                cnt_his_lg_50 += 1
+            if len(imp) > 50:
+                cnt_imp_multi += 1
+            if not his[0]:
+                cnt_his_eq_0 += 1
+            avg_his_length += len(his)
+            avg_imp_length += len(imp)
+            count += 1
+    avg_his_length = avg_his_length/count
+    avg_imp_length = avg_imp_length/count
+
+    print("avg_title_length:{}\n avg_abstract_length:{}\n avg_his_length:{}\n avg_impr_length:{}\n cnt_his_lg_50:{}\n cnt_his_eq_0:{}\n cnt_imp_multi:{}".format(avg_title_length,avg_abstract_length,avg_his_length,avg_imp_length,cnt_his_lg_50,cnt_his_eq_0,cnt_imp_multi))

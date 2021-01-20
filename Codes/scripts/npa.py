@@ -27,9 +27,10 @@ if __name__ == "__main__":
     device = torch.device(hparams['device'])
 
     vocab, loader_train, loader_test, loader_validate = prepare(hparams, validate=True)
-    npaModel = NPAModel(vocab=vocab,hparams=hparams,uid2idx=loader_train.dataset.uid2idx).to(device)
+    npaModel = NPAModel(vocab=vocab,hparams=hparams,uid2idx=loader_train.dataset.uid2index).to(device)
     
     if hparams['mode'] == 'test':
+        npaModel.load_state_dict(torch.load(hparams['save_path']))
         print("testing...")
         evaluate(npaModel,hparams,loader_test)
 

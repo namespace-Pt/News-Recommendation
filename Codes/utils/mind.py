@@ -26,6 +26,7 @@ class MIND_map(Dataset):
         self.batch_size = hparams['batch_size']
         self.title_size = hparams['title_size']
         self.his_size = hparams['his_size']
+        self.attrs = hparams['attrs']
 
         self.vocab = getVocab('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['scale'],'_'.join(hparams['attrs'])))
         self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_train.json'.format(hparams['scale']))
@@ -46,8 +47,8 @@ class MIND_map(Dataset):
         """
 
         title_token = [[0]*self.title_size]
-        category_token = [[0]]
-        subcategory_token = [[0]]
+        # category_token = [[0]]
+        # subcategory_token = [[0]]
 
         title_pad = [[self.title_size]]
         
@@ -61,13 +62,12 @@ class MIND_map(Dataset):
                 title = word_tokenize_vocab(title,self.vocab)
                 title_token.append(title[:self.title_size] + [0] * (self.title_size - len(title)))
                 title_pad.append([max(self.title_size - len(title), 0)])
-                
-                category_token.append([self.vocab[vert]])
-                subcategory_token.append([self.vocab[subvert]])
+                # category_token.append([self.vocab[vert]])
+                # subcategory_token.append([self.vocab[subvert]])
         
         self.news_title_array = np.asarray(title_token)
-        self.news_category_array = np.asarray(category_token)
-        self.news_subcategory_array = np.asarray(subcategory_token)
+        # self.news_category_array = np.asarray(category_token)
+        # self.news_subcategory_array = np.asarray(subcategory_token)
 
         self.title_pad = np.asarray(title_pad)
 
@@ -148,8 +148,8 @@ class MIND_map(Dataset):
             
             
             candidate_title_index = []
-            candidate_category_index = []
-            candidate_subcategory_index = []
+            # candidate_category_index = []
+            # candidate_subcategory_index = []
             user_index = []
             his_mask = np.zeros((self.his_size,1),dtype=bool)
             
@@ -158,19 +158,18 @@ class MIND_map(Dataset):
             neg_list, neg_pad = newsample(negs, self.npratio)
 
             candidate_title_index = self.news_title_array[[p] + neg_list]
-            candidate_category_index = self.news_category_array[[p] + neg_list]
-            candidate_subcategory_index = self.news_subcategory_array[[p] + neg_list]
+            # candidate_category_index = self.news_category_array[[p] + neg_list]
+            # candidate_subcategory_index = self.news_subcategory_array[[p] + neg_list]
             
             click_title_index = self.news_title_array[self.histories[idx]]
-            click_category_index = self.news_category_array[self.histories[idx]]
-            click_subcategory_index = self.news_subcategory_array[self.histories[idx]]
+            # click_category_index = self.news_category_array[self.histories[idx]]
+            # click_subcategory_index = self.news_subcategory_array[self.histories[idx]]
             # pad in title
             candidate_title_pad = [(self.title_size - i[0])*[1] + i[0]*[0] for i in self.title_pad[[p] + neg_list]]
             click_title_pad = [(self.title_size - i[0])*[1] + i[0]*[0] for i in self.title_pad[self.histories[idx]]]
-            # print(self.title_pad[[p] + neg_list])
-            # print(self.title_pad[self.histories[idx]])
-            # print(candidate_title_pad)
-            # print(click_title_pad)
+            
+            # pad in candidate
+            # candidate_mask = [1] * neg_pad + [0] * (self.npratio + 1 - neg_pad)
 
             # in case the user has no history records, do not mask
             if self.his_pad[idx] == self.his_size or self.his_pad[idx] == 0:
@@ -186,18 +185,16 @@ class MIND_map(Dataset):
 
             return {
                 "user_index": np.asarray(user_index),
-                "neg_pad": np.asarray(neg_pad),
+                # "cdd_mask": np.asarray(neg_pad),
                 "his_mask": his_mask,
                 "clicked_title": click_title_index,
-                "clicked_category":click_category_index,
-                "clicked_subcategory":click_subcategory_index,
+                # "clicked_category":click_category_index,
+                # "clicked_subcategory":click_subcategory_index,
                 "clicked_title_pad": np.asarray(click_title_pad),
                 "candidate_title": candidate_title_index,
-                "candidate_category": candidate_category_index,
-                "candidate_subcategory": candidate_subcategory_index,
+                # "candidate_category": candidate_category_index,
+                # "candidate_subcategory": candidate_subcategory_index,
                 "candidate_title_pad": np.asarray(candidate_title_pad),
-                # important to transfer to array, otherwise produces error in converted tensor
-                # FIXME understand why
                 "labels": np.asarray(label)
             }
 
@@ -229,8 +226,8 @@ class MIND_iter(IterableDataset):
         """
 
         title_token = [[0]*self.title_size]
-        category_token = [[0]]
-        subcategory_token = [[0]]
+        # category_token = [[0]]
+        # subcategory_token = [[0]]
 
         title_pad = [[self.title_size]]
         
@@ -245,12 +242,12 @@ class MIND_iter(IterableDataset):
                 title_token.append(title[:self.title_size] + [0] * (self.title_size - len(title)))
                 title_pad.append([max(self.title_size - len(title), 0)])
 
-                category_token.append([self.vocab[vert]])
-                subcategory_token.append([self.vocab[subvert]])
+                # category_token.append([self.vocab[vert]])
+                # subcategory_token.append([self.vocab[subvert]])
         
         self.news_title_array = np.asarray(title_token)
-        self.news_category_array = np.asarray(category_token)
-        self.news_subcategory_array = np.asarray(subcategory_token)
+        # self.news_category_array = np.asarray(category_token)
+        # self.news_subcategory_array = np.asarray(subcategory_token)
 
         self.title_pad = np.asarray(title_pad)
 
@@ -315,8 +312,8 @@ class MIND_iter(IterableDataset):
             for news, label in zip(impr, impr_label):
                 # indicate the candidate news title vector from impression
                 candidate_title_index = []
-                candidate_category_index = []
-                candidate_subcategory_index = []
+                # candidate_category_index = []
+                # candidate_subcategory_index = []
 
                 # indicate the impression where the news in
                 impr_index = []
@@ -329,13 +326,13 @@ class MIND_iter(IterableDataset):
                 label = [label]
                 # append the news title vector corresponding to news variable, in order to generate [news_title_vector]
                 candidate_title_index.append(self.news_title_array[news])
-                candidate_category_index.append(self.news_category_array[news])
-                candidate_subcategory_index.append(self.news_subcategory_array[news])
+                # candidate_category_index.append(self.news_category_array[news])
+                # candidate_subcategory_index.append(self.news_subcategory_array[news])
                 
                 # append the news title vector corresponding to news variable
                 click_title_index = self.news_title_array[self.histories[index]]
-                click_category_index = self.news_category_array[self.histories[index]]
-                click_subcategory_index = self.news_subcategory_array[self.histories[index]]
+                # click_category_index = self.news_category_array[self.histories[index]]
+                # click_subcategory_index = self.news_subcategory_array[self.histories[index]]
 
                 impr_index = self.impr_indexes[index]
                 user_index.append(self.uindexes[index])
@@ -355,15 +352,13 @@ class MIND_iter(IterableDataset):
                     "impression_index": impr_index,
                     "user_index": np.asarray(user_index),
                     "clicked_title": click_title_index,
-                    "clicked_category":click_category_index,
-                    "clicked_subcategory":click_subcategory_index,
+                    # "clicked_category":click_category_index,
+                    # "clicked_subcategory":click_subcategory_index,
                     "clicked_title_pad": np.asarray(click_title_pad),
                     "his_mask":his_mask,
-                    
-                    # similarly, important to convert to numpy array rather than retaining list
                     "candidate_title": np.asarray(candidate_title_index),
-                    "candidate_category": np.asarray(candidate_category_index),
-                    "candidate_subcategory": np.asarray(candidate_subcategory_index),
+                    # "candidate_category": np.asarray(candidate_category_index),
+                    # "candidate_subcategory": np.asarray(candidate_subcategory_index),
                     "candidate_title_pad": np.asarray(candidate_title_pad),
                     "labels": np.asarray(label)
                 }

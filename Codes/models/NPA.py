@@ -17,7 +17,7 @@ class NPAModel(nn.Module):
         self.metrics = hparams['metrics']
 
         self.batch_size = hparams['batch_size']
-        self.title_size = hparams['title_size']
+        self.signal_length = hparams['title_size']
         self.his_size =hparams['his_size']
 
         self.filter_num = hparams['filter_num']
@@ -152,7 +152,7 @@ class NPAModel(nn.Module):
         # important not to directly apply view function
         # return tensor of batch_size * cdd_size * embedding_dim * title_size
         cdd_title_embedding = self.embedding[news_batch]
-        cdd_title_embedding = cdd_title_embedding.view(-1,self.title_size,self.embedding_dim).permute(0,2,1)
+        cdd_title_embedding = cdd_title_embedding.view(-1,self.signal_length,self.embedding_dim).permute(0,2,1)
         
         # return tensor of batch_size * cdd_size * filter_num * title_size
         cdd_title_embedding = self.CNN(cdd_title_embedding)

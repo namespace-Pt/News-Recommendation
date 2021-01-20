@@ -8,6 +8,8 @@ cuda == 10.1
 
 ## Dataset
 download MIND dataset [HERE](https://msnews.github.io/)
+### Simple Analysis
+see [HERE](manual/Preprocess.ipynb)
 ## Instruction
 - **you can customize your dataset path in two ways:**
   - modify default value of `path` in `prepare()` in `utils.py` to your own **top directory of `MINDxxxx`**
@@ -19,9 +21,29 @@ download MIND dataset [HERE](https://msnews.github.io/)
 
 - you can alse run **python scripts** in terminal, type in `--help/-h` to get detail explanation of arguments
   ```shell
-  usage: scripts/[model_name].py [-h] -s {demo,small,large} -m {train,test}
-                           [-e EPOCHS] [-bs BATCH_SIZE] [-se] [-ss SAVE_STEP]
-                           [-c {0,1}] [-te]
+  usage: fim.py [-h] -s {demo,small,large} -m {train,test} [-e EPOCHS]
+              [-bs BATCH_SIZE] [-se] [-ss SAVE_STEP] [-c {0,1}] [-te]
+
+  optional arguments:
+  
+    -h, --help            show this help message and exit
+    -s {demo,small,large}, --scale {demo,small,large}
+                          data scale
+    -m {train,test}, --mode {train,test}
+                          train or test
+    -e EPOCHS, --epochs EPOCHS
+                          epochs to train the model
+    -bs BATCH_SIZE, --batch_size BATCH_SIZE
+                          batch size
+    -se, --save_each_epoch
+                          if clarified, save model of each epoch
+    -ss SAVE_STEP, --save_step SAVE_STEP
+                          if clarified, save model at the interval of given
+                          steps
+    -c {0,1}, --cuda {0,1}
+                          device to run on
+    -te, --train_embedding
+                          if clarified, word embedding will be fine-tuned
   ```
   - **eg:**
     ```shell
@@ -69,10 +91,10 @@ download MIND dataset [HERE](https://msnews.github.io/)
     - *copy code from paper*
 #### Performance
 **run on `MINDlarge`**
-|model|AUC|MRR|NDCG@5|NDCG@10|epochs|steps|
-|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+|model|AUC|MRR|NDCG@5|NDCG@10|benchmark-achieve-at|
+|:-:|:-:|:-:|:-:|:-:|:-:|
 |NPA||||||
-|FIM|$0.6534$|$0.3385$|$0.4028$|$0.3096$|$0$|$5000$|
+|FIM|$0.6554$|$0.3385$|$0.4036$|$0.3093$|`epoch=0,step=10000`|
 |NRMS||||||
 |baseline-CNN-CNN|
 |baseline-CNN-MHA|
