@@ -550,7 +550,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
             optimizer.zero_grad()
             
             if save_step:
-                if step+1 % save_step == 0:
+                if step % save_step == 0 and step > 0:
                     save_path = 'models/model_params/{}_{}_step{}'.format(hparams['name'],hparams['scale'],step) +'.model'
                     torch.save(model.state_dict(), save_path)
                     print("saved model of step {}".format(step))
@@ -611,7 +611,7 @@ def load_hparams(hparams):
     parser.add_argument("-se","--save_each_epoch", dest="save_each_epoch", help="if clarified, save model of each epoch", action='store_true')
     parser.add_argument("-ss","--save_step", dest="save_step", help="if clarified, save model at the interval of given steps", type=int)
     parser.add_argument("-te","--train_embedding", dest="train_embedding", help="if clarified, word embedding will be fine-tuned", action='store_true')
-    
+    parser.add_argument("-k","--topk", dest="k", help="intend for topk baseline, if clarified, top k history are involved in interaction calculation", type=int)
     args = parser.parse_args()
 
     hparams['epochs'] = args.epochs
@@ -630,6 +630,7 @@ def load_hparams(hparams):
     hparams['save_step'] = args.save_step
     hparams['save_each_epoch'] = args.save_each_epoch
     hparams['train_embedding'] = args.train_embedding
+    hparams['k'] = args.k
 
     return hparams
 

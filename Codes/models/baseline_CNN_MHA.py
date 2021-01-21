@@ -21,7 +21,7 @@ class GCAModel(nn.Module):
        
         # elements in the slice along dim will sum up to 1 
         self.softmax = nn.Softmax(dim=-1)
-        self.gumbel_softmax = nn.functional.gumbel_softmax
+        
         self.ReLU = nn.ReLU()
         self.DropOut = nn.Dropout(p=hparams['dropout_p'])
         

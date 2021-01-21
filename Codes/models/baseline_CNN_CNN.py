@@ -21,7 +21,6 @@ class GCAModel(nn.Module):
        
         # elements in the slice along dim will sum up to 1 
         self.softmax = nn.Softmax(dim=-1)
-        self.gumbel_softmax = nn.functional.gumbel_softmax
         self.ReLU = nn.ReLU()
         self.DropOut = nn.Dropout(p=hparams['dropout_p'])
         
@@ -35,9 +34,8 @@ class GCAModel(nn.Module):
             nn.MaxPool2d(kernel_size=(3,3), stride=(3,3))
         )
         
-        # 64 is derived from SeqCNN
-        self.learningToRank = nn.Linear(64, 1)
-        # self.learningToRank = nn.Linear(self.repr_dim * self.his_size, 1)
+        # derived from SeqCNN
+        self.learningToRank = nn.Linear(int(int(self.signal_length/3)/3) ** 2 * 16, 1)
 
     def _scaled_dp_attention(self,query,key,value):
         """ calculate scaled attended output of values

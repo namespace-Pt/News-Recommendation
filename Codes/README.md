@@ -99,22 +99,7 @@ see [HERE](manual/Preprocess.ipynb)
   - Soft Top-k Operator 
     - [[51] Differentiable Top-K Operator with Optimal Transport](https://arxiv.org/pdf/2002.06504.pdf)
     - *copy code from paper*
-#### Performance
-**run on `MINDlarge`**
-|model|AUC|MRR|NDCG@5|NDCG@10|benchmark-achieve-at|
-|:-:|:-:|:-:|:-:|:-:|:-:|
-|NPA|$0.6572$|$0.3057$|$0.3361$|$0.4006$|`epoch=1`|
-|FIM|$\mathbf{0.6677}$|$\mathbf{0.3202}$|$\mathbf{0.3518}$|$\mathbf{0.4147}$|`epoch=0,step=10000`|
-|NRMS|$0.6618$|$0.3179$|$0.3444$|$0.4108$|`epoch=6`|
-|baseline-CNN-CNN|||||
-|baseline-CNN-MHA|$0.6017$|forgot😅|😅|😅|run on `MINDsmall`|
-|baseline-MHA-CNN|||||
-|baseline-MHA-MHA|$0.6201$|forgot😅|😅|😅|run on `MINDsmall`|
-|baseline-CNN-KNRM|
-|baseline-MHA-KNRM|
-|baseline-parallel|||||
-|baseline-end2end|
-|baseline-unified|
+
 ### `/scripts`: python scripts of models
   - you can run models in `shell`
 
@@ -133,7 +118,31 @@ see [HERE](manual/Preprocess.ipynb)
   - some helper functions
     - construct dictionary
     - wrap training and testing/evaluating
+## Experiment
+### Hyper Parameter Settings
+- `title-size=20`
+  - the length of news title, pad 0 if less, strip off if more
+  - none of category, subcategory and absract is involved
+- `his-size=50`
+  - the length of user history, pad 0 if less, strip off if more
+  - in `baseline`, `his-size=100`
 
+### Performance
+**run on `MINDlarge`**
+|model|AUC|MRR|NDCG@5|NDCG@10|benchmark-achieve-at|
+|:-:|:-:|:-:|:-:|:-:|:-:|
+|NPA|$\mathbf{0.6705}$|$0.3147$|$0.3492$|$0.4118$|`epoch=5`|
+|FIM|$0.6677$|$\mathbf{0.3202}$|$\mathbf{0.3518}$|$\mathbf{0.4147}$|`epoch=0,step=10000`|
+|NRMS|$0.6618$|$0.3179$|$0.3444$|$0.4108$|`epoch=6`|
+|baseline-CNN-CNN|||||
+|baseline-CNN-MHA||||||
+|baseline-MHA-CNN|||||
+|baseline-MHA-MHA||||||
+|baseline-CNN-KNRM|
+|baseline-MHA-KNRM|
+|baseline-parallel|||||
+|baseline-end2end|
+|baseline-unified|
 ## TODO
 - [x] integrate MINDIterator to Datasets and Dataloader
 - [x] understand *permute*

@@ -44,7 +44,7 @@ class FIMModel(nn.Module):
             nn.MaxPool3d(kernel_size=[3,3,3],stride=[3,3,3])
         )
         
-        self.predictor = nn.Linear(320,1)
+        self.predictor = nn.Linear(int(int(self.signal_length/3)/3) ** 2 * int(int(self.his_size/3)/3) * 16,1)
 
     def _HDC(self,news_embedding_set):
         """ stack 1d CNN with dilation rate expanding from 1 to 3

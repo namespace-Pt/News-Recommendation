@@ -1,9 +1,3 @@
-'''
-Author: Pt
-Date: 2020-11-19 21:58:13
-LastEditTime: 2020-11-20 10:41:37
-Description: MIND dataset
-'''
 import numpy as np
 from torch.utils.data import Dataset,IterableDataset
 from .utils import newsample,getId2idx,word_tokenize_vocab,getVocab
@@ -27,6 +21,7 @@ class MIND_map(Dataset):
         self.title_size = hparams['title_size']
         self.his_size = hparams['his_size']
         self.attrs = hparams['attrs']
+        self.k = hparams['k']
 
         self.vocab = getVocab('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['scale'],'_'.join(hparams['attrs'])))
         self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_train.json'.format(hparams['scale']))
@@ -96,7 +91,11 @@ class MIND_map(Dataset):
                 
                 history = [self.nid2index[i] for i in history.split()]
                 
-                self.his_pad.append(max(self.his_size - len(history),0))
+                if self.k:
+                    # guarantee there are at least k history not masked
+                    self.his_pad.append(min(max(self.his_size - len(history),0), self.his_size - self.k))
+                else:
+                    self.his_pad.append(max(self.his_size - len(history),0))
                 # tailor user's history or pad 0
                 history = history[:self.his_size] + [0] * (self.his_size - len(history))
                 impr_news = [self.nid2index[i.split("-")[0]] for i in impr.split()]
@@ -215,6 +214,7 @@ class MIND_iter(IterableDataset):
         self.batch_size = hparams['batch_size']
         self.title_size = hparams['title_size']
         self.his_size = hparams['his_size']
+        self.k = hparams['k']
 
         self.vocab = getVocab('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['scale'],'_'.join(hparams['attrs'])))
         self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_{}.json'.format(hparams['scale'],mode))
@@ -276,7 +276,12 @@ class MIND_iter(IterableDataset):
                 
                 history = [self.nid2index[i] for i in history.split()]
                 
-                self.his_pad.append(max(self.his_size - len(history),0))
+                if self.k:
+                    # guarantee there are at least k history not masked
+                    self.his_pad.append(min(max(self.his_size - len(history),0), self.his_size - self.k))
+                else:
+                    self.his_pad.append(max(self.his_size - len(history),0))
+                    
                 # tailor user's history or pad 0
                 history = history[:self.his_size] + [0] * (self.his_size - len(history))
         
