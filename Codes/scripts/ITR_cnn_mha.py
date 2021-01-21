@@ -5,12 +5,12 @@ sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
 import torch
 from utils.utils import evaluate,train,prepare,load_hparams
-from models.baseline_CNN_MHA import GCAModel
+from models.ITR_CNN_MHA import GCAModel
 
 if __name__ == "__main__":
 
     hparams = {
-        'name':'baseline-cnn-mha',
+        'name':'itr-cnn-mha',
         'batch_size':100,
         'title_size':20,
         'his_size':50,

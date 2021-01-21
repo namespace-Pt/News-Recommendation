@@ -1,8 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
-# from models.Soft_TopK import TopK_custom
 
 class GCAModel(nn.Module):
     def __init__(self,hparams,vocab):
@@ -15,8 +12,8 @@ class GCAModel(nn.Module):
 
         self.batch_size = hparams['batch_size']
         self.signal_length = hparams['title_size']
+        self.transformer_length = hparams['title_size'] * 2 + 1
         self.his_size = hparams['his_size']
-        self.transformer_length = 2*self.signal_length + 1
 
         self.head_num = hparams['head_num']
         self.query_dim = hparams['query_dim']
@@ -27,13 +24,9 @@ class GCAModel(nn.Module):
         self.query_words = nn.Parameter(torch.randn((1,self.query_dim), requires_grad=True))
         self.query_itrs = nn.Parameter(torch.randn((1,self.query_dim), requires_grad=True))
 
-        # Soft-topK module
-        # self.topk = TopK_custom(hparams['k'],self.device,epsilon=hparams['epsilon'],max_iter=100)
-        self.k = hparams['k']
-
         # elements in the slice along dim will sum up to 1 
         self.softmax = nn.Softmax(dim=-1)
-        self.gumbel_softmax = nn.functional.gumbel_softmax
+        
         self.ReLU = nn.ReLU()
         self.DropOut = nn.Dropout(p=hparams['dropout_p'])
         self.CosSim = nn.CosineSimilarity(dim=-1)
@@ -47,6 +40,7 @@ class GCAModel(nn.Module):
         self.keyProject_itrs = nn.Linear(self.repr_dim, self.query_dim, bias=True)
 
         self.learningToRank = nn.Linear(self.repr_dim, 1)
+        # self.learningToRank = nn.Linear(self.repr_dim * self.his_size, 1)
 
     def _scaled_dp_attention(self,query,key,value):
         """ calculate scaled attended output of values
@@ -90,23 +84,6 @@ class GCAModel(nn.Module):
             self_attn_output = self.valueProject_itrs[head_idx](attn_output)
 
         return self_attn_output
-    
-    def _word_attention(self, query, key, value):
-        """ apply word-level attention
-
-        Args:
-            query: tensor of [1, query_dim]
-            key: tensor of [batch_size, *, signal_length, query_dim]
-            value: tensor of [batch_size, *, signal_length, repr_dim]
-
-        Returns:
-            attn_output: tensor of [batch_size, *, repr_dim]
-        """
-
-        attn_output = self._scaled_dp_attention(query,key,value).squeeze(dim=-2)
-
-        return attn_output
-
 
     def _multi_head_self_attention(self,input,mode):
         """ apply multi-head self attention over input tensor
@@ -125,8 +102,7 @@ class GCAModel(nn.Module):
             # project the embedding of each words to query subspace
             # keep the original embedding of each words as values
             multi_head_self_attn_key = torch.tanh(self.keyProject_words(multi_head_self_attn_value))
-            additive_attn_embedding = self._scaled_dp_attention(self.query_words,multi_head_self_attn_key,multi_head_self_attn_value).squeeze(dim=-2)
-            return additive_attn_embedding, multi_head_self_attn_value
+            return multi_head_self_attn_value
 
         elif mode == 2:
             self_attn_outputs = [self._self_attention(input,i,2) for i in range(self.head_num)]
@@ -134,80 +110,55 @@ class GCAModel(nn.Module):
             multi_head_self_attn_key = torch.tanh(self.keyProject_itrs(multi_head_self_attn_value))
             additive_attn_embedding = self._scaled_dp_attention(self.query_itrs,multi_head_self_attn_key,multi_head_self_attn_value).squeeze(dim=-2)
             return additive_attn_embedding
-    
-    def _news_encoder(self,news_batch):
-        """ encode set of news to news representations of [batch_size, cdd_size, tranformer_dim]
+
+    def _fusion(self, cdd_news_embedding, his_news_embedding):
+        """ concatenate candidate news title and history news title
         
         Args:
-            news_batch: tensor of [batch_size, cdd_size, title_size]
+            cdd_news_embedding: tensor of [batch_size, cdd_size, signal_length, repr_dim] 
+            his_news_embedding: tensor of [batch_size, his_size, signal_length, repr_dim] 
+
+        Returns:
+            fusion_news_embedding: tensor of [batch_size, cdd_size, his_size, transformer_length, embedding_dim]
+        """
+        fusion_news_embedding = torch.zeros((self.batch_size, self.cdd_size, self.his_size, self.transformer_length, self.repr_dim) ,device=self.device)
+        fusion_news_embedding[:,:,:,:self.signal_length,:] = cdd_news_embedding.unsqueeze(dim=2)
+        fusion_news_embedding[:,:,:,(self.signal_length + 1):] = his_news_embedding.unsqueeze(dim=1)
+        # split two news with <PAD>
+        fusion_news_embedding[:,:,:,self.signal_length] = 1.
+        return fusion_news_embedding
+
+    def _news_encoder(self,news_batch):
+        """ encode batch of news with Multi-Head Self-Attention
+        
+        Args:
+            news_batch: tensor of [batch_size, *, signal_length]
             word_query: tensor of [set_size, preference_dim]
         
         Returns:
-            news_repr: tensor of [batch_size, cdd_size, repr_dim]
-            news_embedding_attn: tensor of [batch_size, cdd_size, signal_length, repr_dim] 
+            news_embedding_attn: tensor of [batch_size, *, signal_length, repr_dim] 
         """
-        news_embedding = self.DropOut(self.embedding[news_batch].to(self.device))
-        news_repr, news_embedding_attn = self._multi_head_self_attention(news_embedding,1)
-        return news_repr, news_embedding_attn
+        news_embedding = self.DropOut(self.embedding[news_batch])
+        news_embedding_attn = self._multi_head_self_attention(news_embedding,1)
+        return news_embedding_attn
 
-    def _news_attention(self, cdd_repr, his_repr, his_embedding, his_mask):
-        """ apply news-level attention
-
-        Args:
-            cdd_repr: tensor of [batch_size, cdd_size, repr_dim]
-            his_repr: tensor of [batch_size, his_size, repr_dim]
-            his_embedding: tensor of [batch_size, his_size, signal_length, repr_dim]
-            his_mask: tensor of [batch_size, his_size, 1]
-            his_title_pad: tensor of [batch_size, his_size, signal_length]
-
-        Returns:
-            his_activated: tensor of [batch_size, cdd_size, signal_length, embedding_dim]
-            his_title_pad: tensor of [batch_size, cdd_size, signal_length]
-        """
-        # [bs, cs, hs]
-        attn_weights = torch.bmm(cdd_repr,his_repr.transpose(-1,-2))
-
-        his_activated_list = []
-
-        # Padding in history will cause 0 in attention weights, underlying the probability that gumbel_softmax may attend to those meaningless 0 vectors. 
-        # Masking off these 0s will force the gumbel_softmax to attend to only non-zero histories.
-        # Masking in candidate also cause such a problem, however we donot need to fix it
-        # because the whole row of attention weight matrix is zero so gumbel_softmax can only capture 0 vectors
-        # though reuslting in redundant calculation but it is what we want of padding 0 to negtive sampled candidates as they may be less than npratio.
-        attn_weights = attn_weights.masked_fill(his_mask.transpose(-1,-2), -float("inf"))
-    
-        for i in range(self.k):
-            attn_focus = F.gumbel_softmax(attn_weights,dim=-1,tau=0.1,hard=True)
-            his_activated = torch.matmul(attn_focus,his_embedding.view(self.batch_size,self.his_size,-1)).view(self.batch_size,self.cdd_size,self.signal_length,self.repr_dim)
-            his_activated_list.append(his_activated)
-            attn_weights = attn_weights.masked_fill(attn_focus.bool(), -float('inf'))
-            
+    def _fusion_transform(self,fusion_news_embedding):
+        """ encode fused news into embeddings
         
-        # [bs, cs, k, sl, rd]
-        his_activated = torch.stack(his_activated_list, dim=2)
-        return his_activated
-    
-    def _fusion(self,cdd_embedding,his_activated):
-        """ fuse activated history news and candidate news into interaction matrix, words in history is column and words in candidate is row, then apply KNRM on each interaction matrix
-
         Args:
-            cdd_embedding: tensor of [batch_size, cdd_size, signal_length, repr_dim]
-            his_activated: tensor of [batch_size, cdd_size, k, signal_length, repr_dim]
+            fusion_news_embedding: tensor of [batch_size, cdd_size, his_size, transformer_length, repr_dim]
         
         Returns:
             fusion_repr: tensor of [batch_size, cdd_size, repr_dim]
         """
-        fusion_matrices = torch.zeros((self.batch_size, self.cdd_size, self.k, self.transformer_length, self.repr_dim) ,device=self.device)
-        fusion_matrices[:,:,:,:self.signal_length,:] = cdd_embedding.unsqueeze(dim=2)
-        fusion_matrices[:,:,:,self.signal_length+1:,:] = his_activated
-        fusion_repr = self._multi_head_self_attention(fusion_matrices,2)
+        fusion_repr = self._multi_head_self_attention(fusion_news_embedding, mode=2)#.view(self.batch_size, self.cdd_size, -1)
         fusion_repr = torch.mean(fusion_repr, dim=2)
         return fusion_repr
     
     def _click_predictor(self,fusion_repr):
         """ calculate batch of click probability              
         Args:
-            pooling_vectors: tensor of [batch_size, cdd_size, repr_dim]
+            pooling_vectors: tensor of [batch_size, cdd_size, kernel_num]
         
         Returns:
             score: tensor of [batch_size, cdd_size]
@@ -222,17 +173,9 @@ class GCAModel(nn.Module):
         return score.squeeze()
 
     def forward(self,x):
-        cdd_news_repr,cdd_news_embedding_attn = self._news_encoder(x['candidate_title'].long().to(self.device))
-        his_news_repr,his_news_embedding_attn = self._news_encoder(x['clicked_title'].long().to(self.device))
-        # print(cdd_news_repr.shape,cdd_news_embedding_attn.shape)
-
-        # mask the history news 
-        his_mask = x['his_mask'].to(self.device)
-        cdd_title_pad = x['candidate_title_pad'].float().to(self.device)
-        his_title_pad = x['clicked_title_pad'].float().to(self.device)
-
-        his_activated = self._news_attention(cdd_news_repr,his_news_repr,his_news_embedding_attn, his_mask)
-        fusion_repr = self._fusion(cdd_news_embedding_attn,his_activated)
-
+        cdd_news_embedding = self._news_encoder(x['candidate_title'].long().to(self.device))
+        his_news_embedding = self._news_encoder(x['clicked_title'].long().to(self.device))
+        fusion_news_embedding = self._fusion(cdd_news_embedding, his_news_embedding)
+        fusion_repr = self._fusion_transform(fusion_news_embedding)
         score_batch = self._click_predictor(fusion_repr)
         return score_batch

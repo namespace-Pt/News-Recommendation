@@ -59,33 +59,33 @@ class FIMModel(nn.Module):
         # don't know what d_0 meant in the original paper
         news_embedding_dilations = torch.zeros((news_embedding_set.shape[0],self.level,self.signal_length,self.filter_num),device=self.device)
         
-        news_embedding_set = news_embedding_set.permute(0,2,1)
+        news_embedding_set = news_embedding_set.transpose(-2,-1)
 
         news_embedding_d1 = self.CNN_d1(news_embedding_set)
-        news_embedding_d1 = self.LayerNorm(news_embedding_d1.permute(0,2,1))
+        news_embedding_d1 = self.LayerNorm(news_embedding_d1.transpose(-2,-1))
         news_embedding_dilations[:,0,:,:] = self.ReLU(news_embedding_d1)
 
         news_embedding_d2 = self.CNN_d2(news_embedding_set)
-        news_embedding_d2 = self.LayerNorm(news_embedding_d2.permute(0,2,1))
+        news_embedding_d2 = self.LayerNorm(news_embedding_d2.transpose(-2,-1))
         news_embedding_dilations[:,1,:,:] = self.ReLU(news_embedding_d2)        
 
         news_embedding_d3 = self.CNN_d3(news_embedding_set)
-        news_embedding_d3 = self.LayerNorm(news_embedding_d3.permute(0,2,1))
+        news_embedding_d3 = self.LayerNorm(news_embedding_d3.transpose(-2,-1))
         news_embedding_dilations[:,2,:,:] = self.ReLU(news_embedding_d3)
         
         return news_embedding_dilations
         
-    def _news_encoder(self,news_set):
+    def _news_encoder(self,news_batch):
         """ encode set of news to news representation
         
         Args:
-            news_set: tensor of [set_size, signal_length]
+            news_set: tensor of [batch_size, *, signal_length]
         
         Returns:
-            news_embedding_dilations: tensor of [set_size, level, signal_length, filter_num]
+            news_embedding_dilations: tensor of [batch_size, level, *, signal_length, filter_num]
         """
-        news_embedding = self.DropOut(self.embedding[news_set])
-        news_embedding_dilations = self._HDC(news_embedding)
+        news_embedding = self.DropOut(self.embedding[news_batch]).view(-1, self.signal_length, self.embedding_dim)
+        news_embedding_dilations = self._HDC(news_embedding).view(self.batch_size, news_batch.shape[1], self.level, self.signal_length, self.filter_num)
         return news_embedding_dilations
     
     def _fusion(self,cdd_news_reprs,his_news_reprs):
@@ -126,14 +126,12 @@ class FIMModel(nn.Module):
 
     def forward(self,x):
         # compress batch_size and cdd_size into dim0
-        # cdd_news_set = torch.cat([x['candidate_title'].long().to(self.device),x['candidate_category'].long().to(self.device),x['candidate_subcategory'].long().to(self.device)],dim=2).view(-1,self.signal_length)
-        cdd_news_set = x['candidate_title'].long().to(self.device).view(-1,self.signal_length)
-        cdd_news_reprs = self._news_encoder(cdd_news_set).view(self.batch_size, self.cdd_size, self.level, self.signal_length, self.filter_num)
+        cdd_news_set = x['candidate_title'].long().to(self.device)
+        cdd_news_reprs = self._news_encoder(cdd_news_set)
         
         # compress batch_size and his_size into dim0
-        # his_news_set = torch.cat([x['clicked_title'].long().to(self.device),x['clicked_category'].long().to(self.device),x['clicked_subcategory'].long().to(self.device)],dim=2).view(-1,self.signal_length)
-        his_news_set = x['clicked_title'].long().to(self.device).view(-1,self.signal_length)
-        his_news_reprs = self._news_encoder(his_news_set).view(self.batch_size, self.his_size, self.level, self.signal_length, self.filter_num)
+        his_news_set = x['clicked_title'].long().to(self.device)
+        his_news_reprs = self._news_encoder(his_news_set)
                 
         fusion_tensors = self._fusion(cdd_news_reprs, his_news_reprs)
             

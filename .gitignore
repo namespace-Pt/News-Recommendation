@@ -12,3 +12,7 @@ baseline.*
 Questions.md
 model_params
 Codes/text
+Codes/manual/baseline_fim.ipynb
+Codes/manual/baseline_mha_mha.ipynb
+Codes/models/baseline_FIM.py
+Codes/models/baseline_MHA_MHA.py

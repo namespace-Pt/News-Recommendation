@@ -5,13 +5,13 @@ sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
 import torch
 from utils.utils import evaluate,train,prepare,load_hparams
-from models.baseline_MHA_MHA import GCAModel
+from models.ITR_MHA_MHA import GCAModel
 
 if __name__ == "__main__":
 
     hparams = {
-        'name':'baseline-mha-mha',
-        'batch_size':100,
+        'name':'itr-mha-mha',
+        'batch_size':32,
         'title_size':20,
         'his_size':30,
         'npratio':4,
@@ -20,7 +20,6 @@ if __name__ == "__main__":
         'embedding_dim':300,
         'value_dim':16,
         'head_num':16,
-        'k':5,
         'metrics':'group_auc,ndcg@5,ndcg@10,mean_mrr',
         'attrs': ['title'],
     }

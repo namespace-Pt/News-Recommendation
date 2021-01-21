@@ -55,7 +55,7 @@ see [HERE](manual/Preprocess.ipynb)
     cd Codes/
     python scripts/fim.py --scale large --mode train --epoch 2 --save_each_epoch --save_step 2000
     ```
-  - **e.g. test NPA model which were trained on MINDlarge and saved at the end of 4000 steps**
+  - **e.g. test FIM model which were trained on `MINDlarge` and saved at the end of 4000 steps**
     ```shell
     cd Codes/
     python scripts/fim.py -s large -m test --save_step 4000
@@ -132,9 +132,10 @@ see [HERE](manual/Preprocess.ipynb)
 |model|AUC|MRR|NDCG@5|NDCG@10|benchmark-achieve-at|
 |:-:|:-:|:-:|:-:|:-:|:-:|
 |NPA|$\mathbf{0.6705}$|$0.3147$|$0.3492$|$0.4118$|`epoch=5`|
-|FIM|$0.6677$|$\mathbf{0.3202}$|$\mathbf{0.3518}$|$\mathbf{0.4147}$|`epoch=0,step=10000`|
+|FIM|$0.6677$|$\mathbf{0.3202}$|$\mathbf{0.3518}$|$\mathbf{0.4147}$|`step=10000`|
 |NRMS|$0.6618$|$0.3179$|$0.3444$|$0.4108$|`epoch=6`|
-|baseline-CNN-CNN|||||
+|ITR-CNN-CNN|$0.6405$|$0.3004$|$0.3254$|$0.3932$|`step=10000`|
+|baseline-CNN-CNN|$$|$$|$$|$$||
 |baseline-CNN-MHA||||||
 |baseline-MHA-CNN|||||
 |baseline-MHA-MHA||||||
@@ -160,5 +161,4 @@ see [HERE](manual/Preprocess.ipynb)
   - negtive samples unavailable
 - [x] test multi-head encoder and CNN encoder
 - [ ] test complete transformer
-- [ ] mask padded candidate 
-- [ ] greedy select with gumbel-softmax
+- [x] greedy select with gumbel-softmax
