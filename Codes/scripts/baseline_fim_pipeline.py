@@ -5,29 +5,27 @@ sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
 import torch
 from utils.utils import evaluate,train,prepare,load_hparams
-from models.baseline_MHA_MHA import GCAModel_greedy
+from models.baseline_FIM import FIMModel_pipeline
 
 if __name__ == "__main__":
 
     hparams = {
-        'name':'baseline-mha-mha',
+        'name':'baseline-fim-pipeline',
         'dropout_p':0.2,
-        'query_dim':200,
         'embedding_dim':300,
-        'value_dim':16,
-        'head_num':16,
-        'attrs': ['title'],
+        'filter_num':150,
+        'attrs': ['title']
     }
     hparams = load_hparams(hparams)
     device = torch.device(hparams['device'])
 
     vocab, loader_train, loader_test, loader_validate = prepare(hparams, validate=True)
-    gcaModel = GCAModel_greedy(vocab=vocab,hparams=hparams).to(device)
+    fimModel = FIMModel_pipeline(vocab=vocab,hparams=hparams).to(device)
 
     if hparams['mode'] == 'test':
-        gcaModel.load_state_dict(torch.load(hparams['save_path']))
+        fimModel.load_state_dict(torch.load(hparams['save_path']))
         print("testing...")
-        evaluate(gcaModel,hparams,loader_test)
+        evaluate(fimModel,hparams,loader_test)
 
     elif hparams['mode'] == 'train':
-        train(gcaModel, hparams, loader_train, loader_test, loader_validate, tb=True)
+        train(fimModel, hparams, loader_train, loader_test, loader_validate, tb=True)

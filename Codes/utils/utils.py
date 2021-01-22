@@ -604,7 +604,7 @@ def train(model, hparams, loader_train, loader_test, loader_validate=None, tb=Fa
 def load_hparams(hparams):
     parser = argparse.ArgumentParser()
     parser.add_argument("-s","--scale", dest="scale", help="data scale", choices=['demo','small','large'],required=True)
-    parser.add_argument("-m","--mode", dest="mode", help="train or test", choices=['train','test'],required=True)
+    parser.add_argument("-m","--mode", dest="mode", help="train or test", choices=['train','test'], default='train')
     parser.add_argument("-e","--epochs", dest="epochs", help="epochs to train the model", type=int, default=10)
 
     parser.add_argument("-bs","--batch_size", dest="batch_size", help="batch size", type=int, default=100)

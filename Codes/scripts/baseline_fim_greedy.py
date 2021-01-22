@@ -5,12 +5,12 @@ sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
 import torch
 from utils.utils import evaluate,train,prepare,load_hparams
-from models.baseline_FIM import FIMModel
+from models.baseline_FIM import FIMModel_greedy
 
 if __name__ == "__main__":
 
     hparams = {
-        'name':'baseline-fim',
+        'name':'baseline-fim-greedy',
         'dropout_p':0.2,
         'embedding_dim':300,
         'filter_num':150,
@@ -20,7 +20,7 @@ if __name__ == "__main__":
     device = torch.device(hparams['device'])
 
     vocab, loader_train, loader_test, loader_validate = prepare(hparams, validate=True)
-    fimModel = FIMModel(vocab=vocab,hparams=hparams).to(device)
+    fimModel = FIMModel_greedy(vocab=vocab,hparams=hparams).to(device)
 
     if hparams['mode'] == 'test':
         fimModel.load_state_dict(torch.load(hparams['save_path']))

@@ -30,8 +30,8 @@ see [HERE](manual/Preprocess.ipynb)
 
 - you can alse run **python scripts** in terminal, type in `--help/-h` to get detail explanation of arguments
   ```shell
-  usage: fim.py [-h] -s {demo,small,large} -m {train,test} [-e EPOCHS]
-              [-bs BATCH_SIZE] [-se] [-ss SAVE_STEP] [-c {0,1}] [-te]
+  usage: baseline_fim.py [-h] -s {demo,small,large} -m {train,test} [-e EPOCHS] [-bs BATCH_SIZE] [-ts TITLE_SIZE] [-hs HIS_SIZE] [-c {0,1}] [-se]
+                         [-ss SAVE_STEP] [-te] [-k K] [-np NPRATIO] [-mc METRICS]
 
   optional arguments:
     -h, --help            show this help message and exit
@@ -43,15 +43,23 @@ see [HERE](manual/Preprocess.ipynb)
                           epochs to train the model
     -bs BATCH_SIZE, --batch_size BATCH_SIZE
                           batch size
+    -ts TITLE_SIZE, --title_size TITLE_SIZE
+                          news title size
+    -hs HIS_SIZE, --his_size HIS_SIZE
+                          history size
+    -c {0,1}, --cuda {0,1}
+                          device to run on
     -se, --save_each_epoch
                           if clarified, save model of each epoch
     -ss SAVE_STEP, --save_step SAVE_STEP
-                          if clarified, save model at the interval of given
-                          steps
-    -c {0,1}, --cuda {0,1}
-                          device to run on
+                          if clarified, save model at the interval of given steps
     -te, --train_embedding
                           if clarified, word embedding will be fine-tuned
+    -k K, --topk K        intend for topk baseline, if clarified, top k history are involved in interaction calculation
+    -np NPRATIO, --npratio NPRATIO
+                          the number of unclicked news to sample when training
+    -mc METRICS, --metric METRICS
+                          metrics for evaluating the model, if multiple metrics are needed, seperate with ','
   ```
   - **e.g. train FIM model on MINDlarge for 2 epochs. At the end of each step, save the model, meanwhile, save model every 2000 steps**
     ```shell
@@ -131,7 +139,7 @@ see [HERE](manual/Preprocess.ipynb)
   - in `baseline`, `his-size=100`
 
 ### Performance
-**run on `MINDlarge`**
+**the model is run on `MINDlarge` if not specified**
 |model|AUC|MRR|NDCG@5|NDCG@10|benchmark-achieve-at|
 |:-:|:-:|:-:|:-:|:-:|:-:|
 |NPA|$\mathbf{0.6705}$|$0.3147$|$0.3492$|$0.4118$|`epoch=5`|
@@ -143,7 +151,7 @@ see [HERE](manual/Preprocess.ipynb)
 |baseline-CNN-CNN|$$|$$|$$|$$||
 |baseline-CNN-MHA||||||
 |baseline-MHA-CNN|||||
-|baseline-MHA-MHA|$0.6395$|$0.2934$|$0.3203$|$0.385$|`epoch=8`|
+|baseline-MHA-MHA|$0.6395$|$0.2934$|$0.3203$|$0.385$|`epoch=8` run on `MINDsmall`|
 |baseline-CNN-KNRM|
 |baseline-MHA-KNRM|
 |baseline-parallel|||||

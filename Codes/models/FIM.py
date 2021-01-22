@@ -45,22 +45,23 @@ class FIMModel(nn.Module):
             nn.MaxPool3d(kernel_size=[3,3,3],stride=[3,3,3])
         )
         
-        self.predictor = nn.Linear(int(int(self.signal_length/3)/3) ** 2 * int(int(self.his_size/3)/3) * 16,1)
+        self.learningToRank = nn.Linear(int(int(self.signal_length/3)/3) ** 2 * int(int(self.his_size/3)/3) * 16,1)
 
-    def _HDC(self,news_embedding_set):
+    def _HDC(self,news_embedding):
         """ stack 1d CNN with dilation rate expanding from 1 to 3
         
         Args:
-            news_embedding_set: tensor of [set_size, signal_length, embedding_dim]
+            news_embedding: tensor of [batch_size, *, signal_length, embedding_dim]
 
         Returns:
-            news_embedding_dilations: tensor of [set_size, levels(3), signal_length, filter_num]
+            news_embedding_dilations: tensor of [batch_size, *, levels(3), signal_length, filter_num]
+            news_reprs: tensor  of [bath_size, *, filter_num (* levels)]
         """
 
         # don't know what d_0 meant in the original paper
-        news_embedding_dilations = torch.zeros((news_embedding_set.shape[0],self.level,self.signal_length,self.filter_num),device=self.device)
+        news_embedding_dilations = torch.zeros((self.batch_size * news_embedding.shape[1], self.level, self.signal_length, self.filter_num),device=self.device)
         
-        news_embedding_set = news_embedding_set.transpose(-2,-1)
+        news_embedding_set = news_embedding.transpose(-2,-1).view(-1, self.embedding_dim, self.signal_length)
 
         news_embedding_d1 = self.CNN_d1(news_embedding_set)
         news_embedding_d1 = self.LayerNorm(news_embedding_d1.transpose(-2,-1))
@@ -73,8 +74,8 @@ class FIMModel(nn.Module):
         news_embedding_d3 = self.CNN_d3(news_embedding_set)
         news_embedding_d3 = self.LayerNorm(news_embedding_d3.transpose(-2,-1))
         news_embedding_dilations[:,2,:,:] = self.ReLU(news_embedding_d3)
-        
-        return news_embedding_dilations
+
+        return news_embedding_dilations.view(self.batch_size, news_embedding.shape[1], self.level, self.signal_length, self.filter_num)
         
     def _news_encoder(self,news_batch):
         """ encode set of news to news representation
@@ -85,8 +86,9 @@ class FIMModel(nn.Module):
         Returns:
             news_embedding_dilations: tensor of [batch_size, *, level, signal_length, filter_num]
         """
-        news_embedding = self.DropOut(self.embedding[news_batch]).view(-1, self.signal_length, self.embedding_dim)
-        news_embedding_dilations = self._HDC(news_embedding).view(self.batch_size, news_batch.shape[1], self.level, self.signal_length, self.filter_num)
+        news_embedding = self.DropOut(self.embedding[news_batch])
+        news_embedding_dilations = self._HDC(news_embedding)
+
         return news_embedding_dilations
     
     def _fusion(self,cdd_news_reprs,his_news_reprs):
@@ -118,7 +120,7 @@ class FIMModel(nn.Module):
         Returns:
             score: tensor of [batch_size, npratio+1], which is normalized click probabilty
         """
-        score = self.predictor(fusion_tensors)
+        score = self.learningToRank(fusion_tensors)
         if self.cdd_size > 1:
             score = nn.functional.log_softmax(score,dim=1)
         else:
