@@ -11,17 +11,11 @@ if __name__ == "__main__":
 
     hparams = {
         'name':'baseline-mha-mha',
-        'batch_size':100,
-        'title_size':20,
-        'his_size':30,
-        'npratio':4,
         'dropout_p':0.2,
         'query_dim':200,
         'embedding_dim':300,
         'value_dim':16,
         'head_num':16,
-        'k':5,
-        'metrics':'group_auc,ndcg@5,ndcg@10,mean_mrr',
         'attrs': ['title'],
     }
     hparams = load_hparams(hparams)

@@ -12,18 +12,9 @@ if __name__ == "__main__":
     hparams = {
         'scale':'demo',
         'name':'itr-cnn-cnn',
-        'batch_size':100,
-        'title_size':20,
-        'his_size':50,
-        'npratio':4,
         'dropout_p':0.2,
-        'query_dim':200,
         'embedding_dim':300,
         'filter_num':400,
-        'value_dim':16,
-        'head_num':16,
-        'epochs':5,
-        'metrics':'group_auc,ndcg@5,ndcg@10,mean_mrr',
         'attrs': ['title'],
     }
     hparams = load_hparams(hparams)

@@ -54,7 +54,7 @@ class NRMSModel(nn.Module):
         key = key.transpose(-2,-1)
 
         attn_weights = torch.matmul(query,key)/torch.sqrt(torch.tensor([self.embedding_dim],dtype=torch.float,device=self.device))
-        attn_weights = self.softmax(attn_weights)
+        attn_weights = self.softmax(attn_weights, dim=-1)
         
         attn_output = torch.matmul(attn_weights,value)
 

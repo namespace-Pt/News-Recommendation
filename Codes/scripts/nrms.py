@@ -11,18 +11,11 @@ if __name__ == "__main__":
 
     hparams = {
         'name':'nrms',
-        'batch_size':64,
-        'title_size':20,
-        'his_size':50,
-        'npratio':4,
         'dropout_p':0.2,
         'query_dim':200,
         'embedding_dim':300,
         'value_dim':16,
         'head_num':16,
-        'kernel_num':11,
-        'metrics':'group_auc,ndcg@5,ndcg@10,mean_mrr',
-        'device':'cuda:0',
         'attrs': ['title'],
       }
 

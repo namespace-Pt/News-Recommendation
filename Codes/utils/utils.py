@@ -606,24 +606,41 @@ def load_hparams(hparams):
     parser.add_argument("-s","--scale", dest="scale", help="data scale", choices=['demo','small','large'],required=True)
     parser.add_argument("-m","--mode", dest="mode", help="train or test", choices=['train','test'],required=True)
     parser.add_argument("-e","--epochs", dest="epochs", help="epochs to train the model", type=int, default=10)
-    parser.add_argument("-bs","--batch_size", dest="batch_size", help="batch size", type=int)
+
+    parser.add_argument("-bs","--batch_size", dest="batch_size", help="batch size", type=int, default=100)
+    parser.add_argument("-ts","--title_size", dest="title_size", help="news title size", type=int, default=20)
+    parser.add_argument("-hs","--his_size", dest="his_size", help="history size", type=int, default=50)
+
     parser.add_argument("-c","--cuda", dest="cuda", help="device to run on", choices=['0','1'], default='0')
     parser.add_argument("-se","--save_each_epoch", dest="save_each_epoch", help="if clarified, save model of each epoch", action='store_true')
     parser.add_argument("-ss","--save_step", dest="save_step", help="if clarified, save model at the interval of given steps", type=int)
     parser.add_argument("-te","--train_embedding", dest="train_embedding", help="if clarified, word embedding will be fine-tuned", action='store_true')
+    
     parser.add_argument("-k","--topk", dest="k", help="intend for topk baseline, if clarified, top k history are involved in interaction calculation", type=int, default=5)
+    parser.add_argument("-np","--npratio", dest="npratio", help="the number of unclicked news to sample when training", type=int, default=4)
+    parser.add_argument("-mc","--metric", dest="metrics", help="metrics for evaluating the model, if multiple metrics are needed, seperate with ','", type=str, default="group_auc,ndcg@5,ndcg@10,mean_mrr")
+
+    # parser.add_argument("-dp","--dropout", dest="dropout", help="drop out probability", type=float, default=0.2)
+    # parser.add_argument("-ed","--embedding_dim", dest="embedding_dim", help="dimension of word embedding", type=int, default=300)
+    # parser.add_argument("-qd","--query_dim", dest="query_dim", help="dimension of query tensor", type=int, default=200)
+    # parser.add_argument("-fn","--filter_num", dest="filter_num", help="the number of filters (out channels) for convolution", type=int, default=150)    
+
+
     args = parser.parse_args()
 
-    hparams['epochs'] = args.epochs
     hparams['scale'] = args.scale
-    hparams['device'] = 'cuda:' + args.cuda
     hparams['mode'] = args.mode
+    hparams['device'] = 'cuda:' + args.cuda
+    hparams['epochs'] = args.epochs
+    hparams['batch_size'] = args.batch_size
+    hparams['title_size'] = args.title_size
+    hparams['his_size'] = args.his_size
+    hparams['npratio'] = args.npratio
+    hparams['metrics'] = args.metrics
 
     # intend for testing mode
     if args.epochs:
         hparams['save_path'] = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'])
-    if args.batch_size:
-        hparams['batch_size'] = args.batch_size
     if args.save_step:
         hparams['save_path'] = 'models/model_params/{}_{}_step{}.model'.format(hparams['name'],hparams['scale'],args.save_step)
 

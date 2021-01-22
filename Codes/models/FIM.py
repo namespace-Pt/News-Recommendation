@@ -9,15 +9,16 @@ class FIMModel(nn.Module):
         self.metrics = hparams['metrics']
 
         self.cdd_size = (hparams['npratio'] + 1) if hparams['npratio'] > 0 else 1
+        self.his_size =hparams['his_size']
         self.batch_size = hparams['batch_size']
-        self.level = hparams['dilation_level']
         self.dropout_p = hparams['dropout_p']
         
         # concatenate category embedding and subcategory embedding
         self.signal_length = hparams['title_size']# + 1 + 1
-        self.his_size =hparams['his_size']
 
-        self.kernel_size = hparams['kernel_size']
+        self.kernel_size = 3
+        self.level = 3
+        
         self.filter_num = hparams['filter_num']
         self.embedding_dim = hparams['embedding_dim']
 
@@ -82,7 +83,7 @@ class FIMModel(nn.Module):
             news_set: tensor of [batch_size, *, signal_length]
         
         Returns:
-            news_embedding_dilations: tensor of [batch_size, level, *, signal_length, filter_num]
+            news_embedding_dilations: tensor of [batch_size, *, level, signal_length, filter_num]
         """
         news_embedding = self.DropOut(self.embedding[news_batch]).view(-1, self.signal_length, self.embedding_dim)
         news_embedding_dilations = self._HDC(news_embedding).view(self.batch_size, news_batch.shape[1], self.level, self.signal_length, self.filter_num)

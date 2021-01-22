@@ -1,9 +1,12 @@
 # Code
 ## Requirements
 ```shell
-python == 3.7.9
-torch == 1.6.0
+python == 3.8.5
+torch == 1.7.0
+torchtext = 0.8.0
 cuda == 10.1
+pandas
+tqdm
 ```
 
 ## Dataset
@@ -134,11 +137,13 @@ see [HERE](manual/Preprocess.ipynb)
 |NPA|$\mathbf{0.6705}$|$0.3147$|$0.3492$|$0.4118$|`epoch=5`|
 |FIM|$0.6677$|$\mathbf{0.3202}$|$\mathbf{0.3518}$|$\mathbf{0.4147}$|`step=10000`|
 |NRMS|$0.6618$|$0.3179$|$0.3444$|$0.4108$|`epoch=6`|
-|ITR-CNN-CNN|$0.6405$|$0.3004$|$0.3254$|$0.3932$|`step=10000`|
+|ITR-CNN-CNN|$0.647$|$0.3022$|$0.3289$|$0.3957$|`epoch=1`|
+|ITR-MHA-MHA|$0.6201$|||
+|baseline-FIM|$0.6439$|$0.2947$|$0.3239$|$0.3881$|`epochs=5` run on `MINDsmall`|
 |baseline-CNN-CNN|$$|$$|$$|$$||
 |baseline-CNN-MHA||||||
 |baseline-MHA-CNN|||||
-|baseline-MHA-MHA||||||
+|baseline-MHA-MHA|$0.6395$|$0.2934$|$0.3203$|$0.385$|`epoch=8`|
 |baseline-CNN-KNRM|
 |baseline-MHA-KNRM|
 |baseline-parallel|||||

@@ -10,13 +10,8 @@ from models.KNRM import KNRMModel
 if __name__ == "__main__":    
     hparams = {
         'name':'knrm',
-        'batch_size':100,
-        'title_size':20,
-        'his_size':50,
-        'npratio':4,
         'embedding_dim':300,
         'kernel_num':11,
-        'metrics':'group_auc,ndcg@5,ndcg@10,mean_mrr',
         'attrs': ['title'],
     }
 
