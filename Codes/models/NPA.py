@@ -30,7 +30,7 @@ class NPAModel(nn.Module):
         # pretrained embedding
         self.embedding = vocab.vectors.to(self.device)
         # elements in the slice along dim will sum up to 1 
-        self.softmax = nn.functional.softmax
+        self.softmax = nn.Softmax(dim=-1)
 
         # project userID to dense vector e_u of user_dim
         # self.userProject = nn.Linear(1,self.user_dim)

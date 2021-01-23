@@ -2,11 +2,12 @@
 ## Requirements
 ```shell
 python == 3.8.5
-torch == 1.7.0
-torchtext = 0.8.0
+torch == 1.7.1
+torchtext = 0.8.1
 cuda == 10.1
 pandas
 tqdm
+scikit-learn
 ```
 
 ## Dataset

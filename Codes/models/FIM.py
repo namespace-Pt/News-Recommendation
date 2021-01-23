@@ -27,7 +27,7 @@ class FIMModel(nn.Module):
         # pretrained embedding
         self.embedding = vocab.vectors.to(self.device)
         # elements in the slice along dim will sum up to 1 
-        self.softmax = nn.functional.softmax
+        self.softmax = nn.Softmax(dim=-1)
         
         self.CNN_d1 = nn.Conv1d(in_channels=self.embedding_dim,out_channels=self.filter_num,kernel_size = self.kernel_size,dilation=1,padding=1)
         self.CNN_d2 = nn.Conv1d(in_channels=self.embedding_dim,out_channels=self.filter_num,kernel_size = self.kernel_size,dilation=2,padding=2)
