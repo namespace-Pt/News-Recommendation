@@ -35,7 +35,7 @@ class GCAModel(nn.Module):
             nn.MaxPool2d(kernel_size=(3,3), stride=(3,3))
         )
         
-        # 64 is derived from SeqCNN
+        # 144 is derived from SeqCNN
         self.learningToRank = nn.Linear(144, 1)
         # self.learningToRank = nn.Linear(self.repr_dim * self.his_size, 1)
 
@@ -92,20 +92,19 @@ class GCAModel(nn.Module):
         """
 
         fusion_matrices = torch.matmul(cdd_news_embedding.unsqueeze(dim=2), his_news_embedding.unsqueeze(dim=1).transpose(-2,-1)).view(self.batch_size * self.cdd_size * self.his_size, 1, self.signal_length, self.signal_length)
-        fusion_vectors = self.SeqCNN(fusion_matrices).view(self.batch_size, self.cdd_size, self.his_size, -1)     
+        fusion_vectors = self.SeqCNN(fusion_matrices).view(self.batch_size, self.cdd_size, self.his_size, -1)
         fusion_vectors = torch.mean(fusion_vectors, dim=-2)
-        print(fusion_vectors.shape)
         return fusion_vectors
     
-    def _click_predictor(self,fusion_repr):
+    def _click_predictor(self,fusion_vectors):
         """ calculate batch of click probability              
         Args:
-            fusion_repr: tensor of [batch_size, cdd_size, repr_dim]
+            fusion_vectors: tensor of [batch_size, cdd_size, repr_dim]
         
         Returns:
             score: tensor of [batch_size, cdd_size]
         """
-        score = self.learningToRank(fusion_repr)
+        score = self.learningToRank(fusion_vectors)
 
         if self.cdd_size > 1:
             score = nn.functional.log_softmax(score,dim=1)

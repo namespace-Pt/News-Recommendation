@@ -151,7 +151,7 @@ see [HERE](manual/Preprocess.ipynb)
 |baseline-FIM|$0.6439$|$0.2947$|$0.3239$|$0.3881$|`epochs=5` run on `MINDsmall`|
 |baseline-CNN-CNN|$$|$$|$$|$$||
 |baseline-CNN-MHA||||||
-|baseline-MHA-CNN|||||
+|baseline-MHA-CNN|$0.6239$|$0.2796$|$0.3067$|$0.3698$|`epoch=8` run on `MINDsmall`|
 |baseline-MHA-MHA|$0.6395$|$0.2934$|$0.3203$|$0.385$|`epoch=8` run on `MINDsmall`|
 |baseline-CNN-KNRM|
 |baseline-MHA-KNRM|

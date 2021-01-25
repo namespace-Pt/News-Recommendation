@@ -89,7 +89,7 @@ class GCAModel(nn.Module):
         """ apply multi-head self attention over input tensor
 
         Args:
-            input: tensor of [batch_size, *, signal_length/transformer_length, embedding_dim]
+            input: tensor of [batch_size, *, signal_length/transformer_length, repr_dim]
         
         Returns:
             additive_attn_embedding: tensor of [batch_size, *, repr_dim]
@@ -119,7 +119,7 @@ class GCAModel(nn.Module):
             his_news_embedding: tensor of [batch_size, his_size, signal_length, repr_dim] 
 
         Returns:
-            fusion_news_embedding: tensor of [batch_size, cdd_size, his_size, transformer_length, embedding_dim]
+            fusion_news_embedding: tensor of [batch_size, cdd_size, his_size, transformer_length, repr_dim]
         """
         fusion_news_embedding = torch.zeros((self.batch_size, self.cdd_size, self.his_size, self.transformer_length, self.repr_dim) ,device=self.device)
         fusion_news_embedding[:,:,:,:self.signal_length,:] = cdd_news_embedding.unsqueeze(dim=2)
@@ -149,13 +149,13 @@ class GCAModel(nn.Module):
             fusion_news_embedding: tensor of [batch_size, cdd_size, his_size, transformer_length, repr_dim]
         
         Returns:
-            fusion_repr: tensor of [batch_size, cdd_size, repr_dim]
+            fusion_vectors: tensor of [batch_size, cdd_size, repr_dim]
         """
-        fusion_repr = self._multi_head_self_attention(fusion_news_embedding, mode=2)#.view(self.batch_size, self.cdd_size, -1)
-        fusion_repr = torch.mean(fusion_repr, dim=2)
-        return fusion_repr
+        fusion_vectors = self._multi_head_self_attention(fusion_news_embedding, mode=2)#.view(self.batch_size, self.cdd_size, -1)
+        fusion_vectors = torch.mean(fusion_vectors, dim=2)
+        return fusion_vectors
     
-    def _click_predictor(self,fusion_repr):
+    def _click_predictor(self,fusion_vectors):
         """ calculate batch of click probability              
         Args:
             pooling_vectors: tensor of [batch_size, cdd_size, kernel_num]
@@ -163,7 +163,7 @@ class GCAModel(nn.Module):
         Returns:
             score: tensor of [batch_size, cdd_size]
         """
-        score = self.learningToRank(fusion_repr)
+        score = self.learningToRank(fusion_vectors)
 
         if self.cdd_size > 1:
             score = nn.functional.log_softmax(score,dim=1)
@@ -176,6 +176,6 @@ class GCAModel(nn.Module):
         cdd_news_embedding = self._news_encoder(x['candidate_title'].long().to(self.device))
         his_news_embedding = self._news_encoder(x['clicked_title'].long().to(self.device))
         fusion_news_embedding = self._fusion(cdd_news_embedding, his_news_embedding)
-        fusion_repr = self._fusion_transform(fusion_news_embedding)
-        score_batch = self._click_predictor(fusion_repr)
+        fusion_vectors = self._fusion_transform(fusion_news_embedding)
+        score_batch = self._click_predictor(fusion_vectors)
         return score_batch

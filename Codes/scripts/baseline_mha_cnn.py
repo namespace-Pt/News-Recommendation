@@ -9,7 +9,7 @@ from utils.utils import evaluate,train,prepare,load_hparams
 if __name__ == "__main__":
 
     hparams = {
-        'name':'baseline-mha-mha',
+        'name':'baseline-mha-cnn',
         'dropout_p':0.2,
         'query_dim':200,
         'embedding_dim':300,

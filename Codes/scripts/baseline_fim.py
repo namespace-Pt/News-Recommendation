@@ -5,7 +5,6 @@ sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
 import torch
 from utils.utils import evaluate,train,prepare,load_hparams
-from models.baseline_FIM import FIMModel_greedy
 
 if __name__ == "__main__":
 
@@ -18,9 +17,15 @@ if __name__ == "__main__":
     }
     hparams = load_hparams(hparams)
     device = torch.device(hparams['device'])
-
     vocab, loader_train, loader_test, loader_validate = prepare(hparams, validate=True)
-    fimModel = FIMModel_greedy(vocab=vocab,hparams=hparams).to(device)
+    
+    if hparams['select'] == 'greedy':
+        from models.baseline_FIM import FIMModel_greedy
+        fimModel = FIMModel_greedy(vocab=vocab,hparams=hparams).to(device)
+    
+    elif hparams['select'] == 'pipeline':
+        from models.baseline_FIM import FIMModel_pipeline
+        fimModel = FIMModel_pipeline(vocab=vocab,hparams=hparams).to(device)
 
     if hparams['mode'] == 'test':
         fimModel.load_state_dict(torch.load(hparams['save_path']))
