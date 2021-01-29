@@ -27,6 +27,10 @@ if __name__ == "__main__":
         from models.baseline_FIM import FIMModel_pipeline
         fimModel = FIMModel_pipeline(vocab=vocab,hparams=hparams).to(device)
 
+    elif hparams['select'] == 'gating':
+        from models.baseline_FIM import FIMModel_gating
+        fimModel = FIMModel_gating(vocab=vocab,hparams=hparams).to(device)
+
     if hparams['mode'] == 'test':
         fimModel.load_state_dict(torch.load(hparams['save_path']))
         print("testing...")

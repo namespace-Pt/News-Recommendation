@@ -50,7 +50,7 @@ class KNRMModel(nn.Module):
         
         attn_output = torch.matmul(attn_weights,value)
 
-        return attn_output
+        return attn_output.squeeze(dim=-2)
     
     def _fusion(self, cdd_news_batch, his_news_batch):
         """ fuse batch of candidate news and history news into batch of |candidate|*|history| interaction matrixs, according to cosine similarity

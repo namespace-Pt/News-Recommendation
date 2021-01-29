@@ -20,12 +20,13 @@ class GCAModel(nn.Module):
         self.repr_dim = self.head_num * hparams['value_dim']
 
         self.tfmEncoder = nn.TransformerEncoderLayer(d_model=self.repr_dim, nhead=self.head_num)
-        self.tfmInteractor = nn.TransformerEncoderLayer(d_model=self.repr_dim, nhead=self.head_num)
+        # self.tfmInteractor = nn.TransformerEncoderLayer(d_model=self.repr_dim, nhead=self.head_num)
 
         self.query_itr = nn.Parameter(torch.rand(1,self.repr_dim), requires_grad=True)
 
         self.softmax = nn.Softmax(dim=-1)
-        self.learningToRank = nn.Linear(self.repr_dim, 1)
+        # self.learningToRank = nn.Linear(self.repr_dim, 1)
+        self.learningToRank = nn.Linear(self.his_size, 1) 
         # self.learningToRank = nn.Linear(self.repr_dim * self.his_size, 1)
 
     def _scaled_dp_attention(self,query,key,value):
@@ -48,7 +49,7 @@ class GCAModel(nn.Module):
         attn_weights = self.softmax(attn_weights)
         
         attn_output = torch.matmul(attn_weights,value)
-        return attn_output
+        return attn_output.squeeze(dim=-2)
 
     def _news_encoder(self,news_batch):
         """ encode batch of news with Multi-Head Self-Attention
@@ -116,7 +117,15 @@ class GCAModel(nn.Module):
         cdd_news_embedding = self._news_encoder(x['candidate_title'].long().to(self.device))
         his_news_embedding = self._news_encoder(x['clicked_title'].long().to(self.device))
 
-        fusion_news_embedding = self._fusion(cdd_news_embedding, his_news_embedding)
-        fusion_vectors = self._fusion_transform(fusion_news_embedding)
+        cdd_repr = self._scaled_dp_attention(self.query_itr, cdd_news_embedding, cdd_news_embedding)
+        his_repr = self._scaled_dp_attention(self.query_itr, his_news_embedding, his_news_embedding)
+
+        fusion_vectors = torch.matmul(cdd_repr, his_repr.transpose(-1,-2))
+
+
+        # fusion_news_embedding = self._fusion(cdd_news_embedding, his_news_embedding)
+        # fusion_vectors = self._fusion_transform(fusion_news_embedding)
+
+
         score_batch = self._click_predictor(fusion_vectors)
         return score_batch

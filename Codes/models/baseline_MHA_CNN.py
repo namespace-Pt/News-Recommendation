@@ -71,7 +71,7 @@ class GCAModel_greedy(nn.Module):
         attn_weights = self.softmax(attn_weights)
         
         attn_output = torch.matmul(attn_weights,value)
-        return attn_output
+        return attn_output.squeeze(dim=-2)
 
     def _self_attention(self,input,head_idx):
         """ apply self attention of head#idx over input tensor
@@ -172,7 +172,6 @@ class GCAModel_greedy(nn.Module):
         # [bs,cs,k,sl,sl]
         fusion_matrices = torch.matmul(cdd_embedding.unsqueeze(dim=2), his_activated.transpose(-2,-1)).view(-1, self.k, self.signal_length, self.signal_length)
         fusion_vectors = self.SeqCNN2D(fusion_matrices).view(self.batch_size, self.cdd_size, -1)
-        print(fusion_vectors.shape)
         return fusion_vectors
     
     def _click_predictor(self,fusion_vectors):

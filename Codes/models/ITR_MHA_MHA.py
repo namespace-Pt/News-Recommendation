@@ -62,7 +62,7 @@ class GCAModel(nn.Module):
         attn_weights = self.softmax(attn_weights)
         
         attn_output = torch.matmul(attn_weights,value)
-        return attn_output
+        return attn_output.squeeze(dim=-2)
 
     def _self_attention(self,input,head_idx,mode):
         """ apply self attention of head#idx over input tensor

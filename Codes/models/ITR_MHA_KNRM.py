@@ -66,7 +66,7 @@ class GCAModel(nn.Module):
         
         attn_output = torch.matmul(attn_weights,value)
 
-        return attn_output
+        return attn_output.squeeze(dim=-2)
 
     def _self_attention(self,input,head_idx):
         """ apply self attention of head#idx over input tensor
@@ -99,7 +99,7 @@ class GCAModel(nn.Module):
 
         attn_output = self._scaled_dp_attention(query,key,value).squeeze(dim=-2)
 
-        return attn_output
+        return attn_output.squeeze(dim=-2)
 
 
     def _multi_head_self_attention(self,input):

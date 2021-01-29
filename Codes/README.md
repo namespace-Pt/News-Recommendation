@@ -148,16 +148,15 @@ see [HERE](manual/Preprocess.ipynb)
 |NRMS|$0.6618$|$0.3179$|$0.3444$|$0.4108$|`epoch=6`|
 |ITR-CNN-CNN|$0.647$|$0.3022$|$0.3289$|$0.3957$|`epoch=1`|
 |ITR-MHA-MHA|$0.6201$|||
-|baseline-FIM|$0.6439$|$0.2947$|$0.3239$|$0.3881$|`epochs=5` run on `MINDsmall`|
-|baseline-CNN-CNN|$$|$$|$$|$$||
+|baseline-FIM-greedy|$0.6439$|$0.2947$|$0.3239$|$0.3881$|`epochs=5` run on `MINDsmall`|
+|baseline-FIM-pipeline||
+|baseline-FIM-unified||
+|baseline-CNN-CNN||||||
 |baseline-CNN-MHA||||||
 |baseline-MHA-CNN|$0.6239$|$0.2796$|$0.3067$|$0.3698$|`epoch=8` run on `MINDsmall`|
 |baseline-MHA-MHA|$0.6395$|$0.2934$|$0.3203$|$0.385$|`epoch=8` run on `MINDsmall`|
 |baseline-CNN-KNRM|
 |baseline-MHA-KNRM|
-|baseline-parallel|||||
-|baseline-end2end|
-|baseline-unified|
 ## TODO
 - [x] integrate MINDIterator to Datasets and Dataloader
 - [x] understand *permute*
@@ -174,5 +173,5 @@ see [HERE](manual/Preprocess.ipynb)
 - [x] interact with negtive samples
   - negtive samples unavailable
 - [x] test multi-head encoder and CNN encoder
-- [ ] test complete transformer
+- [x] test complete transformer encoder
 - [x] greedy select with gumbel-softmax

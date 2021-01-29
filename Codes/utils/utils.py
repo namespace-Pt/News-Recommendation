@@ -618,9 +618,9 @@ def load_hparams(hparams):
     
     parser.add_argument("-k","--topk", dest="k", help="intend for topk baseline, if clarified, top k history are involved in interaction calculation", type=int, default=5)
     parser.add_argument("-np","--npratio", dest="npratio", help="the number of unclicked news to sample when training", type=int, default=4)
-    parser.add_argument("-mc","--metric", dest="metrics", help="metrics for evaluating the model, if multiple metrics are needed, seperate with ','", type=str, default="group_auc,ndcg@5,ndcg@10,mean_mrr")
+    parser.add_argument("-mc","--metrics", dest="metrics", help="metrics for evaluating the model, if multiple metrics are needed, seperate with ','", type=str, default="group_auc,ndcg@5,ndcg@10,mean_mrr")
 
-    parser.add_argument("--select", dest="select", help="choose model for selecting", choices=['greedy','pipeline','parallel','unified'], default="greedy")
+    parser.add_argument("--select", dest="select", help="choose model for selecting", choices=['greedy','pipeline','parallel','unified','gating'], default="greedy")
     # parser.add_argument("-dp","--dropout", dest="dropout", help="drop out probability", type=float, default=0.2)
     # parser.add_argument("-ed","--embedding_dim", dest="embedding_dim", help="dimension of word embedding", type=int, default=300)
     # parser.add_argument("-qd","--query_dim", dest="query_dim", help="dimension of query tensor", type=int, default=200)
