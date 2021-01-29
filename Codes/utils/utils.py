@@ -551,17 +551,22 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
             
             if save_step:
                 if step % save_step == 0 and step > 0:
-                    save_path = 'models/model_params/{}_{}_step{}'.format(hparams['name'],hparams['scale'],step) +'.model'
+                    if hparams['select']:
+                        save_path = 'models/model_params/{}-{}_{}_step{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],step)
+                    else:
+                        save_path = 'models/model_params/{}_{}_step{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],step)
                     torch.save(model.state_dict(), save_path)
                     print("saved model of step {}".format(step))
 
-            
         if writer:
-            writer.add_scalar('epoch_loss',
-                            epoch_loss/len(dataloader),
-                            epoch)
+            writer.add_scalar('epoch_loss', epoch_loss/len(dataloader), epoch)
+            
         if save_each_epoch:
-            save_path = 'models/model_params/{}_{}_epoch{}'.format(hparams['name'],hparams['scale'],epoch+1) +'.model'
+            if hparams['select']:
+                hparams['save_path'] = 'models/model_params/{}-{}_{}_epoch{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch+1)
+            else:
+                hparams['save_path'] = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],epoch+1)
+            
             torch.save(model.state_dict(), save_path)
             print("saved model of epoch {}".format(epoch))
 
@@ -620,7 +625,7 @@ def load_hparams(hparams):
     parser.add_argument("-np","--npratio", dest="npratio", help="the number of unclicked news to sample when training", type=int, default=4)
     parser.add_argument("-mc","--metrics", dest="metrics", help="metrics for evaluating the model, if multiple metrics are needed, seperate with ','", type=str, default="group_auc,ndcg@5,ndcg@10,mean_mrr")
 
-    parser.add_argument("--select", dest="select", help="choose model for selecting", choices=['greedy','pipeline','parallel','unified','gating'], default="greedy")
+    parser.add_argument("--select", dest="select", help="choose model for selecting", choices=['greedy','pipeline','parallel','unified','gating'], default=None)
     # parser.add_argument("-dp","--dropout", dest="dropout", help="drop out probability", type=float, default=0.2)
     # parser.add_argument("-ed","--embedding_dim", dest="embedding_dim", help="dimension of word embedding", type=int, default=300)
     # parser.add_argument("-qd","--query_dim", dest="query_dim", help="dimension of query tensor", type=int, default=200)
@@ -639,13 +644,20 @@ def load_hparams(hparams):
     hparams['npratio'] = args.npratio
     hparams['metrics'] = args.metrics
 
-    # intend for testing mode
-    if args.epochs:
-        hparams['save_path'] = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'])
-    if args.save_step:
-        hparams['save_path'] = 'models/model_params/{}_{}_step{}.model'.format(hparams['name'],hparams['scale'],args.save_step)
-
     hparams['select'] = args.select
+
+    # intend for testing mode
+    if args.select:            
+        if args.epochs:
+            hparams['save_path'] = 'models/model_params/{}-{}_{}_epoch{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'])
+        if args.save_step:
+            hparams['save_path'] = 'models/model_params/{}-{}_{}_step{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],args.save_step)
+    else:
+        if args.epochs:
+            hparams['save_path'] = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'])
+        if args.save_step:
+            hparams['save_path'] = 'models/model_params/{}_{}_step{}.model'.format(hparams['name'],hparams['scale'],args.save_step)
+        
 
     hparams['save_step'] = args.save_step
     hparams['save_each_epoch'] = args.save_each_epoch

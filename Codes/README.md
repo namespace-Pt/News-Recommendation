@@ -31,8 +31,8 @@ see [HERE](manual/Preprocess.ipynb)
 
 - you can alse run **python scripts** in terminal, type in `--help/-h` to get detail explanation of arguments
   ```shell
-  usage: baseline_fim.py [-h] -s {demo,small,large} -m {train,test} [-e EPOCHS] [-bs BATCH_SIZE] [-ts TITLE_SIZE] [-hs HIS_SIZE] [-c {0,1}] [-se]
-                         [-ss SAVE_STEP] [-te] [-k K] [-np NPRATIO] [-mc METRICS]
+  usage: [script_name].py [-h] -s {demo,small,large} [-m {train,test}] [-e EPOCHS] [-bs BATCH_SIZE] [-ts TITLE_SIZE] [-hs HIS_SIZE] [-c {0,1}] [-se]
+                       [-ss SAVE_STEP] [-te] [-k K] [-np NPRATIO] [-mc METRICS] [--select {greedy,pipeline,parallel,unified,gating}]
 
   optional arguments:
     -h, --help            show this help message and exit
@@ -59,8 +59,10 @@ see [HERE](manual/Preprocess.ipynb)
     -k K, --topk K        intend for topk baseline, if clarified, top k history are involved in interaction calculation
     -np NPRATIO, --npratio NPRATIO
                           the number of unclicked news to sample when training
-    -mc METRICS, --metric METRICS
+    -mc METRICS, --metrics METRICS
                           metrics for evaluating the model, if multiple metrics are needed, seperate with ','
+    --select {greedy,pipeline,parallel,unified,gating}
+                          choose model for selecting
   ```
   - **e.g. train FIM model on MINDlarge for 2 epochs. At the end of each step, save the model, meanwhile, save model every 2000 steps**
     ```shell
@@ -151,6 +153,7 @@ see [HERE](manual/Preprocess.ipynb)
 |baseline-FIM-greedy|$0.6439$|$0.2947$|$0.3239$|$0.3881$|`epochs=5` run on `MINDsmall`|
 |baseline-FIM-pipeline||
 |baseline-FIM-unified||
+|baseline-FIM-gating|$0.6576$|$0.3098$|$0.3422$|$0.4036$|`epoch=10` run on `MINDsmall`|
 |baseline-CNN-CNN||||||
 |baseline-CNN-MHA||||||
 |baseline-MHA-CNN|$0.6239$|$0.2796$|$0.3067$|$0.3698$|`epoch=8` run on `MINDsmall`|

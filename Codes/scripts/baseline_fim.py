@@ -9,7 +9,7 @@ from utils.utils import evaluate,train,prepare,load_hparams
 if __name__ == "__main__":
 
     hparams = {
-        'name':'baseline-fim-greedy',
+        'name':'baseline-fim',
         'dropout_p':0.2,
         'embedding_dim':300,
         'filter_num':150,
