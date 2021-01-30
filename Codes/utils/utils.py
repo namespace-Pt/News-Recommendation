@@ -539,7 +539,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
             if step % interval == 0:
 
                 tqdm_.set_description(
-                    "epoch {:d} , step {:d} , loss: {:.4f}".format(epoch, step, epoch_loss / step))
+                    "epoch {:d} , step {:d} , loss: {:.4f}".format(epoch+1, step, epoch_loss / step))
                 if writer:
                     for name, param in model.named_parameters():
                         writer.add_histogram(name, param, epoch * len(dataloader) + step)
@@ -560,15 +560,15 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
 
         if writer:
             writer.add_scalar('epoch_loss', epoch_loss/len(dataloader), epoch)
-            
+
         if save_each_epoch:
             if hparams['select']:
-                hparams['save_path'] = 'models/model_params/{}-{}_{}_epoch{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch+1)
+                save_path = 'models/model_params/{}-{}_{}_epoch{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch+1)
             else:
-                hparams['save_path'] = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],epoch+1)
+                save_path = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],epoch+1)
             
             torch.save(model.state_dict(), save_path)
-            print("saved model of epoch {}".format(epoch))
+            print("saved model of epoch {}".format(epoch+1))
 
     return model
 

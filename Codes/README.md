@@ -3,7 +3,7 @@
 ```shell
 python == 3.8.5
 torch == 1.7.1
-torchtext = 0.8.1
+torchtext == 0.8.1
 cuda == 10.1
 pandas
 tqdm
@@ -153,7 +153,7 @@ see [HERE](manual/Preprocess.ipynb)
 |baseline-FIM-greedy|$0.6439$|$0.2947$|$0.3239$|$0.3881$|`epochs=5` run on `MINDsmall`|
 |baseline-FIM-pipeline||
 |baseline-FIM-unified||
-|baseline-FIM-gating|$0.6576$|$0.3098$|$0.3422$|$0.4036$|`epoch=10` run on `MINDsmall`|
+|baseline-FIM-gating|$0.6603$|$0.316$|$0.3455$|$0.4108$|`epoch=1`|
 |baseline-CNN-CNN||||||
 |baseline-CNN-MHA||||||
 |baseline-MHA-CNN|$0.6239$|$0.2796$|$0.3067$|$0.3698$|`epoch=8` run on `MINDsmall`|
