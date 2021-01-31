@@ -585,7 +585,10 @@ def train(model, hparams, loader_train, loader_test, loader_validate=None, tb=Fa
     writer = None
     
     if tb:
-        writer = SummaryWriter('data/tb/{}/{}/{}/'.format(hparams['name'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
+        if hparams['select']:
+            writer = SummaryWriter('data/tb/{}-{}/{}/{}/'.format(hparams['name'], hparams['select'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
+        else:
+            writer = SummaryWriter('data/tb/{}/{}/{}/'.format(hparams['name'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
 
     print("training...")
     loss_func = getLoss(model)
@@ -595,7 +598,10 @@ def train(model, hparams, loader_train, loader_test, loader_validate=None, tb=Fa
 
     if save:
         ### independent of hparams['save_path']
-        save_path = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'])
+        if hparams['select']:
+            save_path = 'models/model_params/{}-{}_{}_epoch{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'])
+        else:
+            save_path = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'])
         torch.save(model.state_dict(), save_path)
         print("save success!")
 

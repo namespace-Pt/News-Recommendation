@@ -153,13 +153,10 @@ see [HERE](manual/Preprocess.ipynb)
 |baseline-FIM-greedy|$0.6439$|$0.2947$|$0.3239$|$0.3881$|`epochs=5` run on `MINDsmall`|
 |baseline-FIM-pipeline||
 |baseline-FIM-unified||
-|baseline-FIM-gating|$0.6603$|$0.316$|$0.3455$|$0.4108$|`epoch=1`|
-|baseline-CNN-CNN||||||
-|baseline-CNN-MHA||||||
+|baseline-FIM-gating|$0.6694$|$0.3155$|$0.3496$|$0.4119$|`epoch=1, his_size=100, topk=20`|
+|baseline-FIM-gating|$0.6651$|$0.3116$|$0.3433$|$0.4082$|`epoch=1, his_size=80, topk=20`|
 |baseline-MHA-CNN|$0.6239$|$0.2796$|$0.3067$|$0.3698$|`epoch=8` run on `MINDsmall`|
 |baseline-MHA-MHA|$0.6395$|$0.2934$|$0.3203$|$0.385$|`epoch=8` run on `MINDsmall`|
-|baseline-CNN-KNRM|
-|baseline-MHA-KNRM|
 ## TODO
 - [x] integrate MINDIterator to Datasets and Dataloader
 - [x] understand *permute*
