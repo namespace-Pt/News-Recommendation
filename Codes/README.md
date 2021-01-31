@@ -145,33 +145,19 @@ see [HERE](manual/Preprocess.ipynb)
 **the model is run on `MINDlarge` if not specified**
 |model|AUC|MRR|NDCG@5|NDCG@10|benchmark-achieve-at|
 |:-:|:-:|:-:|:-:|:-:|:-:|
-|NPA|$\mathbf{0.6705}$|$0.3147$|$0.3492$|$0.4118$|`epoch=5`|
-|FIM|$0.6677$|$\mathbf{0.3202}$|$\mathbf{0.3518}$|$\mathbf{0.4147}$|`step=10000`|
+|NPA|$0.6705$|$0.3147$|$0.3492$|$0.4118$|`epoch=5`|
+|FIM|$0.6677$|$\mathbf{0.3202}$|$\mathbf{0.3518}$|$0.4147$|`step=10000`|
 |NRMS|$0.6618$|$0.3179$|$0.3444$|$0.4108$|`epoch=6`|
 |ITR-CNN-CNN|$0.647$|$0.3022$|$0.3289$|$0.3957$|`epoch=1`|
 |ITR-MHA-MHA|$0.6201$|||
 |baseline-FIM-greedy|$0.6439$|$0.2947$|$0.3239$|$0.3881$|`epochs=5` run on `MINDsmall`|
 |baseline-FIM-pipeline||
 |baseline-FIM-unified||
+|baseline-FIM-gating|$\mathbf{0.6726}$|$0.3181$|$0.3513$|$\mathbf{0.4149}$|`epoch=1, step=5000, his_size=100, topk=30`|
 |baseline-FIM-gating|$0.6694$|$0.3155$|$0.3496$|$0.4119$|`epoch=1, his_size=100, topk=20`|
 |baseline-FIM-gating|$0.6651$|$0.3116$|$0.3433$|$0.4082$|`epoch=1, his_size=80, topk=20`|
 |baseline-MHA-CNN|$0.6239$|$0.2796$|$0.3067$|$0.3698$|`epoch=8` run on `MINDsmall`|
 |baseline-MHA-MHA|$0.6395$|$0.2934$|$0.3203$|$0.385$|`epoch=8` run on `MINDsmall`|
 ## TODO
-- [x] integrate MINDIterator to Datasets and Dataloader
-- [x] understand *permute*
-- [x] construct `nid2idx` and `uid2idx` according to both training iterator and testing iterator
-- [x] analyze MIND dataset, calculate average user history length
-- [x] rewrite NPA, user embedding, not user projection
-- [x] figure out why FIM suffers
-- [x] cosine similarity computation inspection
-- [x] generate negtiva examples
 - [ ] BERT cls
-- [x] transformer encoder
-- [x] knrm mask值
-- [x] transformer交互
-- [x] interact with negtive samples
-  - negtive samples unavailable
-- [x] test multi-head encoder and CNN encoder
-- [x] test complete transformer encoder
-- [x] greedy select with gumbel-softmax
+- [ ] fine-tune my model to pass t-test

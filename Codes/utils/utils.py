@@ -552,11 +552,11 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
             if save_step:
                 if step % save_step == 0 and step > 0:
                     if hparams['select']:
-                        save_path = 'models/model_params/{}-{}_{}_step{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],step)
+                        save_path = 'models/model_params/{}-{}_{}_epoch{}_step{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step)
                     else:
-                        save_path = 'models/model_params/{}_{}_step{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],step)
+                        save_path = 'models/model_params/{}_{}_epoch{}_step{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step)
                     torch.save(model.state_dict(), save_path)
-                    print("saved model of step {}".format(step))
+                    print("saved model of step {} in epoch{}".format(step, epoch))
 
         if writer:
             writer.add_scalar('epoch_loss', epoch_loss/len(dataloader), epoch)
@@ -654,16 +654,15 @@ def load_hparams(hparams):
 
     # intend for testing mode
     if args.select:            
-        if args.epochs:
+        if args.save_step:
+            hparams['save_path'] = 'models/model_params/{}-{}_{}_epoch{}_step{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'],args.save_step)
+        else:
             hparams['save_path'] = 'models/model_params/{}-{}_{}_epoch{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'])
-        if args.save_step:
-            hparams['save_path'] = 'models/model_params/{}-{}_{}_step{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],args.save_step)
     else:
-        if args.epochs:
-            hparams['save_path'] = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'])
         if args.save_step:
-            hparams['save_path'] = 'models/model_params/{}_{}_step{}.model'.format(hparams['name'],hparams['scale'],args.save_step)
-        
+            hparams['save_path'] = 'models/model_params/{}_{}_epoch{}_step{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'],args.save_step)
+        else:
+            hparams['save_path'] = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'])
 
     hparams['save_step'] = args.save_step
     hparams['save_each_epoch'] = args.save_each_epoch
