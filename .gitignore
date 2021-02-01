@@ -17,3 +17,5 @@ Codes/manual/baseline_fim.ipynb
 Codes/manual/baseline_mha_mha.ipynb
 Codes/models/baseline_FIM.py
 Codes/models/baseline_MHA_MHA.py
+Codes/models/baseline_MHA_CNN.py
+Codes/models/SFI_MHA.py
