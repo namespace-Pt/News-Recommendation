@@ -95,7 +95,7 @@ class GCAModel_greedy(nn.Module):
             input: tensor of [batch_size, *, signal_length/transformer_length, repr_dim]
         
         Returns:
-            additive_attn_embedding: tensor of [batch_size, *, repr_dim]
+            additive_attn_repr: tensor of [batch_size, *, repr_dim]
             multi_head_self_attn_value: tensor of [batch_size, *, signal_length, repr_dim]
 
         """
@@ -104,8 +104,8 @@ class GCAModel_greedy(nn.Module):
         # project the embedding of each words to query subspace
         # keep the original embedding of each words as values
         multi_head_self_attn_key = torch.tanh(self.keyProject_words(multi_head_self_attn_value))
-        additive_attn_embedding = self._scaled_dp_attention(self.query_words,multi_head_self_attn_key,multi_head_self_attn_value).squeeze(dim=-2)
-        return additive_attn_embedding, multi_head_self_attn_value
+        additive_attn_repr = self._scaled_dp_attention(self.query_words,multi_head_self_attn_key,multi_head_self_attn_value).squeeze(dim=-2)
+        return additive_attn_repr, multi_head_self_attn_value
 
     def _news_encoder(self,news_batch):
         """ encode set of news to news representations of [batch_size, cdd_size, tranformer_dim]
@@ -118,7 +118,7 @@ class GCAModel_greedy(nn.Module):
             news_repr: tensor of [batch_size, cdd_size, repr_dim]
             news_embedding_attn: tensor of [batch_size, cdd_size, signal_length, repr_dim] 
         """
-        news_embedding = self.DropOut(self.embedding[news_batch].to(self.device))
+        news_embedding = self.DropOut(self.embedding[news_batch])
         news_repr, news_embedding_attn = self._multi_head_self_attention(news_embedding)
         return news_repr, news_embedding_attn
 

@@ -92,7 +92,7 @@ class GCAModel(nn.Module):
             input: tensor of [batch_size, *, signal_length/transformer_length, repr_dim]
         
         Returns:
-            additive_attn_embedding: tensor of [batch_size, *, repr_dim]
+            additive_attn_repr: tensor of [batch_size, *, repr_dim]
             multi_head_self_attn_value: tensor of [batch_size, *, signal_length, repr_dim]
 
         """
@@ -108,8 +108,8 @@ class GCAModel(nn.Module):
             self_attn_outputs = [self._self_attention(input,i,2) for i in range(self.head_num)]
             multi_head_self_attn_value = torch.cat(self_attn_outputs,dim=-1)
             multi_head_self_attn_key = torch.tanh(self.keyProject_itrs(multi_head_self_attn_value))
-            additive_attn_embedding = self._scaled_dp_attention(self.query_itrs,multi_head_self_attn_key,multi_head_self_attn_value).squeeze(dim=-2)
-            return additive_attn_embedding
+            additive_attn_repr = self._scaled_dp_attention(self.query_itrs,multi_head_self_attn_key,multi_head_self_attn_value).squeeze(dim=-2)
+            return additive_attn_repr
 
     def _fusion(self, cdd_news_embedding, his_news_embedding):
         """ concatenate candidate news title and history news title

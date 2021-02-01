@@ -155,6 +155,7 @@ see [HERE](manual/Preprocess.ipynb)
 |baseline-FIM-unified||
 |baseline-FIM-gating|$\mathbf{0.6726}$|$0.3181$|$0.3513$|$\mathbf{0.4149}$|`epoch=1, step=5000, his_size=100, topk=30`|
 |baseline-FIM-gating|$0.6694$|$0.3155$|$0.3496$|$0.4119$|`epoch=1, his_size=100, topk=20`|
+|baseline-FIM-gating|$0.6719$|$0.32$|$0.3524$|$0.4161$|`epoch=1, step=18000, his_size=80, topk=30`|
 |baseline-FIM-gating|$0.6651$|$0.3116$|$0.3433$|$0.4082$|`epoch=1, his_size=80, topk=20`|
 |baseline-MHA-CNN|$0.6239$|$0.2796$|$0.3067$|$0.3698$|`epoch=8` run on `MINDsmall`|
 |baseline-MHA-MHA|$0.6395$|$0.2934$|$0.3203$|$0.385$|`epoch=8` run on `MINDsmall`|

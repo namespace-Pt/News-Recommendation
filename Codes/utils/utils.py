@@ -556,7 +556,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
                     else:
                         save_path = 'models/model_params/{}_{}_epoch{}_step{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step)
                     torch.save(model.state_dict(), save_path)
-                    print("saved model of step {} in epoch{}".format(step, epoch))
+                    print("saved model of step {} at epoch {}".format(step, epoch))
 
         if writer:
             writer.add_scalar('epoch_loss', epoch_loss/len(dataloader), epoch)

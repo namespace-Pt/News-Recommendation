@@ -103,8 +103,8 @@ class GCAModel(nn.Module):
         multi_head_self_attn_value = torch.cat(self_attn_outputs,dim=-1)
         multi_head_self_attn_key = torch.tanh(self.keyProject_words(multi_head_self_attn_value))
 
-        additive_attn_embedding = self._word_attention(self.query_words, multi_head_self_attn_key, multi_head_self_attn_value)
-        return additive_attn_embedding
+        additive_attn_repr = self._word_attention(self.query_words, multi_head_self_attn_key, multi_head_self_attn_value)
+        return additive_attn_repr
 
     def _fusion(self, cdd_news, his_news):
         """ concatenate candidate news title and history news title
