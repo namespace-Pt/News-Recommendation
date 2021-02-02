@@ -150,13 +150,14 @@ see [HERE](manual/Preprocess.ipynb)
 |NRMS|$0.6618$|$0.3179$|$0.3444$|$0.4108$|`epoch=6`|
 |ITR-CNN-CNN|$0.647$|$0.3022$|$0.3289$|$0.3957$|`epoch=1`|
 |ITR-MHA-MHA|$0.6201$|||
-|baseline-FIM-greedy|$0.6439$|$0.2947$|$0.3239$|$0.3881$|`epochs=5` run on `MINDsmall`|
-|baseline-FIM-pipeline||
-|baseline-FIM-unified||
-|baseline-FIM-gating|$\mathbf{0.6726}$|$0.3181$|$0.3513$|$\mathbf{0.4149}$|`epoch=1, step=5000, his_size=100, topk=30`|
-|baseline-FIM-gating|$0.6694$|$0.3155$|$0.3496$|$0.4119$|`epoch=1, his_size=100, topk=20`|
-|baseline-FIM-gating|$0.6719$|$0.32$|$0.3524$|$0.4161$|`epoch=1, step=18000, his_size=80, topk=30`|
-|baseline-FIM-gating|$0.6651$|$0.3116$|$0.3433$|$0.4082$|`epoch=1, his_size=80, topk=20`|
+|SFI-greedy|$0.6439$|$0.2947$|$0.3239$|$0.3881$|`epochs=5` run on `MINDsmall`|
+|SFI-pipeline||
+|SFI-unified||
+|SFI-gating|$\mathbf{0.6766}$|$\mathbf{0.3232}$|$\mathbf{0.3594}$|$\mathbf{0.4209}$|`epoch=1, step=5000, his_size=100, topk=30`|
+|SFI-gating|$0.6726$|$0.3181$|$0.3513$|$0.4149$|`epoch=1, step=5000, his_size=100, topk=30`|
+|SFI-gating|$0.6694$|$0.3155$|$0.3496$|$0.4119$|`epoch=1, his_size=100, topk=20`|
+|SFI-gating|$0.6719$|$0.32$|$0.3524$|$0.4161$|`epoch=1, step=18000, his_size=80, topk=30`|
+|SFI-gating|$0.6651$|$0.3116$|$0.3433$|$0.4082$|`epoch=1, his_size=80, topk=20`|
 |baseline-MHA-CNN|$0.6239$|$0.2796$|$0.3067$|$0.3698$|`epoch=8` run on `MINDsmall`|
 |baseline-MHA-MHA|$0.6395$|$0.2934$|$0.3203$|$0.385$|`epoch=8` run on `MINDsmall`|
 ## TODO

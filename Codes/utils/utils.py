@@ -552,9 +552,9 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
             if save_step:
                 if step % save_step == 0 and step > 0:
                     if hparams['select']:
-                        save_path = 'models/model_params/{}-{}_{}_epoch{}_step{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step)
+                        save_path = 'models/model_params/{}-{}_{}_epoch{}_step{}-(hs={},topk={}).model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step, str(hparams['his_size']), str(hparams['k']))
                     else:
-                        save_path = 'models/model_params/{}_{}_epoch{}_step{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step)
+                        save_path = 'models/model_params/{}_{}_epoch{}_step{}-(hs={},topk={}).model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step, str(hparams['his_size']), str(hparams['k']))
                     torch.save(model.state_dict(), save_path)
                     print("saved model of step {} at epoch {}".format(step, epoch))
 
@@ -563,16 +563,16 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
 
         if save_each_epoch:
             if hparams['select']:
-                save_path = 'models/model_params/{}-{}_{}_epoch{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch+1)
+                save_path = 'models/model_params/{}-{}_{}_epoch{}-(hs={},topk={}).model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch+1, str(hparams['his_size']), str(hparams['k']))
             else:
-                save_path = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],epoch+1)
+                save_path = 'models/model_params/{}_{}_epoch{}-(hs={},topk={}).model'.format(hparams['name'],hparams['scale'],epoch+1, str(hparams['his_size']), str(hparams['k']))
             
             torch.save(model.state_dict(), save_path)
             print("saved model of epoch {}".format(epoch+1))
 
     return model
 
-def train(model, hparams, loader_train, loader_test, loader_validate=None, tb=False, interval=10, save=True):
+def train(model, hparams, loader_train, loader_test, loader_validate=None, tb=False, interval=100):
     """ wrap training process
     
     Args:
@@ -596,14 +596,14 @@ def train(model, hparams, loader_train, loader_test, loader_validate=None, tb=Fa
 
     model = run_train(model,loader_train,optimizer,loss_func,hparams,writer=writer,interval=interval,save_step=hparams['save_step'],save_each_epoch=hparams['save_each_epoch'])
 
-    if save:
-        ### independent of hparams['save_path']
-        if hparams['select']:
-            save_path = 'models/model_params/{}-{}_{}_epoch{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'])
-        else:
-            save_path = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'])
-        torch.save(model.state_dict(), save_path)
-        print("save success!")
+    # if save:
+    #     ### independent of hparams['save_path']
+    #     if hparams['select']:
+    #         save_path = 'models/model_params/{}-{}_{}_epoch{}-(hs={},topk={}).model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
+    #     else:
+    #         save_path = 'models/model_params/{}_{}_epoch{}-(hs={},topk={}).model'.format(hparams['name'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
+    #     torch.save(model.state_dict(), save_path)
+    #     print("save success!")
 
     print("testing...")
     evaluate(model, hparams, loader_test)
@@ -627,11 +627,17 @@ def load_hparams(hparams):
     parser.add_argument("-ss","--save_step", dest="save_step", help="if clarified, save model at the interval of given steps", type=int)
     parser.add_argument("-te","--train_embedding", dest="train_embedding", help="if clarified, word embedding will be fine-tuned", action='store_true')
     
-    parser.add_argument("-k","--topk", dest="k", help="intend for topk baseline, if clarified, top k history are involved in interaction calculation", type=int, default=5)
+    parser.add_argument("-k","--topk", dest="k", help="intend for topk baseline, if clarified, top k history are involved in interaction calculation", type=int, default=-1)
     parser.add_argument("-np","--npratio", dest="npratio", help="the number of unclicked news to sample when training", type=int, default=4)
-    parser.add_argument("-mc","--metrics", dest="metrics", help="metrics for evaluating the model, if multiple metrics are needed, seperate with ','", type=str, default="group_auc,ndcg@5,ndcg@10,mean_mrr")
+    parser.add_argument("-mc","--metrics", dest="metrics", help="metrics for evaluating the model, if multiple metrics are needed, seperate with ','", type=str, default="group_auc,mean_mrr,ndcg@5,ndcg@10")
 
-    parser.add_argument("--select", dest="select", help="choose model for selecting", choices=['greedy','pipeline','parallel','unified','gating'], default=None)
+    parser.add_argument("--select", dest="select", help="choose model for selecting", choices=['pipeline','unified','gating'], default=None)
+    parser.add_argument("--integrate", dest="integration", help="the way history filter is combined", choices=['gate','harmony'], default=None)
+
+    parser.add_argument("-hn","--head_num", dest="head_num", help="number of multi-heads", type=int)
+    parser.add_argument("-vd","--value_dim", dest="value_dim", help="dimension of projected value", type=int)
+    parser.add_argument("-qd","--query_dim", dest="query_dim", help="dimension of projected query", type=int)
+
     # parser.add_argument("-dp","--dropout", dest="dropout", help="drop out probability", type=float, default=0.2)
     # parser.add_argument("-ed","--embedding_dim", dest="embedding_dim", help="dimension of word embedding", type=int, default=300)
     # parser.add_argument("-qd","--query_dim", dest="query_dim", help="dimension of query tensor", type=int, default=200)
@@ -663,6 +669,15 @@ def load_hparams(hparams):
             hparams['save_path'] = 'models/model_params/{}_{}_epoch{}_step{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'],args.save_step)
         else:
             hparams['save_path'] = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'])
+
+    if args.head_num:
+        hparams['head_num'] = args.head_num
+    if args.value_dim:
+        hparams['value_dim'] = args.value_dim
+    if args.query_dim:
+        hparams['query_dim'] = args.query_dim
+    if args.integration:
+        hparams['integration'] = args.integration
 
     hparams['save_step'] = args.save_step
     hparams['save_each_epoch'] = args.save_each_epoch

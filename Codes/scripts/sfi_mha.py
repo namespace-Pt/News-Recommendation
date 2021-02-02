@@ -12,9 +12,6 @@ if __name__ == "__main__":
         'name':'sfi-mha',
         'dropout_p':0.2,
         'embedding_dim':300,
-        'value_dim':64,
-        'query_dim':200,
-        'head_num':8,
         'attrs': ['title']
     }
     hparams = load_hparams(hparams)

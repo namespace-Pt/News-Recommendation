@@ -9,7 +9,7 @@ from utils.utils import evaluate,train,prepare,load_hparams
 if __name__ == "__main__":
 
     hparams = {
-        'name':'baseline-fim',
+        'name':'sfi-fim',
         'dropout_p':0.2,
         'embedding_dim':300,
         'filter_num':150,
@@ -19,22 +19,22 @@ if __name__ == "__main__":
     device = torch.device(hparams['device'])
     vocab, loader_train, loader_test, loader_validate = prepare(hparams, validate=True)
     
-    if hparams['select'] == 'greedy':
-        from models.baseline_FIM import FIMModel_greedy
-        fimModel = FIMModel_greedy(vocab=vocab,hparams=hparams).to(device)
+    if hparams['select'] == 'unified':
+        from models.SFI_FIM import SFIModel_unified
+        sfiModel = SFIModel_unified(vocab=vocab,hparams=hparams).to(device)
     
     elif hparams['select'] == 'pipeline':
-        from models.baseline_FIM import FIMModel_pipeline
-        fimModel = FIMModel_pipeline(vocab=vocab,hparams=hparams).to(device)
+        from models.SFI_FIM import SFIModel_pipeline
+        sfiModel = SFIModel_pipeline(vocab=vocab,hparams=hparams).to(device)
 
     elif hparams['select'] == 'gating':
-        from models.baseline_FIM import FIMModel_gating
-        fimModel = FIMModel_gating(vocab=vocab,hparams=hparams).to(device)
+        from models.SFI_FIM import SFIModel_gating
+        sfiModel = SFIModel_gating(vocab=vocab,hparams=hparams).to(device)
 
     if hparams['mode'] == 'test':
-        fimModel.load_state_dict(torch.load(hparams['save_path']))
+        sfiModel.load_state_dict(torch.load(hparams['save_path']))
         print("testing...")
-        evaluate(fimModel,hparams,loader_test)
+        evaluate(sfiModel,hparams,loader_test)
 
     elif hparams['mode'] == 'train':
-        train(fimModel, hparams, loader_train, loader_test, loader_validate, tb=True)
+        train(sfiModel, hparams, loader_train, loader_test, loader_validate, tb=True)
