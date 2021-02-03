@@ -1,2 +1,0 @@
-sfi-fim-gating_large_epoch1_step18000_[hs=50,topk=30]:
-{'group_auc': 0.6648, 'mean_mrr': 0.314, 'ndcg@5': 0.3463, 'ndcg@10': 0.411}
