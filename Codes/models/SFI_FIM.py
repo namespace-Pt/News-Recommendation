@@ -29,7 +29,10 @@ import torch.nn.functional as F
 #         self.device = hparams['device']
 
 #         # pretrained embedding
-#         self.embedding = vocab.vectors.to(self.device)
+#         if hparams['train_embedding']:
+#     self.embedding = vocab.vectors.clone().detach().requires_grad_(True).to(self.device)
+# else:
+#     self.embedding = vocab.vectors.to(self.device)
 #         # elements in the slice along dim will sum up to 1 
 #         self.softmax = nn.Softmax(dim=-1)
         
@@ -240,7 +243,10 @@ class SFIModel_pipeline(nn.Module):
         self.device = hparams['device']
 
         # pretrained embedding
-        self.embedding = vocab.vectors.to(self.device)
+        if hparams['train_embedding']:
+            self.embedding = vocab.vectors.clone().detach().requires_grad_(True).to(self.device)
+        else:
+            self.embedding = vocab.vectors.to(self.device)
         # elements in the slice along dim will sum up to 1 
         self.softmax = nn.Softmax(dim=-1)
         
@@ -408,7 +414,10 @@ class SFIModel_gating(nn.Module):
         self.device = hparams['device']
 
         # pretrained embedding
-        self.embedding = vocab.vectors.to(self.device)
+        if hparams['train_embedding']:
+            self.embedding = vocab.vectors.clone().detach().requires_grad_(True).to(self.device)
+        else:
+            self.embedding = vocab.vectors.to(self.device)
         # elements in the slice along dim will sum up to 1 
         self.softmax = nn.Softmax(dim=-1)
         
@@ -420,8 +429,8 @@ class SFIModel_gating(nn.Module):
         self.LayerNorm = nn.LayerNorm(self.filter_num)
         self.DropOut = nn.Dropout(p=self.dropout_p)
 
-        self.query_words = nn.Parameter(torch.randn((1,self.filter_num * self.level), requires_grad=True))
-        # self.query_words = nn.Parameter(torch.randn((1,self.filter_num), requires_grad=True))
+        self.query_words = nn.Parameter(torch.randn((1,self.filter_num), requires_grad=True))
+        self.query_levels = nn.Parameter(torch.randn((1,self.filter_num), requires_grad=True))
 
         self.SeqCNN3D = nn.Sequential(
             nn.Conv3d(in_channels=3,out_channels=32,kernel_size=[3,3,3],padding=1),
@@ -496,9 +505,8 @@ class SFIModel_gating(nn.Module):
         """
         news_embedding = self.DropOut(self.embedding[news_batch]).view(-1, self.signal_length, self.embedding_dim)
         news_embedding_dilations = self._HDC(news_embedding).view(self.batch_size, news_batch.shape[1], self.signal_length, self.level, self.filter_num)
-        news_embedding = news_embedding_dilations.view(self.batch_size, news_batch.shape[1], self.signal_length, self.level * self.filter_num)
-        # news_embedding_attn = self._scaled_dp_attention(self.query_levels, news_embedding_dilations, news_embedding_dilations).squeeze()
-        news_reprs = self._scaled_dp_attention(self.query_words, news_embedding, news_embedding)
+        news_embedding_attn = self._scaled_dp_attention(self.query_levels, news_embedding_dilations, news_embedding_dilations).squeeze()
+        news_reprs = self._scaled_dp_attention(self.query_words, news_embedding_attn, news_embedding_attn).squeeze().view(self.batch_size, news_batch.shape[1], self.filter_num)
         return news_embedding_dilations, news_reprs
     
     def _news_attention(self, cdd_repr, his_repr, his_embedding, his_mask):
@@ -627,7 +635,10 @@ class SFIModel_unified(nn.Module):
         self.device = hparams['device']
 
         # pretrained embedding
-        self.embedding = vocab.vectors.to(self.device)
+        if hparams['train_embedding']:
+            self.embedding = vocab.vectors.clone().detach().requires_grad_(True).to(self.device)
+        else:
+            self.embedding = vocab.vectors.to(self.device)
         # elements in the slice along dim will sum up to 1 
         self.softmax = nn.Softmax(dim=-1)
         

@@ -25,7 +25,10 @@ class FIMModel(nn.Module):
         self.device = hparams['device']
 
         # pretrained embedding
-        self.embedding = vocab.vectors.to(self.device)
+        if hparams['train_embedding']:
+            self.embedding = vocab.vectors.clone().detach().requires_grad_(True).to(self.device)
+        else:
+            self.embedding = vocab.vectors.to(self.device)
         # elements in the slice along dim will sum up to 1 
         self.softmax = nn.Softmax(dim=-1)
         

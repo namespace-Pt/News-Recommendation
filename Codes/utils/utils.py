@@ -14,7 +14,9 @@ import pandas as pd
 import torch.nn as nn
 import numpy as np
 import torch.optim as optim
+import scipy.stats as ss
 from tqdm import tqdm
+from collections import defaultdict
 from datetime import datetime
 from sklearn.metrics import roc_auc_score,log_loss,mean_squared_error,accuracy_score,f1_score
 from torchtext.data.utils import get_tokenizer
@@ -70,7 +72,7 @@ def newsample(news, ratio):
         return random.sample(news, ratio), 0
 
 
-def news_token_generator(news_file_train,news_file_test,tokenizer,attrs):
+def news_token_generator(news_file_train,news_file_test,tokenizer,attrs,news_file_dev):
     ''' merge and deduplicate training news and testing news then iterate, collect attrs into a single sentence and generate it
        
     Args: 
@@ -82,9 +84,10 @@ def news_token_generator(news_file_train,news_file_test,tokenizer,attrs):
 
     news_df_train = pd.read_table(news_file_train,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
     news_df_test = pd.read_table(news_file_test,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
-    news_df = pd.concat([news_df_train,news_df_test]).drop_duplicates()
+    if news_file_dev:
+        news_df_dev = pd.read_table(news_file_dev,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
+    news_df = pd.concat([news_df_train,news_df_test,news_df_dev]).drop_duplicates()
 
-    # news_df = pd.read_table(news_file,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
     news_iterator = news_df.iterrows()
 
     for _,i in news_iterator:
@@ -94,7 +97,7 @@ def news_token_generator(news_file_train,news_file_test,tokenizer,attrs):
         
         yield tokenizer(' '.join(content))
 
-def constructVocab(news_file_train,news_file_test,attrs,save_path):
+def constructVocab(news_file_train,news_file_test,attrs,save_path,news_file_dev=None):
     """
         Build field using torchtext for tokenization
     
@@ -103,7 +106,7 @@ def constructVocab(news_file_train,news_file_test,attrs,save_path):
     """
 
     tokenizer = get_tokenizer('basic_english')
-    vocab = build_vocab_from_iterator(news_token_generator(news_file_train,news_file_test,tokenizer,attrs))
+    vocab = build_vocab_from_iterator(news_token_generator(news_file_train,news_file_test,tokenizer,attrs,news_file_dev))
 
     output = open(save_path,'wb')
     pickle.dump(vocab,output)
@@ -576,7 +579,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
 
     return model
 
-def train(model, hparams, loader_train, loader_test, loader_validate=None, tb=False, interval=100):
+def train(model, hparams, loader_train, loader_dev, loader_validate=None, tb=False, interval=100):
     """ wrap training process
     
     Args:
@@ -610,13 +613,31 @@ def train(model, hparams, loader_train, loader_test, loader_validate=None, tb=Fa
     #     print("save success!")
 
     print("testing...")
-    evaluate(model, hparams, loader_test)
+    evaluate(model, hparams, loader_dev)
 
     if loader_validate is not None:
         print("validating...")
         evaluate(model, hparams, loader_validate)
     
     return model
+
+def test(model, hparams):
+    from utils.MIND import MIND_test
+    hparams['batch_size'] = 1
+    dataset_test = MIND_test(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv', '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
+    loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
+    tqdm_ = tqdm(enumerate(loader_test))
+    with open('data/results/prediction.txt', 'w') as f:
+        result = defaultdict(list)
+        for step,x in tqdm_:
+            pred = sfiModel_gating(x)
+            result[x['impression_index'][0].item()].append(pred.item())
+        
+        for k,v in result.items():
+            rank_list = ss.rankdata(v, method='ordinal')
+            line = str(k) + ' ' + str(rank_list) + '\n'
+            f.write(line)
+    
 
 def load_hparams(hparams):
     parser = argparse.ArgumentParser()
@@ -701,7 +722,7 @@ def prepare(hparams, validate=False, path='/home/peitian_zhang/Data/MIND'):
     
     Returns:
         loader_train
-        loader_test
+        loader_dev
         loader_validate
     """
     news_file_train = path+'/MIND'+hparams['scale']+'_train/news.tsv'
@@ -716,7 +737,7 @@ def prepare(hparams, validate=False, path='/home/peitian_zhang/Data/MIND'):
         constructBasicDict(news_file_pair,behavior_file_pair,hparams['scale'],hparams['attrs'])
 
     dataset_train = MIND_map(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train)
-    dataset_test = MIND_iter(hparams=hparams,news_file=news_file_test,behaviors_file=behavior_file_test, mode='test')
+    dataset_dev = MIND_iter(hparams=hparams,news_file=news_file_test,behaviors_file=behavior_file_test, mode='test')
     dataset_validate = MIND_iter(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, mode='train')
 
     vocab = dataset_train.vocab
@@ -724,13 +745,13 @@ def prepare(hparams, validate=False, path='/home/peitian_zhang/Data/MIND'):
     vocab.load_vectors(embedding)
 
     loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],shuffle=True,pin_memory=True,num_workers=8,drop_last=True)
-    loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
+    loader_dev = DataLoader(dataset_dev,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
     
     if validate:
         loader_validate = DataLoader(dataset_validate,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
-        return vocab, loader_train, loader_test, loader_validate
+        return vocab, loader_train, loader_dev, loader_validate
     else:
-        return vocab, loader_train, loader_test
+        return vocab, loader_train, loader_dev
 
 def analyse(hparams, path='/home/peitian_zhang/Data/MIND'):
     """

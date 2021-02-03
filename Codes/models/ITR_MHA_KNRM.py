@@ -11,7 +11,10 @@ class GCAModel(nn.Module):
         self.cdd_size = (hparams['npratio'] + 1) if hparams['npratio'] > 0 else 1
         self.metrics = hparams['metrics']
         self.device = torch.device(hparams['device'])
-        self.embedding = vocab.vectors.to(self.device)
+        if hparams['train_embedding']:
+            self.embedding = vocab.vectors.clone().detach().requires_grad_(True).to(self.device)
+        else:
+            self.embedding = vocab.vectors.to(self.device)
 
         self.batch_size = hparams['batch_size']
         self.signal_length = hparams['title_size']
