@@ -503,6 +503,10 @@ def evaluate(model,hparams,dataloader,interval=100):
     imp_indexes, group_labels, group_preds = _eval(model,dataloader,interval)
     res = _cal_metric(imp_indexes,group_labels,group_preds,model.metrics.split(','))
     print("evaluation results:{}".format(res))
+    with open('performance.log','w') as f:
+        model_name = '{}-{}_{}_epoch{}_step{}_[hs={},topk={}]:'.format(hparams['name'],hparams['select'],hparams['scale'], str(hparams['epochs']), str(hparams['save_step']), str(hparams['his_size']), str(hparams['k']))
+        f.write(model_name + '\n')
+        f.write(str(res) + '\n')                
     return res
 
 def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, interval=100, save_step=None, save_each_epoch=False):
@@ -552,20 +556,20 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
             if save_step:
                 if step % save_step == 0 and step > 0:
                     if hparams['select']:
-                        save_path = 'models/model_params/{}-{}_{}_epoch{}_step{}-(hs={},topk={}).model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step, str(hparams['his_size']), str(hparams['k']))
+                        save_path = 'models/model_params/{}-{}_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step, str(hparams['his_size']), str(hparams['k']))
                     else:
-                        save_path = 'models/model_params/{}_{}_epoch{}_step{}-(hs={},topk={}).model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step, str(hparams['his_size']), str(hparams['k']))
+                        save_path = 'models/model_params/{}_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step, str(hparams['his_size']), str(hparams['k']))
                     torch.save(model.state_dict(), save_path)
-                    print("saved model of step {} at epoch {}".format(step, epoch))
+                    print("saved model of step {} at epoch {}".format(step, epoch+1))
 
         if writer:
             writer.add_scalar('epoch_loss', epoch_loss/len(dataloader), epoch)
 
         if save_each_epoch:
             if hparams['select']:
-                save_path = 'models/model_params/{}-{}_{}_epoch{}-(hs={},topk={}).model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch+1, str(hparams['his_size']), str(hparams['k']))
+                save_path = 'models/model_params/{}-{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch+1, str(hparams['his_size']), str(hparams['k']))
             else:
-                save_path = 'models/model_params/{}_{}_epoch{}-(hs={},topk={}).model'.format(hparams['name'],hparams['scale'],epoch+1, str(hparams['his_size']), str(hparams['k']))
+                save_path = 'models/model_params/{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],epoch+1, str(hparams['his_size']), str(hparams['k']))
             
             torch.save(model.state_dict(), save_path)
             print("saved model of epoch {}".format(epoch+1))
@@ -599,9 +603,9 @@ def train(model, hparams, loader_train, loader_test, loader_validate=None, tb=Fa
     # if save:
     #     ### independent of hparams['save_path']
     #     if hparams['select']:
-    #         save_path = 'models/model_params/{}-{}_{}_epoch{}-(hs={},topk={}).model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
+    #         save_path = 'models/model_params/{}-{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
     #     else:
-    #         save_path = 'models/model_params/{}_{}_epoch{}-(hs={},topk={}).model'.format(hparams['name'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
+    #         save_path = 'models/model_params/{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
     #     torch.save(model.state_dict(), save_path)
     #     print("save success!")
 
@@ -611,6 +615,8 @@ def train(model, hparams, loader_train, loader_test, loader_validate=None, tb=Fa
     if loader_validate is not None:
         print("validating...")
         evaluate(model, hparams, loader_validate)
+    
+    return model
 
 def load_hparams(hparams):
     parser = argparse.ArgumentParser()
@@ -656,19 +662,20 @@ def load_hparams(hparams):
     hparams['npratio'] = args.npratio
     hparams['metrics'] = args.metrics
 
+    hparams['k'] = args.k
     hparams['select'] = args.select
 
     # intend for testing mode
     if args.select:            
         if args.save_step:
-            hparams['save_path'] = 'models/model_params/{}-{}_{}_epoch{}_step{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'],args.save_step)
+            hparams['save_path'] = 'models/model_params/{}-{}_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'],args.save_step, str(hparams['his_size']), str(hparams['k']))
         else:
-            hparams['save_path'] = 'models/model_params/{}-{}_{}_epoch{}.model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'])
+            hparams['save_path'] = 'models/model_params/{}-{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
     else:
         if args.save_step:
-            hparams['save_path'] = 'models/model_params/{}_{}_epoch{}_step{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'],args.save_step)
+            hparams['save_path'] = 'models/model_params/{}_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],hparams['epochs'],args.save_step, str(hparams['his_size']), str(hparams['k']))
         else:
-            hparams['save_path'] = 'models/model_params/{}_{}_epoch{}.model'.format(hparams['name'],hparams['scale'],hparams['epochs'])
+            hparams['save_path'] = 'models/model_params/{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
 
     if args.head_num:
         hparams['head_num'] = args.head_num
@@ -682,7 +689,6 @@ def load_hparams(hparams):
     hparams['save_step'] = args.save_step
     hparams['save_each_epoch'] = args.save_each_epoch
     hparams['train_embedding'] = args.train_embedding
-    hparams['k'] = args.k
 
     return hparams
 

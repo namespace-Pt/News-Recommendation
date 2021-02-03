@@ -1,0 +1,2 @@
+fim-None_demo_epoch1_stepNone_[hs=50,topk=-1]:
+{'group_auc': 0.6463, 'mean_mrr': 0.3222, 'ndcg@5': 0.3444, 'ndcg@10': 0.4021}
