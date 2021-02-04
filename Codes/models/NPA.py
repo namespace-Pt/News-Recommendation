@@ -29,7 +29,7 @@ class NPAModel(nn.Module):
        
         # pretrained embedding
         if hparams['train_embedding']:
-            self.embedding = vocab.vectors.clone().detach().requires_grad_(True).to(self.device)
+            self.embedding = nn.Parameter(vocab.vectors.clone().detach().requires_grad_(True).to(self.device))
         else:
             self.embedding = vocab.vectors.to(self.device)
         # elements in the slice along dim will sum up to 1 

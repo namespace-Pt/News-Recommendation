@@ -35,4 +35,7 @@ if __name__ == "__main__":
         evaluate(gcaModel,hparams,loader_test)
 
     elif hparams['mode'] == 'train':
-        train(gcaModel, hparams, loader_train, loader_test, loader_validate, tb=True)
+        if hparams['validate']:
+            train(gcaModel, hparams, loader_train, loader_test, loader_validate, tb=True)
+        else:
+            train(gcaModel, hparams, loader_train, loader_test, tb=True)

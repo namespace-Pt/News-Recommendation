@@ -27,4 +27,7 @@ if __name__ == "__main__":
         evaluate(knrmModel,hparams,loader_test)
 
     elif hparams['mode'] == 'train':
-        train(knrmModel, hparams, loader_train, loader_test, loader_validate, tb=True)
+        if hparams['validate']:
+            train(knrmModel, hparams, loader_train, loader_test, loader_validate, tb=True)
+        else:
+            train(knrmModel, hparams, loader_train, loader_test, tb=True)

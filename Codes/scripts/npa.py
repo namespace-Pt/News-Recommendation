@@ -30,4 +30,7 @@ if __name__ == "__main__":
         evaluate(npaModel,hparams,loader_test)
 
     elif hparams['mode'] == 'train':
-        train(npaModel, hparams, loader_train, loader_test, loader_validate, tb=True)
+        if hparams['validate']:
+            train(npaModel, hparams, loader_train, loader_test, loader_validate, tb=True)
+        else:
+            train(npaModel, hparams, loader_train, loader_test, tb=True)

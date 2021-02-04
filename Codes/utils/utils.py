@@ -501,15 +501,27 @@ def evaluate(model,hparams,dataloader,interval=100):
     Returns:
         dict: A dictionary contains evaluation metrics.
     """
+    hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
+    param_list = ['query_words','query_levels']
     model.eval()
     model.cdd_size = 1
     imp_indexes, group_labels, group_preds = _eval(model,dataloader,interval)
     res = _cal_metric(imp_indexes,group_labels,group_preds,model.metrics.split(','))
     print("evaluation results:{}".format(res))
-    with open('performance.log','w') as f:
-        model_name = '{}-{}_{}_epoch{}_step{}_[hs={},topk={}]:'.format(hparams['name'],hparams['select'],hparams['scale'], str(hparams['epochs']), str(hparams['save_step']), str(hparams['his_size']), str(hparams['k']))
-        f.write(model_name + '\n')
-        f.write(str(res) + '\n')                
+    with open('performance.log','a+') as f:
+        # model_name = '{}-{}_{}_epoch{}_step{}_[hs={},topk={}]:'.format(hparams['name'],hparams['select'],hparams['scale'], str(hparams['epochs']), str(hparams['save_step']), str(hparams['his_size']), str(hparams['k']))
+        # f.write(model_name + '\n')
+        d = {}
+        for k,v in hparams.items():
+            if k in hparam_list:
+                d[k] = v
+        for name, param in model.named_parameters():
+            if name in param_list:
+                d[name] = tuple(param.shape)
+
+        f.write(str(d)+'\n')
+        f.write(str(res) +'\n')
+        f.write('\n')        
     return res
 
 def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, interval=100, save_step=None, save_each_epoch=False):
@@ -623,14 +635,20 @@ def train(model, hparams, loader_train, loader_dev, loader_validate=None, tb=Fal
 
 def test(model, hparams):
     from utils.MIND import MIND_test
+    tmp1 = hparams['batch_size']
     hparams['batch_size'] = 1
+    tmp2 = model.batch_size
+    model.batch_size = 1
+    model.cdd_size = 1
+    model.eval()
+
     dataset_test = MIND_test(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv', '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
     loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
     tqdm_ = tqdm(enumerate(loader_test))
     with open('data/results/prediction.txt', 'w') as f:
         result = defaultdict(list)
         for step,x in tqdm_:
-            pred = sfiModel_gating(x)
+            pred = model(x)
             result[x['impression_index'][0].item()].append(pred.item())
         
         for k,v in result.items():
@@ -638,11 +656,33 @@ def test(model, hparams):
             line = str(k) + ' ' + str(rank_list) + '\n'
             f.write(line)
     
+    hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
+    param_list = ['query_words','query_levels']
+    with open('performance.log','a+') as f:
+        # model_name = '{}-{}_{}_epoch{}_step{}_[hs={},topk={}]:'.format(hparams['name'],hparams['select'],hparams['scale'], str(hparams['epochs']), str(hparams['save_step']), str(hparams['his_size']), str(hparams['k']))
+        # f.write(model_name + '\n')
+        d = {}
+        for k,v in hparams.items():
+            if k in hparam_list:
+                d[k] = v
+        for name, param in model.named_parameters():
+            if name in param_list:
+                d[name] = tuple(param.shape)
+
+        f.write(str(d)+'\n')
+        f.write('\n')
+        f.write('\n')   
+    
+    hparam['batch_size'] = tmp1
+    model.batch_size = tmp2
+
+    return res
+    
 
 def load_hparams(hparams):
     parser = argparse.ArgumentParser()
     parser.add_argument("-s","--scale", dest="scale", help="data scale", choices=['demo','small','large'],required=True)
-    parser.add_argument("-m","--mode", dest="mode", help="train or test", choices=['train','test'], default='train')
+    parser.add_argument("-m","--mode", dest="mode", help="train or test", choices=['train','test','submit'], default='train')
     parser.add_argument("-e","--epochs", dest="epochs", help="epochs to train the model", type=int, default=10)
 
     parser.add_argument("-bs","--batch_size", dest="batch_size", help="batch size", type=int, default=100)
@@ -650,9 +690,9 @@ def load_hparams(hparams):
     parser.add_argument("-hs","--his_size", dest="his_size", help="history size", type=int, default=50)
 
     parser.add_argument("-c","--cuda", dest="cuda", help="device to run on", choices=['0','1'], default='0')
-    parser.add_argument("-se","--save_each_epoch", dest="save_each_epoch", help="if clarified, save model of each epoch", action='store_true')
+    parser.add_argument("-se","--save_each_epoch", dest="save_each_epoch", help="if clarified, save model of each epoch", action='store_true', default=True)
     parser.add_argument("-ss","--save_step", dest="save_step", help="if clarified, save model at the interval of given steps", type=int)
-    parser.add_argument("-te","--train_embedding", dest="train_embedding", help="if clarified, word embedding will be fine-tuned", action='store_true')
+    parser.add_argument("-te","--train_embedding", dest="train_embedding", help="if clarified, word embedding will be fine-tuned", action='store_true', default=True)
     
     parser.add_argument("-k","--topk", dest="k", help="intend for topk baseline, if clarified, top k history are involved in interaction calculation", type=int, default=-1)
     parser.add_argument("-np","--npratio", dest="npratio", help="the number of unclicked news to sample when training", type=int, default=4)
@@ -664,6 +704,8 @@ def load_hparams(hparams):
     parser.add_argument("-hn","--head_num", dest="head_num", help="number of multi-heads", type=int)
     parser.add_argument("-vd","--value_dim", dest="value_dim", help="dimension of projected value", type=int)
     parser.add_argument("-qd","--query_dim", dest="query_dim", help="dimension of projected query", type=int)
+
+    parser.add_argument("-v","--validate", dest="validate", help="whether to validate training result on training dataset", action='store_true')
 
     # parser.add_argument("-dp","--dropout", dest="dropout", help="drop out probability", type=float, default=0.2)
     # parser.add_argument("-ed","--embedding_dim", dest="embedding_dim", help="dimension of word embedding", type=int, default=300)
@@ -706,6 +748,8 @@ def load_hparams(hparams):
         hparams['query_dim'] = args.query_dim
     if args.integration:
         hparams['integration'] = args.integration
+    
+    hparams['validate'] = args.validate
 
     hparams['save_step'] = args.save_step
     hparams['save_each_epoch'] = args.save_each_epoch

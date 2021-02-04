@@ -20,7 +20,7 @@ class KNRMModel(nn.Module):
         self.mus = mus.view(1,1,1,1,1,-1)
         self.sigmas = torch.tensor([0.1]*(self.kernel_num - 1) + [0.001], device=self.device).view(1,1,1,1,1,-1)
         if hparams['train_embedding']:
-            self.embedding = vocab.vectors.clone().detach().requires_grad_(True).to(self.device)
+            self.embedding = nn.Parameter(vocab.vectors.clone().detach().requires_grad_(True).to(self.device))
         else:
             self.embedding = vocab.vectors.to(self.device)
         

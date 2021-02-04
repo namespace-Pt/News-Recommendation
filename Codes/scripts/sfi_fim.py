@@ -4,7 +4,7 @@ os.chdir('/home/peitian_zhang/Codes/News-Recommendation')
 sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
 import torch
-from utils.utils import evaluate,train,prepare,load_hparams
+from utils.utils import evaluate,train,prepare,load_hparams,test
 
 if __name__ == "__main__":
 
@@ -37,4 +37,10 @@ if __name__ == "__main__":
         evaluate(sfiModel,hparams,loader_test)
 
     elif hparams['mode'] == 'train':
-        train(sfiModel, hparams, loader_train, loader_test, loader_validate, tb=True)
+        if hparams['validate']:
+            train(sfiModel, hparams, loader_train, loader_test, loader_validate, tb=True)
+        else:
+            train(sfiModel, hparams, loader_train, loader_test, tb=True)
+    
+    elif hparams['mode'] == 'submit':
+        test(sfiModel, hparams)

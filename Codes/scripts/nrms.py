@@ -31,4 +31,7 @@ if __name__ == "__main__":
         evaluate(nrmsModel,hparams,loader_test)
 
     elif hparams['mode'] == 'train':
-        train(nrmsModel, hparams, loader_train, loader_test, loader_validate, tb=True)
+        if hparams['validate']:
+            train(nrmsModel, hparams, loader_train, loader_test, loader_validate, tb=True)
+        else:
+            train(nrmsModel, hparams, loader_train, loader_test, tb=True)

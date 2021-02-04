@@ -32,4 +32,7 @@ if __name__ == "__main__":
         evaluate(sfiModel,hparams,loader_test)
 
     elif hparams['mode'] == 'train':
-        train(sfiModel, hparams, loader_train, loader_test, loader_validate, tb=True)
+        if hparams['validate']:
+            train(sfiModel, hparams, loader_train, loader_test, loader_validate, tb=True)
+        else:
+            train(sfiModel, hparams, loader_train, loader_test, tb=True)
