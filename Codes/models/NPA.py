@@ -205,6 +205,8 @@ class NPAModel(nn.Module):
         return score.squeeze()
 
     def forward(self,x):
+        if x['candidate_title'].shape[0] != self.batch_size:
+            self.batch_size = x['candidate_title'].shape[0]
         self._user_projection(x['user_index'].to(self.device))
         word_query = self._word_query_projection()
         news_query = self._news_query_projection()

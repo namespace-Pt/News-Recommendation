@@ -114,6 +114,8 @@ class GCAModel(nn.Module):
         return score.squeeze()
 
     def forward(self,x):
+        if x['candidate_title'].shape[0] != self.batch_size:
+            self.batch_size = x['candidate_title'].shape[0]
         cdd_news_embedding = self._news_encoder(x['candidate_title'].long().to(self.device))
         his_news_embedding = self._news_encoder(x['clicked_title'].long().to(self.device))
 

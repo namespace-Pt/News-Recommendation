@@ -85,7 +85,7 @@ class MIND_map(Dataset):
         self.his_pad = []
 
         with open(self.behaviors_file, "r",encoding='utf-8') as rd:
-            impr_index = 0
+            impr_index = 1
             for idx in rd:
                 uid, time, history, impr = idx.strip("\n").split(self.col_spliter)[-4:]
                 
@@ -270,7 +270,7 @@ class MIND_iter(IterableDataset):
         self.his_pad = []
 
         with open(self.behaviors_file, "r",encoding='utf-8') as rd:
-            impr_index = 0
+            impr_index = 1
             for idx in rd:
                 uid, time, history, impr = idx.strip("\n").split(self.col_spliter)[-4:]
                 

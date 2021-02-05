@@ -131,6 +131,8 @@ class FIMModel(nn.Module):
         return score
 
     def forward(self,x):
+        if x['candidate_title'].shape[0] != self.batch_size:
+            self.batch_size = x['candidate_title'].shape[0]
         # compress batch_size and cdd_size into dim0
         cdd_news_set = x['candidate_title'].long().to(self.device)
         cdd_news_reprs = self._news_encoder(cdd_news_set)

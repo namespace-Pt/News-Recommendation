@@ -178,6 +178,8 @@ class GCAModel(nn.Module):
         return score.squeeze()
 
     def forward(self,x):
+        if x['candidate_title'].shape[0] != self.batch_size:
+            self.batch_size = x['candidate_title'].shape[0]
         fusion_news = self._fusion(x['candidate_title'].long().to(self.device), x['clicked_title'].long().to(self.device))
         fusion_news_embedding = self._news_encoder(fusion_news)
         fusion_vectors = self._fusion_transform(fusion_news_embedding)

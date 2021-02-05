@@ -72,7 +72,7 @@ def newsample(news, ratio):
         return random.sample(news, ratio), 0
 
 
-def news_token_generator(news_file_train,news_file_test,tokenizer,attrs,news_file_dev):
+def news_token_generator(news_file_list,tokenizer,attrs):
     ''' merge and deduplicate training news and testing news then iterate, collect attrs into a single sentence and generate it
        
     Args: 
@@ -80,14 +80,12 @@ def news_token_generator(news_file_train,news_file_test,tokenizer,attrs,news_fil
         attrs: list of attrs to be collected and yielded
     Returns: 
         a generator over attrs in news
-    '''    
-
-    news_df_train = pd.read_table(news_file_train,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
-    news_df_test = pd.read_table(news_file_test,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
-    if news_file_dev:
-        news_df_dev = pd.read_table(news_file_dev,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'])
-    news_df = pd.concat([news_df_train,news_df_test,news_df_dev]).drop_duplicates()
-
+    '''
+    news_df_list = []
+    for f in news_file_list:
+        news_df_list.append(pd.read_table(f,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract']))
+    
+    news_df = pd.concat(news_df_list).drop_duplicates()
     news_iterator = news_df.iterrows()
 
     for _,i in news_iterator:
@@ -97,16 +95,17 @@ def news_token_generator(news_file_train,news_file_test,tokenizer,attrs,news_fil
         
         yield tokenizer(' '.join(content))
 
-def constructVocab(news_file_train,news_file_test,attrs,save_path,news_file_dev=None):
+def constructVocab(news_file_list, save_path, attrs):
     """
         Build field using torchtext for tokenization
     
     Returns:
-        torchtext.vocabulary 
+        torchtext.vocabulary
     """
-
     tokenizer = get_tokenizer('basic_english')
-    vocab = build_vocab_from_iterator(news_token_generator(news_file_train,news_file_test,tokenizer,attrs,news_file_dev))
+    print("fuck")
+    
+    vocab = build_vocab_from_iterator(news_token_generator(news_file_list,tokenizer,attrs))
 
     output = open(save_path,'wb')
     pickle.dump(vocab,output)
@@ -419,6 +418,7 @@ def _cal_metric(imp_indexes, labels, preds, metrics):
             raise ValueError("not define this metric {0}".format(metric))
     return res
 
+
 def group_labels(impression_ids, labels, preds):
     """ Devide labels and preds into several group acscording to impression_ids
 
@@ -445,6 +445,9 @@ def group_labels(impression_ids, labels, preds):
     all_labels = []
     all_preds = []
 
+    # due to droplast option in loader_test, the last several samples may be dropped
+    # however, these dropped samples contain the clicked news in the last impression
+    # so the last impression will loss 1 label
     for k in all_keys:
         if 1 in group_labels[k]:
             all_labels.append(group_labels[k])
@@ -475,13 +478,10 @@ def _eval(model,dataloader,interval):
     for i,batch_data_input in tqdm_:
         
         preds.extend(model.forward(batch_data_input).tolist())
-       
-        label = batch_data_input['labels'].squeeze().tolist()
-        
-        
+        label = batch_data_input['labels'].tolist()
         labels.extend(label)
+        
         imp_indexes.extend(batch_data_input['impression_index'].tolist())
-    
     
     impr_indexes, labels, preds = group_labels(
         imp_indexes,labels, preds
@@ -635,23 +635,28 @@ def train(model, hparams, loader_train, loader_dev, loader_validate=None, tb=Fal
 
 def test(model, hparams):
     from utils.MIND import MIND_test
-    tmp1 = hparams['batch_size']
-    hparams['batch_size'] = 1
-    tmp2 = model.batch_size
-    model.batch_size = 1
     model.cdd_size = 1
     model.eval()
 
     dataset_test = MIND_test(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv', '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
-    loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
+    loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=False)
     tqdm_ = tqdm(enumerate(loader_test))
+
     with open('data/results/prediction.txt', 'w') as f:
-        result = defaultdict(list)
-        for step,x in tqdm_:
-            pred = model(x)
-            result[x['impression_index'][0].item()].append(pred.item())
+        preds = []
+        imp_indexes = []
+        for i,x in tqdm_:
+            preds.extend(model.forward(x).tolist())
+            imp_indexes.extend(x['impression_index'].tolist())
         
-        for k,v in result.items():
+        all_keys = list(set(imp_indexes))
+        all_keys.sort()
+        group_preds = {k:[] for k in all_keys}
+
+        for i,p in zip(imp_indexes, preds):
+            group_preds[i].append(p)
+            
+        for k,v in group_preds.items():
             rank_list = ss.rankdata(v, method='ordinal')
             line = str(k) + ' ' + str(rank_list) + '\n'
             f.write(line)
@@ -789,7 +794,7 @@ def prepare(hparams, validate=False, path='/home/peitian_zhang/Data/MIND'):
     vocab.load_vectors(embedding)
 
     loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],shuffle=True,pin_memory=True,num_workers=8,drop_last=True)
-    loader_dev = DataLoader(dataset_dev,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
+    loader_dev = DataLoader(dataset_dev,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=False)
     
     if validate:
         loader_validate = DataLoader(dataset_validate,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
