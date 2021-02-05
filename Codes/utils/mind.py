@@ -328,7 +328,7 @@ class MIND_iter(IterableDataset):
                 his_mask = np.zeros((self.his_size,1),dtype=bool)
 
                 # indicate whether the news is clicked
-                label = [label]
+                label = label
                 # append the news title vector corresponding to news variable, in order to generate [news_title_vector]
                 candidate_title_index.append(self.news_title_array[news])
                 # candidate_category_index.append(self.news_category_array[news])
