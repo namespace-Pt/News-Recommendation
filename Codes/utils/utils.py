@@ -658,7 +658,7 @@ def test(model, hparams):
             
         for k,v in group_preds.items():
             rank_list = ss.rankdata(v, method='ordinal')
-            line = str(k) + ' ' + str(rank_list) + '\n'
+            line = str(k) + ' [' + ','.join([str(i) for i in rank_list]) + ']' + '\n'
             f.write(line)
     
     hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
@@ -677,9 +677,6 @@ def test(model, hparams):
         f.write(str(d)+'\n')
         f.write('\n')
         f.write('\n')   
-    
-    hparam['batch_size'] = tmp1
-    model.batch_size = tmp2
 
     return res
     
@@ -782,12 +779,8 @@ def prepare(hparams, validate=False, path='/home/peitian_zhang/Data/MIND'):
     behavior_file_test = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
     behavior_file_pair = (behavior_file_train,behavior_file_test)
 
-    if not os.path.exists('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['scale'],'_'.join(hparams['attrs']))):
-        constructBasicDict(news_file_pair,behavior_file_pair,hparams['scale'],hparams['attrs'])
-
     dataset_train = MIND_map(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train)
     dataset_dev = MIND_iter(hparams=hparams,news_file=news_file_test,behaviors_file=behavior_file_test, mode='test')
-    dataset_validate = MIND_iter(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, mode='train')
 
     vocab = dataset_train.vocab
     embedding = GloVe(dim=300,cache='.vector_cache')
@@ -797,6 +790,7 @@ def prepare(hparams, validate=False, path='/home/peitian_zhang/Data/MIND'):
     loader_dev = DataLoader(dataset_dev,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=False)
     
     if validate:
+        dataset_validate = MIND_iter(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, mode='train')
         loader_validate = DataLoader(dataset_validate,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
         return vocab, loader_train, loader_dev, loader_validate
     else:

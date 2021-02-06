@@ -146,13 +146,13 @@ see [HERE](manual/Preprocess.ipynb)
 |model|AUC|MRR|NDCG@5|NDCG@10|benchmark-achieve-at|
 |:-:|:-:|:-:|:-:|:-:|:-:|
 |NPA|$0.6705$|$0.3147$|$0.3492$|$0.4118$|`epoch=5`|
-|FIM|$0.6677$|$\mathbf{0.3202}$|$\mathbf{0.3518}$|$0.4147$|`step=10000`|
+|FIM|$0.678$|$0.3292$|$0.3655$|$0.4266$|`step=10000`|
 |NRMS|$0.6618$|$0.3179$|$0.3444$|$0.4108$|`epoch=6`|
 |ITR-CNN-CNN|$0.647$|$0.3022$|$0.3289$|$0.3957$|`epoch=1`|
 |ITR-MHA-MHA|$0.6201$|||
 |SFI-pipeline||
 |SFI-unified||
-|SFI-gating|$\mathbf{0.6849}$|$\mathbf{0.3277}$|$\mathbf{0.3634}$|$\mathbf{0.4271}$|`epoch=1, step=22000`|
+|SFI-gating|$\mathbf{0.6853}$|$\mathbf{0.3303}$|$\mathbf{0.3663}$|$\mathbf{0.4294}$|`epoch=1, step=18000`|
 |baseline-MHA-CNN|$0.6239$|$0.2796$|$0.3067$|$0.3698$|`epoch=8` run on `MINDsmall`|
 |baseline-MHA-MHA|$0.6395$|$0.2934$|$0.3203$|$0.385$|`epoch=8` run on `MINDsmall`|
 ## TODO
