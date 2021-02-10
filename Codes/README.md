@@ -159,4 +159,3 @@ see [HERE](manual/Preprocess.ipynb)
 - [ ] BERT cls
 - [ ] pass t-test
 - [ ] refactor constructBasicDict
-- [ ] integrate MIND_test with MIND_iter 

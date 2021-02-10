@@ -6,6 +6,7 @@ LastEditTime: 2020-11-20 10:14:28
 import random
 import re
 import os
+import math
 import json
 import pickle
 import torch
@@ -15,15 +16,14 @@ import torch.nn as nn
 import numpy as np
 import torch.optim as optim
 import scipy.stats as ss
-from tqdm import tqdm
 from collections import defaultdict
+from tqdm import tqdm
 from datetime import datetime
 from sklearn.metrics import roc_auc_score,log_loss,mean_squared_error,accuracy_score,f1_score
 from torchtext.data.utils import get_tokenizer
-from torchtext.vocab import build_vocab_from_iterator
+from torchtext.vocab import build_vocab_from_iterator,GloVe
 from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import DataLoader
-from torchtext.vocab import GloVe
+from torch.utils.data import DataLoader, get_worker_info
 
 def word_tokenize(sent):
     """ Split sentence into word list using regex.
@@ -111,38 +111,54 @@ def constructVocab(news_file_list, save_path, attrs):
     pickle.dump(vocab,output)
     output.close()
 
-def constructNid2idx(news_file_train,news_file_test,dic_file_train,dic_file_test):
+def constructNid2idx(news_file_train,news_file_test,scale):
     """
         Construct news to newsID dictionary, index starting from 1
     """
     f = open(news_file_train,'r',encoding='utf-8')
 
     nid2index = {}
+    index2nid = {0:"0"}
     for line in f:
         nid,_,_,_,_,_,_,_ = line.strip("\n").split('\t')
 
         if nid in nid2index:
             continue
-        nid2index[nid] = len(nid2index) + 1
+        a = len(nid2index) + 1
+        nid2index[nid] = a
+        index2nid[a] = nid
+    
     
     f.close()
-    h = open(dic_file_train,'w',encoding='utf-8')
+    h = open('data/dictionaries/nid2idx_{}_train.json'.format(scale),'w',encoding='utf-8')
     json.dump(nid2index,h,ensure_ascii=False)
+    h.close()
+
+    h = open('data/dictionaries/idx2nid_{}_train.json'.format(scale),'w',encoding='utf-8')
+    json.dump(index2nid,h,ensure_ascii=False)
     h.close()
 
     g = open(news_file_test,'r',encoding='utf-8')
 
     nid2index = {}
+    index2nid = {0:"0"}
     for line in g:
         nid,_,_,_,_,_,_,_ = line.strip("\n").split('\t')
 
         if nid in nid2index:
             continue
-        nid2index[nid] = len(nid2index) + 1
+        a = len(nid2index) + 1
+        nid2index[nid] = a
+        index2nid[a] = nid
     
-    f.close()
-    h = open(dic_file_test,'w',encoding='utf-8')
+    g.close()
+
+    h = open('data/dictionaries/nid2idx_{}_test.json'.format(scale),'w',encoding='utf-8')
     json.dump(nid2index,h,ensure_ascii=False)
+    h.close()
+
+    h = open('data/dictionaries/idx2nid_{}_test.json'.format(scale),'w',encoding='utf-8')
+    json.dump(index2nid,h,ensure_ascii=False)
     h.close()
     
 
@@ -154,12 +170,14 @@ def constructUid2idx(behaviors_file_train,behaviors_file_test,dic_file):
     g = open(behaviors_file_test,'r',encoding='utf-8')
 
     uid2index = {}
+
     for line in f:
         _,uid,_,_,_ = line.strip("\n").split('\t')
 
         if uid in uid2index:
             continue
-        uid2index[uid] = len(uid2index) + 1
+        a = len(uid2index) + 1
+        uid2index[uid] = a
 
     for line in g:
         _,uid,_,_,_ = line.strip("\n").split('\t')
@@ -260,6 +278,32 @@ def getLabel(model,x):
         label = x['labels']
     
     return label
+
+def my_collate(data):
+    excluded = ['impression_index']
+    result = defaultdict(list)
+    for d in data:
+        for k,v in d.items():
+            result[k].append(v)
+    for k,v in result.items():
+        if k not in excluded:
+            result[k] = torch.tensor(v)
+        else:
+            continue
+    return dict(result)
+
+def worker_init_fn(worker_id):
+     worker_info = get_worker_info()
+     dataset = worker_info.dataset  # the dataset copy in this worker process
+     overall_impr_indexes = dataset.impr_indexes
+
+     # configure the dataset to only process the split workload
+     per_worker = int(math.ceil(len(overall_impr_indexes) / float(worker_info.num_workers)))
+     worker_id = worker_info.id
+     start = worker_id * per_worker
+     end = (worker_id + 1) * per_worker
+    
+     dataset.impr_indexes = dataset.impr_indexes[start : end]
 
 def mrr_score(y_true, y_score):
     """Computing mrr score metric.
@@ -457,7 +501,7 @@ def group_labels(impression_ids, labels, preds):
 
     return all_keys, all_labels, all_preds
 
-def _eval(model,dataloader,interval):
+def run_eval(model,dataloader,interval):
     """ making prediction and gather results into groups according to impression_id, display processing every interval batches
 
     Args:
@@ -478,10 +522,10 @@ def _eval(model,dataloader,interval):
     for i,batch_data_input in tqdm_:
         
         preds.extend(model.forward(batch_data_input).tolist())
-        label = batch_data_input['labels'].tolist()
+        label = batch_data_input['labels'].squeeze(dim=-1).tolist()
         labels.extend(label)
         
-        imp_indexes.extend(batch_data_input['impression_index'].tolist())
+        imp_indexes.extend(batch_data_input['impression_index'])
     
     impr_indexes, labels, preds = group_labels(
         imp_indexes,labels, preds
@@ -505,7 +549,7 @@ def evaluate(model,hparams,dataloader,interval=100):
     param_list = ['query_words','query_levels']
     model.eval()
     model.cdd_size = 1
-    imp_indexes, group_labels, group_preds = _eval(model,dataloader,interval)
+    imp_indexes, group_labels, group_preds = run_eval(model,dataloader,interval)
     res = _cal_metric(imp_indexes,group_labels,group_preds,model.metrics.split(','))
     print("evaluation results:{}".format(res))
     with open('performance.log','a+') as f:
@@ -539,6 +583,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
         model: trained model
     '''
     total_loss = 0
+    total_steps = 0
     
     for epoch in range(hparams['epochs']):
         epoch_loss = 0
@@ -561,11 +606,10 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
                     "epoch {:d} , step {:d} , loss: {:.4f}".format(epoch+1, step, epoch_loss / step))
                 if writer:
                     for name, param in model.named_parameters():
-                        writer.add_histogram(name, param, epoch * len(dataloader) + step)
+                        writer.add_histogram(name, param, step)
 
                     writer.add_scalar('data_loss',
-                            total_loss/(epoch * len(dataloader) + step),
-                            epoch * len(dataloader) + step)
+                            total_loss/total_steps)
             optimizer.zero_grad()
             
             if save_step:
@@ -577,8 +621,10 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
                     torch.save(model.state_dict(), save_path)
                     print("saved model of step {} at epoch {}".format(step, epoch+1))
 
+            total_steps += 1
+
         if writer:
-            writer.add_scalar('epoch_loss', epoch_loss/len(dataloader), epoch)
+            writer.add_scalar('epoch_loss', epoch_loss, epoch)
 
         if save_each_epoch:
             if hparams['select']:
@@ -639,7 +685,7 @@ def test(model, hparams):
     model.eval()
 
     dataset_test = MIND_test(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv', '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
-    loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=False)
+    loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
     tqdm_ = tqdm(enumerate(loader_test))
 
     with open('data/results/prediction.txt', 'w') as f:
@@ -647,7 +693,7 @@ def test(model, hparams):
         imp_indexes = []
         for i,x in tqdm_:
             preds.extend(model.forward(x).tolist())
-            imp_indexes.extend(x['impression_index'].tolist())
+            imp_indexes.extend(x['impression_index'])
         
         all_keys = list(set(imp_indexes))
         all_keys.sort()
@@ -655,9 +701,16 @@ def test(model, hparams):
 
         for i,p in zip(imp_indexes, preds):
             group_preds[i].append(p)
+        
+        g = open('data/results/original_prediction.txt','w')
+        for k,v in group_preds.items():
+            line = str(k) + ' [' + ','.join([str(i) for i in v]) + ']' + '\n'
+            g.write(line)
+        g.close()
             
         for k,v in group_preds.items():
-            rank_list = ss.rankdata(v, method='ordinal')
+            array = np.asarray(v)
+            rank_list = ss.rankdata(1 - array, method='ordinal')
             line = str(k) + ' [' + ','.join([str(i) for i in rank_list]) + ']' + '\n'
             f.write(line)
     
@@ -676,10 +729,7 @@ def test(model, hparams):
 
         f.write(str(d)+'\n')
         f.write('\n')
-        f.write('\n')   
-
-    return res
-    
+        f.write('\n')
 
 def load_hparams(hparams):
     parser = argparse.ArgumentParser()
@@ -760,7 +810,7 @@ def load_hparams(hparams):
     return hparams
 
 def prepare(hparams, validate=False, path='/home/peitian_zhang/Data/MIND'):
-    from .MIND import MIND_iter, MIND_map
+    from .MIND import MIND, MIND_iter
     """ prepare dataloader and several paths
     
     Args:
@@ -773,25 +823,23 @@ def prepare(hparams, validate=False, path='/home/peitian_zhang/Data/MIND'):
     """
     news_file_train = path+'/MIND'+hparams['scale']+'_train/news.tsv'
     news_file_test = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
-    news_file_pair = (news_file_train,news_file_test)
 
     behavior_file_train = path+'/MIND'+hparams['scale']+'_train/behaviors.tsv'
     behavior_file_test = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
-    behavior_file_pair = (behavior_file_train,behavior_file_test)
 
-    dataset_train = MIND_map(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train)
+    dataset_train = MIND(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, shuffle=True)
     dataset_dev = MIND_iter(hparams=hparams,news_file=news_file_test,behaviors_file=behavior_file_test, mode='test')
 
     vocab = dataset_train.vocab
     embedding = GloVe(dim=300,cache='.vector_cache')
     vocab.load_vectors(embedding)
 
-    loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],shuffle=True,pin_memory=True,num_workers=8,drop_last=True)
-    loader_dev = DataLoader(dataset_dev,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=False)
+    loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
+    loader_dev = DataLoader(dataset_dev,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
     
     if validate:
         dataset_validate = MIND_iter(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, mode='train')
-        loader_validate = DataLoader(dataset_validate,batch_size=hparams['batch_size'],pin_memory=True,num_workers=0,drop_last=True)
+        loader_validate = DataLoader(dataset_validate,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
         return vocab, loader_train, loader_dev, loader_validate
     else:
         return vocab, loader_train, loader_dev
