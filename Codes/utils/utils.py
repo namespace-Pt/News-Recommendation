@@ -463,15 +463,9 @@ def group_labels(impression_ids, labels, preds):
     all_labels = []
     all_preds = []
 
-    # due to droplast option in loader_test, the last several samples may be dropped
-    # however, these dropped samples contain the clicked news in the last impression
-    # so the last impression will loss 1 label
     for k in all_keys:
-        if 1 in group_labels[k]:
-            all_labels.append(group_labels[k])
-            all_preds.append(group_preds[k])
-        else:
-            print("impression {} has been stripped because of lacking 1 label".format(k))
+        all_labels.append(group_labels[k])
+        all_preds.append(group_preds[k])
 
     return all_keys, all_labels, all_preds
 
@@ -491,9 +485,8 @@ def run_eval(model,dataloader,interval):
     preds = []
     labels = []
     imp_indexes = []
-    tqdm_ = tqdm(enumerate(dataloader))
     
-    for i,batch_data_input in tqdm_:
+    for i,batch_data_input in tqdm(enumerate(dataloader)):
         
         preds.extend(model.forward(batch_data_input).tolist())
         label = batch_data_input['labels'].squeeze(dim=-1).tolist()
@@ -506,41 +499,6 @@ def run_eval(model,dataloader,interval):
     )
     
     return impr_indexes, labels, preds
-
-def evaluate(model,hparams,dataloader,interval=100):
-    """Evaluate the given file and returns some evaluation metrics.
-    
-    Args:
-        model(nn.Module)
-        hparams(dict)
-        dataloader(torch.utils.data.DataLoader): provide data
-        interval(int): within each epoch, the interval of steps to display loss
-
-    Returns:
-        dict: A dictionary contains evaluation metrics.
-    """
-    hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
-    param_list = ['query_words','query_levels']
-    model.eval()
-    model.cdd_size = 1
-    imp_indexes, group_labels, group_preds = run_eval(model,dataloader,interval)
-    res = _cal_metric(imp_indexes,group_labels,group_preds,model.metrics.split(','))
-    print("evaluation results:{}".format(res))
-    with open('performance.log','a+') as f:
-        # model_name = '{}-{}_{}_epoch{}_step{}_[hs={},topk={}]:'.format(hparams['name'],hparams['select'],hparams['scale'], str(hparams['epochs']), str(hparams['save_step']), str(hparams['his_size']), str(hparams['k']))
-        # f.write(model_name + '\n')
-        d = {}
-        for k,v in hparams.items():
-            if k in hparam_list:
-                d[k] = v
-        for name, param in model.named_parameters():
-            if name in param_list:
-                d[name] = tuple(param.shape)
-
-        f.write(str(d)+'\n')
-        f.write(str(res) +'\n')
-        f.write('\n')        
-    return res
 
 def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, interval=100, save_step=None, save_each_epoch=False):
     ''' train model and print loss meanwhile
@@ -561,9 +519,8 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
     
     for epoch in range(hparams['epochs']):
         epoch_loss = 0
-        tqdm_ = tqdm(enumerate(dataloader))
 
-        for step,x in tqdm_:
+        for step,x in tqdm(enumerate(dataloader)):
             pred = model(x)
             label = getLabel(model,x)
             loss = loss_func(pred,label)
@@ -611,12 +568,47 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
 
     return model
 
-def train(model, hparams, loader_train, loader_dev, loader_validate=None, tb=False, interval=100):
+def evaluate(model,hparams,dataloader,interval=100):
+    """Evaluate the given file and returns some evaluation metrics.
+    
+    Args:
+        model(nn.Module)
+        hparams(dict)
+        dataloader(torch.utils.data.DataLoader): provide data
+        interval(int): within each epoch, the interval of steps to display loss
+
+    Returns:
+        dict: A dictionary contains evaluation metrics.
+    """
+    hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
+    param_list = ['query_words','query_levels']
+    model.eval()
+    model.cdd_size = 1
+    imp_indexes, group_labels, group_preds = run_eval(model,dataloader,interval)
+    res = _cal_metric(imp_indexes,group_labels,group_preds,model.metrics.split(','))
+    print("evaluation results:{}".format(res))
+    with open('performance.log','a+') as f:
+        # model_name = '{}-{}_{}_epoch{}_step{}_[hs={},topk={}]:'.format(hparams['name'],hparams['select'],hparams['scale'], str(hparams['epochs']), str(hparams['save_step']), str(hparams['his_size']), str(hparams['k']))
+        # f.write(model_name + '\n')
+        d = {}
+        for k,v in hparams.items():
+            if k in hparam_list:
+                d[k] = v
+        for name, param in model.named_parameters():
+            if name in param_list:
+                d[name] = tuple(param.shape)
+
+        f.write(str(d)+'\n')
+        f.write(str(res) +'\n')
+        f.write('\n')        
+    return res
+
+def train(model, hparams, loaders, tb=False, interval=100):
     """ wrap training process
     
     Args:
         model(torch.nn.Module): the model to be trained
-        loader_train(torch.utils.data.DataLoader): provide data
+        loaders(list): list of torch.utils.data.DataLoader
         hparams(dict): hyper paramaters
         en: shell parameter
     """
@@ -633,39 +625,31 @@ def train(model, hparams, loader_train, loader_dev, loader_validate=None, tb=Fal
     loss_func = getLoss(model)
     optimizer = optim.Adam(model.parameters(),lr=0.001)
 
-    model = run_train(model,loader_train,optimizer,loss_func,hparams,writer=writer,interval=interval,save_step=hparams['save_step'],save_each_epoch=hparams['save_each_epoch'])
+    model = run_train(model,loaders[0],optimizer,loss_func,hparams,writer=writer,interval=interval,save_step=hparams['save_step'],save_each_epoch=hparams['save_each_epoch'])
 
-    # if save:
-    #     ### independent of hparams['save_path']
-    #     if hparams['select']:
-    #         save_path = 'models/model_params/{}-{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
-    #     else:
-    #         save_path = 'models/model_params/{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
-    #     torch.save(model.state_dict(), save_path)
-    #     print("save success!")
-
-    print("testing...")
-    evaluate(model, hparams, loader_dev)
+    print("evaluating...")
+    evaluate(model, hparams, loaders[1])
 
     if loader_validate is not None:
         print("validating...")
-        evaluate(model, hparams, loader_validate)
+        evaluate(model, hparams, loaders[2])
     
     return model
 
-def test(model, hparams):
-    from utils.MIND import MIND_test
+def test(model, hparams, loader_test):
+    print("testing...")
     model.cdd_size = 1
     model.eval()
 
-    dataset_test = MIND_test(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv', '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
-    loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
-    tqdm_ = tqdm(enumerate(loader_test))
-
-    with open('data/results/prediction.txt', 'w') as f:
+    if hparams['select']:
+        save_path = 'data/results/prediction={}-{}_{}_epoch{}_step{}_[hs={},topk={}].txt'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'],hparams['save_step'],str(hparams['his_size']),str(hparams['k']))
+    else:
+        save_path = 'data/results/prediction={}_{}_epoch{}_step{}_[hs={},topk={}].txt'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'],hparams['save_step'],str(hparams['his_size']),str(hparams['k']))
+    
+    with open(save_path, 'w') as f:
         preds = []
         imp_indexes = []
-        for i,x in tqdm_:
+        for i,x in tqdm(enumerate(loader_test)):
             preds.extend(model.forward(x).tolist())
             imp_indexes.extend(x['impression_index'])
         
@@ -675,18 +659,14 @@ def test(model, hparams):
 
         for i,p in zip(imp_indexes, preds):
             group_preds[i].append(p)
-        
-        g = open('data/results/original_prediction.txt','w')
-        for k,v in group_preds.items():
-            line = str(k) + ' [' + ','.join([str(i) for i in v]) + ']' + '\n'
-            g.write(line)
-        g.close()
             
         for k,v in group_preds.items():
             array = np.asarray(v)
             rank_list = ss.rankdata(1 - array, method='ordinal')
             line = str(k) + ' [' + ','.join([str(i) for i in rank_list]) + ']' + '\n'
             f.write(line)
+
+    print("written to prediction!")
     
     hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
     param_list = ['query_words','query_levels']
@@ -704,8 +684,12 @@ def test(model, hparams):
         f.write(str(d)+'\n')
         f.write('\n')
         f.write('\n')
+    
 
 def load_hparams(hparams):
+    """ 
+        customize hyper parameters in command line
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("-s","--scale", dest="scale", help="data scale", choices=['demo','small','large'],required=True)
     parser.add_argument("-m","--mode", dest="mode", help="train or test", choices=['train','dev','test'], default='train')
@@ -794,7 +778,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND'):
     
     Returns:
         vocab
-        dataloader
+        loaders(list of dataloaders): 0-loader_train/test, 1-loader_dev, 2-loader_validate
     """
     if hparams['mode'] in ['train','dev']:
         news_file_train = path+'/MIND'+hparams['scale']+'_train/news.tsv'
@@ -816,9 +800,9 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND'):
         if hparams['validate']:
             dataset_validate = MIND_iter(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, mode='train')
             loader_validate = DataLoader(dataset_validate,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
-            return vocab, loader_train, loader_dev, loader_validate
+            return vocab, [loader_train, loader_dev, loader_validate]
         else:
-            return vocab, loader_train, loader_dev
+            return vocab, [loader_train, loader_dev]
     
     elif hparams['mode'] == 'test':
         dataset_test = MIND_test(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv', '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
@@ -828,7 +812,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND'):
         embedding = GloVe(dim=300,cache='.vector_cache')
         vocab.load_vectors(embedding)
 
-        return vocab, loader_test
+        return vocab, [loader_test]
 
 def analyse(hparams, path='/home/peitian_zhang/Data/MIND'):
     """

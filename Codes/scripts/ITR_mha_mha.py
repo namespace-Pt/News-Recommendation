@@ -4,7 +4,7 @@ os.chdir('/home/peitian_zhang/Codes/News-Recommendation')
 sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
 import torch
-from utils.utils import evaluate,train,prepare,load_hparams
+from utils.utils import evaluate,train,prepare,load_hparams,test
 from models.ITR_MHA_MHA import GCAModel
 
 if __name__ == "__main__":
@@ -21,16 +21,16 @@ if __name__ == "__main__":
     hparams = load_hparams(hparams)
     device = torch.device(hparams['device'])
 
-    vocab, loader_train, loader_test, loader_validate = prepare(hparams, validate=True)
+    vocab, loaders = prepare(hparams)
     gcaModel = GCAModel(vocab=vocab,hparams=hparams).to(device)
 
-    if hparams['mode'] == 'test':
+    if hparams['mode'] == 'dev':
         gcaModel.load_state_dict(torch.load(hparams['save_path']))
         print("testing...")
-        evaluate(gcaModel,hparams,loader_test)
+        evaluate(gcaModel,hparams,loaders[1])
 
     elif hparams['mode'] == 'train':
-        if hparams['validate']:
-            train(gcaModel, hparams, loader_train, loader_test, loader_validate, tb=True)
-        else:
-            train(gcaModel, hparams, loader_train, loader_test, tb=True)
+        train(gcaModel, hparams, loaders, tb=True)
+    
+    elif hparams['mode'] == 'test':
+        test(gcaModel, hparams, loaders[0])
