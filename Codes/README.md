@@ -158,7 +158,6 @@ see [HERE](manual/Preprocess.ipynb)
 ## TODO
 - [ ] BERT cls
 - [ ] pass t-test
-- [ ] refactor constructBasicDict
 - [ ] t-test
-- [ ] 速度表
-- [ ] pipeline性能对比
+- [ ] inference time comparison
+- [ ] pipeline performance comparison
