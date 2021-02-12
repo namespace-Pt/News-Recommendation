@@ -6,15 +6,12 @@ Papers/Methods/realated
 Discussions
 MyWork
 Codes/.vector_cache
-Codes/data/tb/*
+Codes/data/tb
 Codes/*/__pycache__/
-baseline.*
 Questions.md
 model_params
 Codes/text
 Codes/manual/main.ipynb
-Codes/manual/baseline_fim.ipynb
-Codes/manual/baseline_mha_mha.ipynb
 Codes/models/baseline_FIM.py
 Codes/models/baseline_MHA_MHA.py
 Codes/models/baseline_MHA_CNN.py
