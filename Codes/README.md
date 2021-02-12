@@ -157,7 +157,6 @@ see [HERE](manual/Preprocess.ipynb)
 |baseline-MHA-MHA|$0.6395$|$0.2934$|$0.3203$|$0.385$|`epoch=8` run on `MINDsmall`|
 ## TODO
 - [ ] BERT cls
-- [ ] pass t-test
 - [ ] t-test
 - [ ] inference time comparison
 - [ ] pipeline performance comparison
