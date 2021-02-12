@@ -83,7 +83,7 @@ def news_token_generator(news_file_list,tokenizer,attrs):
     '''
     news_df_list = []
     for f in news_file_list:
-        news_df_list.append(pd.read_table(f,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract']))
+        news_df_list.append(pd.read_table(f,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'],quoting=3))
     
     news_df = pd.concat(news_df_list).drop_duplicates()
     news_iterator = news_df.iterrows()
@@ -95,7 +95,7 @@ def news_token_generator(news_file_list,tokenizer,attrs):
         
         yield tokenizer(' '.join(content))
 
-def constructVocab(news_file_list, save_path, attrs):
+def constructVocab(news_file_list, attrs, scale):
     """
         Build field using torchtext for tokenization
     
@@ -103,112 +103,86 @@ def constructVocab(news_file_list, save_path, attrs):
         torchtext.vocabulary
     """
     tokenizer = get_tokenizer('basic_english')
-    print("fuck")
-    
     vocab = build_vocab_from_iterator(news_token_generator(news_file_list,tokenizer,attrs))
 
-    output = open(save_path,'wb')
+    output = open('data/dictionaries/vocab_{}_{}.pkl'.format(scale,','.join(attrs)),'wb')
     pickle.dump(vocab,output)
     output.close()
 
-def constructNid2idx(news_file_train,news_file_test,scale):
+def constructNid2idx(news_file, scale, mode):
     """
         Construct news to newsID dictionary, index starting from 1
     """
-    f = open(news_file_train,'r',encoding='utf-8')
-
     nid2index = {}
-    index2nid = {0:"0"}
-    for line in f:
-        nid,_,_,_,_,_,_,_ = line.strip("\n").split('\t')
 
-        if nid in nid2index:
+    news_df = pd.read_table(news_file,index_col=None,names=['newsID','category','subcategory','title','abstract','url','entity_title','entity_abstract'], quoting=3)
+
+    for v in news_df['newsID']:
+        if v in nid2index:
             continue
-        a = len(nid2index) + 1
-        nid2index[nid] = a
-        index2nid[a] = nid
-    
-    
-    f.close()
-    h = open('data/dictionaries/nid2idx_{}_train.json'.format(scale),'w',encoding='utf-8')
+        nid2index[v] = len(nid2index) + 1
+
+    h = open('data/dictionaries/nid2idx_{}_{}.json'.format(scale,mode),'w')
     json.dump(nid2index,h,ensure_ascii=False)
     h.close()
 
-    h = open('data/dictionaries/idx2nid_{}_train.json'.format(scale),'w',encoding='utf-8')
-    json.dump(index2nid,h,ensure_ascii=False)
-    h.close()
-
-    g = open(news_file_test,'r',encoding='utf-8')
-
-    nid2index = {}
-    index2nid = {0:"0"}
-    for line in g:
-        nid,_,_,_,_,_,_,_ = line.strip("\n").split('\t')
-
-        if nid in nid2index:
-            continue
-        a = len(nid2index) + 1
-        nid2index[nid] = a
-        index2nid[a] = nid
-    
-    g.close()
-
-    h = open('data/dictionaries/nid2idx_{}_test.json'.format(scale),'w',encoding='utf-8')
-    json.dump(nid2index,h,ensure_ascii=False)
-    h.close()
-
-    h = open('data/dictionaries/idx2nid_{}_test.json'.format(scale),'w',encoding='utf-8')
-    json.dump(index2nid,h,ensure_ascii=False)
-    h.close()
-    
-
-def constructUid2idx(behaviors_file_train,behaviors_file_test,dic_file):
+def constructUid2idx(behavior_file_list, scale):
     """
         Construct user to userID dictionary, index starting from 1
     """
-    f = open(behaviors_file_train,'r',encoding='utf-8')
-    g = open(behaviors_file_test,'r',encoding='utf-8')
-
     uid2index = {}
 
-    for line in f:
-        _,uid,_,_,_ = line.strip("\n").split('\t')
+    user_df_list = []
+    for f in behavior_file_list:
+        user_df_list.append(pd.read_table(f,index_col=None,names=['imprID','uid','time','hisstory','abstract','impression'],quoting=3))
 
-        if uid in uid2index:
+    user_df = pd.concat(user_df_list).drop_duplicates()
+
+    for v in user_df['uid']:
+        if v in uid2index:
             continue
-        a = len(uid2index) + 1
-        uid2index[uid] = a
+        uid2index[v] = len(uid2index) + 1
 
-    for line in g:
-        _,uid,_,_,_ = line.strip("\n").split('\t')
-
-        if uid in uid2index:
-            continue
-        uid2index[uid] = len(uid2index) + 1
-
-    f.close()
-    g.close()
-    
-    h = open(dic_file,'w',encoding='utf-8')
+    h = open('data/dictionaries/uid2idx_{}.json'.format(scale),'w')
     json.dump(uid2index,h,ensure_ascii=False)
     h.close()
 
-def constructBasicDict(news_file_pair,behaviors_file_pair,data_mode,attrs):
-    """ construct basic dictionary
-
-        Args:
-        news_file_pair: tuple of paths of news file, first entry is training set, the other is testing set
-        behavior_file_pair: tuple of paths of behavior file, first entry is training set, the other is testing set
-        mode: [demo/small/large]
+def constructBasicDict(scale,attrs=['title'],path='/home/peitian_zhang/Data/MIND'):
     """
-    dict_path_v = 'data/dictionaries/vocab_{}_{}.pkl'.format(data_mode,'_'.join(attrs))
-    dict_path_n_train = 'data/dictionaries/nid2idx_{}_train.json'.format(data_mode)
-    dict_path_n_test = 'data/dictionaries/nid2idx_{}_test.json'.format(data_mode)
-    dict_path_u = 'data/dictionaries/uid2idx_{}.json'.format(data_mode)
-    
-    constructVocab(news_file_pair[0],news_file_pair[1],attrs,dict_path_v)
-    constructNid2idx(news_file_pair[0],news_file_pair[1],dict_path_n_train,dict_path_n_test)
-    constructUid2idx(behaviors_file_pair[0],behaviors_file_pair[1],dict_path_u)
+        construct basic dictionary
+    """
+
+    news_file_list = [path + '/MIND{}_train/news.tsv'.format(scale), path + '/MIND{}_dev/news.tsv'.format(scale), path + '/MIND{}_test/news.tsv'.format(scale)]
+    behavior_file_list = [path + '/MIND{}_train/behaviors.tsv'.format(scale), path + '/MIND{}_dev/behaviors.tsv'.format(scale), path + '/MIND{}_test/behaviors.tsv'.format(scale)]
+
+    if scale == 'large':
+
+        constructVocab(news_file_list, attrs, scale)
+
+        news_file_train = news_file_list[0]
+        news_file_dev = news_file_list[1]
+        news_file_test = news_file_list[2]
+
+        constructNid2idx(news_file_train, scale, 'train')
+        constructNid2idx(news_file_dev, scale, 'dev')
+        constructNid2idx(news_file_test, scale, 'test')
+
+        constructUid2idx(behavior_file_list, scale)
+
+    else:
+        news_file_list = news_file_list[0:2]
+
+        constructVocab(news_file_list, attrs, scale)
+
+        news_file_train = news_file_list[0]
+        news_file_dev = news_file_list[1]
+
+        constructNid2idx(news_file_train, scale, 'train')
+        constructNid2idx(news_file_dev, scale, 'dev')
+
+        behavior_file_list = behavior_file_list[0:2]
+        constructUid2idx(behavior_file_list, scale)
+
 
 def tailorData(tsvFile, num):
     ''' tailor num rows of tsvFile to create demo data file
@@ -734,7 +708,7 @@ def test(model, hparams):
 def load_hparams(hparams):
     parser = argparse.ArgumentParser()
     parser.add_argument("-s","--scale", dest="scale", help="data scale", choices=['demo','small','large'],required=True)
-    parser.add_argument("-m","--mode", dest="mode", help="train or test", choices=['train','test','submit'], default='train')
+    parser.add_argument("-m","--mode", dest="mode", help="train or test", choices=['train','dev','test'], default='train')
     parser.add_argument("-e","--epochs", dest="epochs", help="epochs to train the model", type=int, default=10)
 
     parser.add_argument("-bs","--batch_size", dest="batch_size", help="batch size", type=int, default=100)
@@ -746,10 +720,10 @@ def load_hparams(hparams):
     parser.add_argument("-ss","--save_step", dest="save_step", help="if clarified, save model at the interval of given steps", type=int)
     parser.add_argument("-te","--train_embedding", dest="train_embedding", help="if clarified, word embedding will be fine-tuned", action='store_true', default=True)
     
-    parser.add_argument("-k","--topk", dest="k", help="intend for topk baseline, if clarified, top k history are involved in interaction calculation", type=int, default=-1)
     parser.add_argument("-np","--npratio", dest="npratio", help="the number of unclicked news to sample when training", type=int, default=4)
     parser.add_argument("-mc","--metrics", dest="metrics", help="metrics for evaluating the model, if multiple metrics are needed, seperate with ','", type=str, default="group_auc,mean_mrr,ndcg@5,ndcg@10")
 
+    parser.add_argument("-k","--topk", dest="k", help="intend for topk baseline, if clarified, top k history are involved in interaction calculation", type=int, default=-1)
     parser.add_argument("--select", dest="select", help="choose model for selecting", choices=['pipeline','unified','gating'], default=None)
     parser.add_argument("--integrate", dest="integration", help="the way history filter is combined", choices=['gate','harmony'], default=None)
 
@@ -757,7 +731,8 @@ def load_hparams(hparams):
     parser.add_argument("-vd","--value_dim", dest="value_dim", help="dimension of projected value", type=int)
     parser.add_argument("-qd","--query_dim", dest="query_dim", help="dimension of projected query", type=int)
 
-    parser.add_argument("-v","--validate", dest="validate", help="whether to validate training result on training dataset", action='store_true')
+    parser.add_argument("-v","--validate", dest="validate", help="if clarified, evaluate the model on training set", action='store_true')
+    parser.add_argument("-nid","--news_id", dest="news_id", help="if clarified, the id of news will be yielded by dataloader", action='store_true')
 
     # parser.add_argument("-dp","--dropout", dest="dropout", help="drop out probability", type=float, default=0.2)
     # parser.add_argument("-ed","--embedding_dim", dest="embedding_dim", help="dimension of word embedding", type=int, default=300)
@@ -802,6 +777,7 @@ def load_hparams(hparams):
         hparams['integration'] = args.integration
     
     hparams['validate'] = args.validate
+    hparams['news_id'] = args.news_id
 
     hparams['save_step'] = args.save_step
     hparams['save_each_epoch'] = args.save_each_epoch
@@ -809,40 +785,50 @@ def load_hparams(hparams):
 
     return hparams
 
-def prepare(hparams, validate=False, path='/home/peitian_zhang/Data/MIND'):
-    from .MIND import MIND, MIND_iter
+def prepare(hparams, path='/home/peitian_zhang/Data/MIND'):
+    from .MIND import MIND, MIND_iter, MIND_test
     """ prepare dataloader and several paths
     
     Args:
         hparams(dict): hyper parameters
     
     Returns:
-        loader_train
-        loader_dev
-        loader_validate
+        vocab
+        dataloader
     """
-    news_file_train = path+'/MIND'+hparams['scale']+'_train/news.tsv'
-    news_file_test = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
+    if hparams['mode'] in ['train','dev']:
+        news_file_train = path+'/MIND'+hparams['scale']+'_train/news.tsv'
+        news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
 
-    behavior_file_train = path+'/MIND'+hparams['scale']+'_train/behaviors.tsv'
-    behavior_file_test = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
+        behavior_file_train = path+'/MIND'+hparams['scale']+'_train/behaviors.tsv'
+        behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
 
-    dataset_train = MIND(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, shuffle=True)
-    dataset_dev = MIND_iter(hparams=hparams,news_file=news_file_test,behaviors_file=behavior_file_test, mode='test')
+        dataset_train = MIND(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, shuffle=True)
+        dataset_dev = MIND_iter(hparams=hparams,news_file=news_file_dev,behaviors_file=behavior_file_dev)
 
-    vocab = dataset_train.vocab
-    embedding = GloVe(dim=300,cache='.vector_cache')
-    vocab.load_vectors(embedding)
+        vocab = dataset_train.vocab
+        embedding = GloVe(dim=300,cache='.vector_cache')
+        vocab.load_vectors(embedding)
 
-    loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
-    loader_dev = DataLoader(dataset_dev,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
+        loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
+        loader_dev = DataLoader(dataset_dev,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
     
-    if validate:
-        dataset_validate = MIND_iter(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, mode='train')
-        loader_validate = DataLoader(dataset_validate,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
-        return vocab, loader_train, loader_dev, loader_validate
-    else:
-        return vocab, loader_train, loader_dev
+        if hparams['validate']:
+            dataset_validate = MIND_iter(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, mode='train')
+            loader_validate = DataLoader(dataset_validate,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
+            return vocab, loader_train, loader_dev, loader_validate
+        else:
+            return vocab, loader_train, loader_dev
+    
+    elif hparams['mode'] == 'test':
+        dataset_test = MIND_test(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv', '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
+        loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
+
+        vocab = dataset_test.vocab
+        embedding = GloVe(dim=300,cache='.vector_cache')
+        vocab.load_vectors(embedding)
+
+        return vocab, loader_test
 
 def analyse(hparams, path='/home/peitian_zhang/Data/MIND'):
     """

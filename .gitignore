@@ -21,3 +21,5 @@ Codes/models/baseline_MHA_CNN.py
 Codes/models/SFI_MHA.py
 Codes/models/SFI_FIM.py
 Codes/performance.log
+Codes/data/results
+Codes/data/tensors

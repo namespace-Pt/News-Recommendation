@@ -77,7 +77,7 @@ see [HERE](manual/Preprocess.ipynb)
 
 ## File Structure
 ### `/data`: basic dictionaries
-  - dictionary mapping News ID to increasing integer, training set and testing set are separate because order of news ids has effect on neither training or testing
+  - dictionary mapping News ID to increasing integer, training set and testing set are separate because when constructing MIND iterator, the newsID should be mapped to continuous number starting from 1
     - `nid2idx_[data_mode]_train.json`
     - `nid2idx_[data_mode]_test.json`
   - dictionary mapping News ID to increasing integer, training set and testing set are unified because user may appear in both training and testing phases which are namely *long-tail users*. However, some users may only appear in testing set, which fomulates *cold start problem*.
@@ -159,3 +159,6 @@ see [HERE](manual/Preprocess.ipynb)
 - [ ] BERT cls
 - [ ] pass t-test
 - [ ] refactor constructBasicDict
+- [ ] t-test
+- [ ] 速度表
+- [ ] pipeline性能对比

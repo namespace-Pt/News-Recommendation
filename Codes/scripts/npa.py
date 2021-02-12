@@ -4,7 +4,7 @@ os.chdir('/home/peitian_zhang/Codes/News-Recommendation')
 sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
 import torch
-from utils.utils import evaluate,train,prepare,load_hparams
+from utils.utils import evaluate,train,prepare,load_hparams,test
 from models.NPA import NPAModel
 
 if __name__ == "__main__":
@@ -34,3 +34,6 @@ if __name__ == "__main__":
             train(npaModel, hparams, loader_train, loader_test, loader_validate, tb=True)
         else:
             train(npaModel, hparams, loader_train, loader_test, tb=True)
+    
+    elif hparams['mode'] == 'submit':
+        test(npaModel, hparams)

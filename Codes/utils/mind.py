@@ -11,7 +11,7 @@ class MIND(IterableDataset):
         news_file(str): path of news_file
         behaviors_file(str): path of behaviors_file
     """
-    def __init__(self,hparams,news_file,behaviors_file,mode='train',shuffle=False):
+    def __init__(self,hparams,news_file,behaviors_file,shuffle=False):
         # initiate the whole iterator
         self.npratio = hparams['npratio']
         self.news_file = news_file
@@ -23,15 +23,10 @@ class MIND(IterableDataset):
         self.attrs = hparams['attrs']
         self.k = hparams['k']
 
-        self.index2nid = None
-        try:
-            if hparams['news_id']:
-                self.index2nid = getId2idx('data/dictionaries/idx2nid_{}_{}.json'.format(hparams['scale'],mode))
-        except:
-            pass
+        self.index2nid = hparams['news_id']
 
         self.vocab = getVocab('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['scale'],'_'.join(hparams['attrs'])))
-        self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_{}.json'.format(hparams['scale'],mode))
+        self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_train.json'.format(hparams['scale']))
         self.uid2index = getId2idx('data/dictionaries/uid2idx_{}.json'.format(hparams['scale']))
 
         self.init_news()
@@ -89,20 +84,20 @@ class MIND(IterableDataset):
         with open(self.behaviors_file, "r",encoding='utf-8') as rd:
             for idx in rd:
                 impr_index, uid, time, history, impr = idx.strip("\n").split(self.col_spliter)
-                
+
                 history = [self.nid2index[i] for i in history.split()]
-                
+
                 if self.k:
                     # guarantee there are at least k history not masked
                     self.his_pad.append(min(max(self.his_size - len(history),0), self.his_size - self.k))
                 else:
                     self.his_pad.append(max(self.his_size - len(history),0))
-                    
+
                 # tailor user's history or pad 0
                 history = history[:self.his_size] + [0] * (self.his_size - len(history))
-        
+
                 impr_news = [self.nid2index[i.split("-")[0]] for i in impr.split()]
-                
+
                 label = [int(i.split("-")[1]) for i in impr.split()]
                 uindex = self.uid2index[uid] if uid in self.uid2index else 0
 
@@ -149,7 +144,7 @@ class MIND(IterableDataset):
                 # candidate_subcategory_index = []
                 user_index = []
                 his_mask = np.zeros((self.his_size,1),dtype=bool)
-                
+
                 label = [1] + [0] * self.npratio
 
                 neg_list, neg_pad = newsample(negs, self.npratio)
@@ -162,14 +157,14 @@ class MIND(IterableDataset):
 
                 # candidate_category_index = self.news_category_array[[p] + neg_list]
                 # candidate_subcategory_index = self.news_subcategory_array[[p] + neg_list]
-                
+
                 click_title_index = self.news_title_array[self.histories[index]]
                 # click_category_index = self.news_category_array[self.histories[index]]
                 # click_subcategory_index = self.news_subcategory_array[self.histories[index]]
                 # pad in title
                 candidate_title_pad = [(self.title_size - i[0])*[1] + i[0]*[0] for i in self.title_pad[[p] + neg_list]]
                 click_title_pad = [(self.title_size - i[0])*[1] + i[0]*[0] for i in self.title_pad[self.histories[index]]]
-                
+
                 # pad in candidate
                 # candidate_mask = [1] * neg_pad + [0] * (self.npratio + 1 - neg_pad)
 
@@ -211,22 +206,17 @@ class MIND_iter(IterableDataset):
         news_file(str): path of news_file
         behaviors_file(str): path of behaviors_file
     """
-    def __init__(self,hparams,news_file,behaviors_file,mode='test',col_spliter='\t'):
+    def __init__(self,hparams,news_file,behaviors_file,mode='dev'):
         # initiate the whole iterator
         self.news_file = news_file
         self.behaviors_file = behaviors_file
-        self.col_spliter = col_spliter        
+        self.col_spliter = '\t'       
         self.batch_size = hparams['batch_size']
         self.title_size = hparams['title_size']
         self.his_size = hparams['his_size']
         self.k = hparams['k']
 
-        self.index2nid = None
-        try:
-            if hparams['news_id']:
-                self.index2nid = getId2idx('data/dictionaries/idx2nid_{}_{}.json'.format(hparams['scale'],mode))
-        except:
-            pass
+        self.index2nid = hparams['news_id']
 
         self.vocab = getVocab('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['scale'],'_'.join(hparams['attrs'])))
         self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_{}.json'.format(hparams['scale'],mode))
@@ -234,7 +224,7 @@ class MIND_iter(IterableDataset):
 
         self.init_news()
         self.init_behaviors()
-    
+
     def init_news(self):
         """ 
             init news information given news file, such as news_title_array.
@@ -245,7 +235,7 @@ class MIND_iter(IterableDataset):
         # subcategory_token = [[0]]
 
         title_pad = [[self.title_size]]
-        
+
         with open(self.news_file,"r",encoding='utf-8') as rd:
 
             for idx in rd:
@@ -259,7 +249,7 @@ class MIND_iter(IterableDataset):
 
                 # category_token.append([self.vocab[vert]])
                 # subcategory_token.append([self.vocab[subvert]])
-        
+
         self.news_title_array = np.asarray(title_token)
         # self.news_category_array = np.asarray(category_token)
         # self.news_subcategory_array = np.asarray(subcategory_token)
@@ -300,10 +290,8 @@ class MIND_iter(IterableDataset):
                 history = history[:self.his_size] + [0] * (self.his_size - len(history))
         
                 impr_news = [self.nid2index[i.split("-")[0]] for i in impr.split()]
-                try:
-                    label = [int(i.split("-")[1]) for i in impr.split()]
-                except:
-                    print(impr,impr_index)
+                
+                label = [int(i.split("-")[1]) for i in impr.split()]
 
                 uindex = self.uid2index[uid] if uid in self.uid2index else 0
 
@@ -346,15 +334,14 @@ class MIND_iter(IterableDataset):
                 # click_subcategory_index = self.news_subcategory_array[self.histories[index]]
 
                 if self.index2nid:
-                    cdd_ids = [self.index2nid[str(news)]]
-                    his_ids = [self.index2nid[str(i)] for i in self.histories[index]]
+                    cdd_ids = [news]
+                    his_ids = self.histories[index]
 
                 user_index.append(self.uindexes[index])
 
                 candidate_title_pad = [(self.title_size - self.title_pad[news][0])*[1] + self.title_pad[news][0]*[0]]
                 click_title_pad = [(self.title_size - i[0])*[1] + i[0]*[0] for i in self.title_pad[self.histories[index]]]
 
-            
                 # in case the user has no history records, do not mask
                 if self.his_pad[index] == self.his_size or self.his_pad[index] == 0:
                     his_mask = his_mask
@@ -392,19 +379,21 @@ class MIND_test(IterableDataset):
         news_file(str): path of news_file
         behaviors_file(str): path of behaviors_file
     """
-    def __init__(self,hparams,news_file,behaviors_file,mode='test',col_spliter='\t'):
+    def __init__(self,hparams,news_file,behaviors_file):
         # initiate the whole iterator
         self.news_file = news_file
         self.behaviors_file = behaviors_file
-        self.col_spliter = col_spliter        
+        self.col_spliter = '\t'
         self.batch_size = hparams['batch_size']
         self.title_size = hparams['title_size']
         self.his_size = hparams['his_size']
         self.k = hparams['k']
 
+        self.index2nid = hparams['news_id']
+
         self.vocab = getVocab('data/dictionaries/vocab_large_{}.pkl'.format('_'.join(hparams['attrs'])))
-        self.nid2index = getId2idx('data/dictionaries/nid2idx_large_dev.json')
-        self.uid2index = getId2idx('data/dictionaries/uid2idx_large_dev.json')
+        self.nid2index = getId2idx('data/dictionaries/nid2idx_large_test.json')
+        self.uid2index = getId2idx('data/dictionaries/uid2idx_large.json')
 
         self.init_news()
         self.init_behaviors()
@@ -511,6 +500,10 @@ class MIND_test(IterableDataset):
                 # click_category_index = self.news_category_array[self.histories[index]]
                 # click_subcategory_index = self.news_subcategory_array[self.histories[index]]
 
+                if self.index2nid:
+                    cdd_ids = [news]
+                    his_ids = self.histories[index]
+
                 user_index.append(self.uindexes[index])
 
                 candidate_title_pad = [(self.title_size - self.title_pad[news][0])*[1] + self.title_pad[news][0]*[0]]
@@ -524,7 +517,7 @@ class MIND_test(IterableDataset):
                     # print(self.his_pad[idx])
                     his_mask[-self.his_pad[index]:] = [True]
                 
-                yield {
+                back_dic = {
                     "impression_index": impr_index,
                     "user_index": np.asarray(user_index),
                     "clicked_title": click_title_index,
@@ -535,8 +528,14 @@ class MIND_test(IterableDataset):
                     "candidate_title": np.asarray(candidate_title_index),
                     # "candidate_category": np.asarray(candidate_category_index),
                     # "candidate_subcategory": np.asarray(candidate_subcategory_index),
-                    "candidate_title_pad": np.asarray(candidate_title_pad),
+                    "candidate_title_pad": np.asarray(candidate_title_pad)
                 }
+
+                if self.index2nid:
+                    back_dic['cdd_id'] = cdd_ids
+                    back_dic['his_id'] = his_ids
+
+                yield back_dic
 
 class MIND_news(Dataset):
     """ Map style dataset
@@ -547,11 +546,11 @@ class MIND_news(Dataset):
         news_file(str): path of news_file
         behaviors_file(str): path of behaviors_file
     """
-    def __init__(self,hparams,news_file,col_spliter='\t'):
+    def __init__(self,hparams,news_file,mode='train'):
         # initiate the whole iterator
         self.npratio = hparams['npratio']
         self.news_file = news_file
-        self.col_spliter = col_spliter        
+        self.col_spliter = '\t'     
         self.batch_size = hparams['batch_size']
         self.title_size = hparams['title_size']
         self.his_size = hparams['his_size']
@@ -559,7 +558,7 @@ class MIND_news(Dataset):
         self.k = hparams['k']
 
         self.vocab = getVocab('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['scale'],'_'.join(hparams['attrs'])))
-        self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_train.json'.format(hparams['scale']))
+        self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_{}.json'.format(hparams['scale'], mode))
     
     def __len__(self):
         if not hasattr(self, "news_title_array"):

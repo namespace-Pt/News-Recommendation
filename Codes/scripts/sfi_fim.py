@@ -31,9 +31,14 @@ if __name__ == "__main__":
         from models.SFI_FIM import SFIModel_unified
         sfiModel = SFIModel_unified(vocab=vocab,hparams=hparams).to(device)
     
-    elif hparams['select'] == 'pipeline':
-        from models.SFI_FIM import SFIModel_pipeline
-        sfiModel = SFIModel_pipeline(vocab=vocab,hparams=hparams).to(device)
+    elif hparams['select'] == 'pipeline1':
+        from models.SFI_FIM import SFIModel_pipeline1
+        sfiModel = SFIModel_pipeline1(vocab=vocab,hparams=hparams).to(device)
+
+    elif hparams['select'] == 'pipeline2':
+        from models.SFI_FIM import SFIModel_pipeline2
+        sfiModel = SFIModel_pipeline2(vocab=vocab,hparams=hparams).to(device)
+    
 
     elif hparams['select'] == 'gating':
         from models.SFI_FIM import SFIModel_gating

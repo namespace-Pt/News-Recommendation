@@ -112,7 +112,7 @@ class NPAModel(nn.Module):
         # return tensor of batch_size * 1 * title_size
         attn_results = torch.bmm(query,keys)
         # return tensor of batch_size * title_size * 1
-        attn_weights = self.softmax(attn_results,dim=2).permute(0,2,1)
+        attn_weights = self.softmax(attn_results).permute(0,2,1)
         
         # return tensor of batch_size * filter_num
         attn_aggr = torch.bmm(keys,attn_weights).squeeze()
@@ -135,7 +135,7 @@ class NPAModel(nn.Module):
         # return tensor of batch_size * 1 * his_size
         attn_results = torch.bmm(query,keys)
         # return tensor of batch_size * title_size * 1
-        attn_weights = self.softmax(attn_results,dim=2).permute(0,2,1)
+        attn_weights = self.softmax(attn_results).permute(0,2,1)
         
         # return tensor of batch_size * filter_num
         attn_aggr = torch.bmm(keys,attn_weights).squeeze()
