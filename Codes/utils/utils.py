@@ -519,8 +519,8 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
     
     for epoch in range(hparams['epochs']):
         epoch_loss = 0
-
-        for step,x in tqdm(enumerate(dataloader)):
+        tqdm_ = tqdm(enumerate(dataloader))
+        for step,x in tqdm_:
             pred = model(x)
             label = getLabel(model,x)
             loss = loss_func(pred,label)
