@@ -349,16 +349,18 @@ def dcg_score(y_true, y_score, k=10):
     discounts = np.log2(np.arange(len(y_true)) + 2)
     return np.sum(gains / discounts)
 
-def _cal_metric(imp_indexes, labels, preds, metrics):
+def cal_metric(labels, preds, metrics):
     """Calculate metrics,such as auc, logloss.
-    
-    FIXME: 
-        refactor this with the reco metrics and make it explicit.
     """
     res = {}
     for metric in metrics:
         if metric == "auc":
-            auc = roc_auc_score(np.asarray(labels),np.asarray(preds))
+            auc = np.mean(
+                [
+                    roc_auc_score(each_labels, each_preds)
+                    for each_labels, each_preds in zip(labels, preds)
+                ]
+            )
             res["auc"] = round(auc, 4)
         elif metric == "rmse":
             rmse = mean_squared_error(np.asarray(labels), np.asarray(preds))
@@ -414,60 +416,9 @@ def _cal_metric(imp_indexes, labels, preds, metrics):
                     ]
                 )
                 res["hit@{0}".format(k)] = round(hit_temp, 4)
-        elif metric == "group_auc":
-            result = []
-            # group_auc = np.mean(
-            #     [
-            #         roc_auc_score(each_labels, each_preds)
-            #         for each_labels, each_preds in zip(labels, preds)
-            #     ]
-            # )
-            
-            for each_imprs, each_labels, each_preds in zip(imp_indexes, labels, preds):
-                try:
-                    result.append(roc_auc_score(each_labels,each_preds))
-                except:
-                    print("auc computaion error in impression:{}, labels of which is {}, predictions of which are {}".format(each_imprs,each_labels,each_preds))
-                    continue
-            
-            group_auc = np.mean(result)    
-            res["group_auc"] = round(group_auc, 4)
         else:
             raise ValueError("not define this metric {0}".format(metric))
     return res
-
-
-def group_labels(impression_ids, labels, preds):
-    """ Devide labels and preds into several group acscording to impression_ids
-
-    Args:
-        labels (list of batch_size): ground truth label list.
-        preds (list of batch_size): prediction score list.
-        impression_ids (list of batch_size): group key list.
-
-    Returns:
-        all_labels: labels after group.
-        all_preds: preds after group.
-
-    """
-
-    all_keys = list(set(impression_ids))
-    all_keys.sort()
-    group_labels = {k: [] for k in all_keys}
-    group_preds = {k: [] for k in all_keys}
-
-    for l, p, k in zip(labels, preds, impression_ids):
-        group_labels[k].append(l)
-        group_preds[k].append(p)
-
-    all_labels = []
-    all_preds = []
-
-    for k in all_keys:
-        all_labels.append(group_labels[k])
-        all_preds.append(group_preds[k])
-
-    return all_keys, all_labels, all_preds
 
 def run_eval(model,dataloader,interval):
     """ making prediction and gather results into groups according to impression_id, display processing every interval batches
@@ -491,14 +442,60 @@ def run_eval(model,dataloader,interval):
         preds.extend(model.forward(batch_data_input).tolist())
         label = batch_data_input['labels'].squeeze(dim=-1).tolist()
         labels.extend(label)
-        
         imp_indexes.extend(batch_data_input['impression_index'])
     
-    impr_indexes, labels, preds = group_labels(
-        imp_indexes,labels, preds
-    )
+    all_keys = list(set(imp_indexes))
+    all_keys.sort()
+    group_labels = {k: [] for k in all_keys}
+    group_preds = {k: [] for k in all_keys}
+
+    for l, p, k in zip(labels, preds, imp_indexes):
+        group_labels[k].append(l)
+        group_preds[k].append(p)
+
+    all_labels = []
+    all_preds = []
+
+    for k in all_keys:
+        all_labels.append(group_labels[k])
+        all_preds.append(group_preds[k])
     
-    return impr_indexes, labels, preds
+    return group_labels.keys(), all_labels, all_preds
+
+def evaluate(model,hparams,dataloader,interval=100):
+    """Evaluate the given file and returns some evaluation metrics.
+    
+    Args:
+        model(nn.Module)
+        hparams(dict)
+        dataloader(torch.utils.data.DataLoader): provide data
+        interval(int): within each epoch, the interval of steps to display loss
+
+    Returns:
+        dict: A dictionary contains evaluation metrics.
+    """
+    hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
+    param_list = ['query_words','query_levels']
+    model.eval()
+    model.cdd_size = 1
+    imp_indexes, labels, preds = run_eval(model,dataloader,interval)
+    res = cal_metric(labels,preds,model.metrics.split(','))
+    print("evaluation results:{}".format(res))
+    with open('performance.log','a+') as f:
+        # model_name = '{}-{}_{}_epoch{}_step{}_[hs={},topk={}]:'.format(hparams['name'],hparams['select'],hparams['scale'], str(hparams['epochs']), str(hparams['save_step']), str(hparams['his_size']), str(hparams['k']))
+        # f.write(model_name + '\n')
+        d = {}
+        for k,v in hparams.items():
+            if k in hparam_list:
+                d[k] = v
+        for name, param in model.named_parameters():
+            if name in param_list:
+                d[name] = tuple(param.shape)
+
+        f.write(str(d)+'\n')
+        f.write(str(res) +'\n')
+        f.write('\n')        
+    return res
 
 def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, interval=100, save_step=None, save_each_epoch=False):
     ''' train model and print loss meanwhile
@@ -568,41 +565,6 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
 
     return model
 
-def evaluate(model,hparams,dataloader,interval=100):
-    """Evaluate the given file and returns some evaluation metrics.
-    
-    Args:
-        model(nn.Module)
-        hparams(dict)
-        dataloader(torch.utils.data.DataLoader): provide data
-        interval(int): within each epoch, the interval of steps to display loss
-
-    Returns:
-        dict: A dictionary contains evaluation metrics.
-    """
-    hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
-    param_list = ['query_words','query_levels']
-    model.eval()
-    model.cdd_size = 1
-    imp_indexes, group_labels, group_preds = run_eval(model,dataloader,interval)
-    res = _cal_metric(imp_indexes,group_labels,group_preds,model.metrics.split(','))
-    print("evaluation results:{}".format(res))
-    with open('performance.log','a+') as f:
-        # model_name = '{}-{}_{}_epoch{}_step{}_[hs={},topk={}]:'.format(hparams['name'],hparams['select'],hparams['scale'], str(hparams['epochs']), str(hparams['save_step']), str(hparams['his_size']), str(hparams['k']))
-        # f.write(model_name + '\n')
-        d = {}
-        for k,v in hparams.items():
-            if k in hparam_list:
-                d[k] = v
-        for name, param in model.named_parameters():
-            if name in param_list:
-                d[name] = tuple(param.shape)
-
-        f.write(str(d)+'\n')
-        f.write(str(res) +'\n')
-        f.write('\n')        
-    return res
-
 def train(model, hparams, loaders, tb=False, interval=100):
     """ wrap training process
     
@@ -630,13 +592,21 @@ def train(model, hparams, loaders, tb=False, interval=100):
     print("evaluating...")
     evaluate(model, hparams, loaders[1])
 
-    if loader_validate is not None:
+    # loader_train, loader_dev, loader_validate
+    if len(loaders) > 2:
         print("validating...")
         evaluate(model, hparams, loaders[2])
     
     return model
 
 def test(model, hparams, loader_test):
+    """ test the model on test dataset of MINDlarge
+    
+    Args:
+        model
+        hparams
+        loader_test: DataLoader of MINDlarge_test
+    """
     print("testing...")
     model.cdd_size = 1
     model.eval()
@@ -644,7 +614,7 @@ def test(model, hparams, loader_test):
     if hparams['select']:
         save_path = 'data/results/prediction={}-{}_{}_epoch{}_step{}_[hs={},topk={}].txt'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'],hparams['save_step'],str(hparams['his_size']),str(hparams['k']))
     else:
-        save_path = 'data/results/prediction={}_{}_epoch{}_step{}_[hs={},topk={}].txt'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'],hparams['save_step'],str(hparams['his_size']),str(hparams['k']))
+        save_path = 'data/results/prediction={}_{}_epoch{}_step{}_[hs={},topk={}].txt'.format(hparams['name'],hparams['scale'],hparams['epochs'],hparams['save_step'],str(hparams['his_size']),str(hparams['k']))
     
     with open(save_path, 'w') as f:
         preds = []

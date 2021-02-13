@@ -160,3 +160,4 @@ see [HERE](manual/Preprocess.ipynb)
 - [ ] t-test
 - [ ] inference time comparison
 - [ ] pipeline performance comparison
+- [ ] NRMS bug cdd_size=1 but results are bs*5

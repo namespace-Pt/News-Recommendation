@@ -3,13 +3,13 @@ from torch.utils.data import Dataset,IterableDataset
 from .utils import newsample,getId2idx,word_tokenize_vocab,getVocab
 
 class MIND(IterableDataset):
-    """ Iterable Dataset for MIND
+    """ Iterable Dataset for MIND, yield positive samples in each impression
 
     Args:
         hparams(dict): pre-defined dictionary of hyper parameters
-        mode(str): train/test
         news_file(str): path of news_file
         behaviors_file(str): path of behaviors_file
+        shuffle(bool): whether to shuffle the order of impressions
     """
     def __init__(self,hparams,news_file,behaviors_file,shuffle=False):
         # initiate the whole iterator
@@ -198,13 +198,13 @@ class MIND(IterableDataset):
                 yield back_dic
 
 class MIND_iter(IterableDataset):
-    """ Iterator style dataset
+    """ Iterator Dataset for MIND, yield every behaviors in each impression with labels
 
     Args:
         hparams(dict): pre-defined dictionary of hyper parameters
-        mode(str): train/test
         news_file(str): path of news_file
         behaviors_file(str): path of behaviors_file
+        mode(str): train/dev(default), which data to load
     """
     def __init__(self,hparams,news_file,behaviors_file,mode='dev'):
         # initiate the whole iterator
@@ -371,11 +371,10 @@ class MIND_iter(IterableDataset):
                 yield back_dic
 
 class MIND_test(IterableDataset):
-    """ Iterator style dataset
+    """ Iterator Dataset for MIND, yield every behaviors in each impression without labels
 
     Args:
         hparams(dict): pre-defined dictionary of hyper parameters
-        mode(str): train/test
         news_file(str): path of news_file
         behaviors_file(str): path of behaviors_file
     """
@@ -538,13 +537,12 @@ class MIND_test(IterableDataset):
                 yield back_dic
 
 class MIND_news(Dataset):
-    """ Map style dataset
+    """ Map Dataset for MIND, return each news, intended for pipeline(obtaining news representation in advance)
 
     Args:
         hparams(dict): pre-defined dictionary of hyper parameters
-        mode(str): train/test
         news_file(str): path of news_file
-        behaviors_file(str): path of behaviors_file
+        mode(str): train/test
     """
     def __init__(self,hparams,news_file,mode='train'):
         # initiate the whole iterator

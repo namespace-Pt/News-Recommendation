@@ -194,12 +194,12 @@ class NRMSModel(nn.Module):
         Returns:
             score: tensor of [batch_size, cdd_size]
         """
-        score = torch.matmul(cdd_news_repr,user_repr.permute(0,2,1))
+        score = torch.matmul(cdd_news_repr,user_repr.permute(0,2,1)).squeeze(dim=-1)
         if self.cdd_size > 1:
             score = nn.functional.log_softmax(score,dim=1)
         else:
             score = torch.sigmoid(score)
-        return score.squeeze()
+        return score
 
     def forward(self,x):
         if x['candidate_title'].shape[0] != self.batch_size:
