@@ -61,7 +61,7 @@ class NRMSModel(nn.Module):
         
         attn_output = torch.matmul(attn_weights,value)
 
-        return attn_output.squeeze(dim=-2)
+        return attn_output
 
     def _self_attention(self,input,head_idx,mode):
         """ apply self attention of head#idx over input tensor
@@ -121,7 +121,7 @@ class NRMSModel(nn.Module):
 
         attn_output = self._scaled_dp_attention(query,key,value)
 
-        return attn_output.squeeze(dim=-2)
+        return attn_output
 
 
     def _multi_head_self_attention(self,input,mode):
@@ -194,7 +194,7 @@ class NRMSModel(nn.Module):
         Returns:
             score: tensor of [batch_size, cdd_size]
         """
-        score = torch.bmm(cdd_news_repr,user_repr.permute(0,2,1))
+        score = torch.matmul(cdd_news_repr,user_repr.permute(0,2,1))
         if self.cdd_size > 1:
             score = nn.functional.log_softmax(score,dim=1)
         else:

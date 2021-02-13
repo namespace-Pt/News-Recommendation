@@ -33,4 +33,4 @@ if __name__ == "__main__":
         train(npaModel, hparams, loaders, tb=True)
     
     elif hparams['mode'] == 'test':
-        test(npaModel, hparams)
+        test(npaModel, hparams, loaders[0])

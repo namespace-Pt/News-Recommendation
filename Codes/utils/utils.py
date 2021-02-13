@@ -548,7 +548,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
                     if hparams['select']:
                         save_path = 'models/model_params/{}-{}_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step, str(hparams['his_size']), str(hparams['k']))
                     else:
-                        save_path = 'models/model_params/{}_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step, str(hparams['his_size']), str(hparams['k']))
+                        save_path = 'models/model_params/{}_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],epoch + 1,step, str(hparams['his_size']), str(hparams['k']))
                     torch.save(model.state_dict(), save_path)
                     print("saved model of step {} at epoch {}".format(step, epoch+1))
 
