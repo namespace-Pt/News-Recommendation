@@ -105,7 +105,7 @@ class NRMSModel(nn.Module):
 
         attn_output = self._scaled_dp_attention(query,key,value).squeeze(dim=-2)
 
-        return attn_output.squeeze(dim=-2)
+        return attn_output
 
     def _news_attention(self, query, key, value):
         """ apply news-level attention

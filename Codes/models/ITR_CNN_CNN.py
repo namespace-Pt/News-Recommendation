@@ -35,8 +35,8 @@ class GCAModel(nn.Module):
             nn.MaxPool2d(kernel_size=(3,3), stride=(3,3))
         )
         
-        # 144 is derived from SeqCNN
-        self.learningToRank = nn.Linear(144, 1)
+        # 64 is derived from SeqCNN
+        self.learningToRank = nn.Linear(64, 1)
         # self.learningToRank = nn.Linear(self.repr_dim * self.his_size, 1)
 
     def _scaled_dp_attention(self,query,key,value):
@@ -104,14 +104,14 @@ class GCAModel(nn.Module):
         Returns:
             score: tensor of [batch_size, cdd_size]
         """
-        score = self.learningToRank(fusion_vectors)
+        score = self.learningToRank(fusion_vectors).squeeze(dim=-1)
 
         if self.cdd_size > 1:
             score = nn.functional.log_softmax(score,dim=1)
         else:
             score = torch.sigmoid(score)
         
-        return score.squeeze()
+        return score
 
     def forward(self,x):
         if x['candidate_title'].shape[0] != self.batch_size:

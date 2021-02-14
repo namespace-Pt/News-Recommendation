@@ -123,7 +123,7 @@ class FIMModel(nn.Module):
         Returns:
             score: tensor of [batch_size, npratio+1], which is normalized click probabilty
         """
-        score = self.learningToRank(fusion_tensors)
+        score = self.learningToRank(fusion_tensors).squeeze(dim=-1)
         if self.cdd_size > 1:
             score = nn.functional.log_softmax(score,dim=1)
         else:
@@ -143,5 +143,5 @@ class FIMModel(nn.Module):
                 
         fusion_tensors = self._fusion(cdd_news_reprs, his_news_reprs)
             
-        score = self._click_predictor(fusion_tensors).squeeze()
+        score = self._click_predictor(fusion_tensors)
         return score

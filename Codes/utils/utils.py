@@ -438,8 +438,8 @@ def run_eval(model,dataloader,interval):
     imp_indexes = []
     
     for i,batch_data_input in tqdm(enumerate(dataloader)):
-        
-        preds.extend(model.forward(batch_data_input).tolist())
+        pred = model.forward(batch_data_input).squeeze(dim=-1).tolist()
+        preds.extend(pred)
         label = batch_data_input['labels'].squeeze(dim=-1).tolist()
         labels.extend(label)
         imp_indexes.extend(batch_data_input['impression_index'])

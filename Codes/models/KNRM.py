@@ -110,13 +110,13 @@ class KNRMModel(nn.Module):
         Returns:
             score: tensor of [batch_size, cdd_size]
         """
-        score = self.learningToRank(F.tanh(pooling_vectors))
+        score = self.learningToRank(F.tanh(pooling_vectors)).squeeze(dim=-1)
 
         if self.cdd_size > 1:
             score = nn.functional.log_softmax(score,dim=1)
         else:
             score = torch.sigmoid(score)
-        return score.squeeze()
+        return score
 
     def forward(self, x):
         fusion_matrices = self._fusion(x['candidate_title'].long().to(self.device),x['clicked_title'].long().to(self.device))
