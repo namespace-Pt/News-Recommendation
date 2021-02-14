@@ -13,16 +13,11 @@ scikit-learn
 ## Dataset
 download MIND dataset [HERE](https://msnews.github.io/)
 ### Simple Analysis
-see [HERE](manual/Preprocess.ipynb)
+see [Preprocess.ipynb](manual/Preprocess.ipynb)
 ## Instruction
+- **check out [Preprocess.ipynb](manual/Preprocess.ipynb) first to get familiar with datasets**
 - **you can customize your dataset path in two ways:**
-  - modify default value of `path` in `prepare()` in `utils.py` to your own **top directory of `MINDxxxx`**
   - explicitly pass `path` parameter your own **top directory of `MINDxxxx`** when calling `prepare()`
-
-- **ATTENTION! default path of model parameters is**
-  ```
-  models/model_params
-  ``` 
   
 - you can run the specific notebook to train and test the model
   ```shell
@@ -31,38 +26,9 @@ see [HERE](manual/Preprocess.ipynb)
 
 - you can alse run **python scripts** in terminal, type in `--help/-h` to get detail explanation of arguments
   ```shell
-  usage: [script_name].py [-h] -s {demo,small,large} [-m {train,test}] [-e EPOCHS] [-bs BATCH_SIZE] [-ts TITLE_SIZE] [-hs HIS_SIZE] [-c {0,1}] [-se]
-                       [-ss SAVE_STEP] [-te] [-k K] [-np NPRATIO] [-mc METRICS] [--select {greedy,pipeline,parallel,unified,gating}]
-
-  optional arguments:
-    -h, --help            show this help message and exit
-    -s {demo,small,large}, --scale {demo,small,large}
-                          data scale
-    -m {train,test}, --mode {train,test}
-                          train or test
-    -e EPOCHS, --epochs EPOCHS
-                          epochs to train the model
-    -bs BATCH_SIZE, --batch_size BATCH_SIZE
-                          batch size
-    -ts TITLE_SIZE, --title_size TITLE_SIZE
-                          news title size
-    -hs HIS_SIZE, --his_size HIS_SIZE
-                          history size
-    -c {0,1}, --cuda {0,1}
-                          device to run on
-    -se, --save_each_epoch
-                          if clarified, save model of each epoch
-    -ss SAVE_STEP, --save_step SAVE_STEP
-                          if clarified, save model at the interval of given steps
-    -te, --train_embedding
-                          if clarified, word embedding will be fine-tuned
-    -k K, --topk K        intend for topk baseline, if clarified, top k history are involved in interaction calculation
-    -np NPRATIO, --npratio NPRATIO
-                          the number of unclicked news to sample when training
-    -mc METRICS, --metrics METRICS
-                          metrics for evaluating the model, if multiple metrics are needed, seperate with ','
-    --select {greedy,pipeline,parallel,unified,gating}
-                          choose model for selecting
+  usage: [script_name].py [-h] -s {demo,small,large} [-m {train,dev,test}] [-e EPOCHS] [-bs BATCH_SIZE] [-ts TITLE_SIZE] [-hs HIS_SIZE] [-c {0,1}] [-se]
+              [-ss SAVE_STEP] [-te] [-np NPRATIO] [-mc METRICS] [-k K] [--select {pipeline,unified,gating}] [--integrate {gate,harmony}]
+              [-hn HEAD_NUM] [-vd VALUE_DIM] [-qd QUERY_DIM] [-v] [-nid]
   ```
   - **e.g. train FIM model on MINDlarge for 2 epochs. At the end of each step, save the model, meanwhile, save model every 2000 steps**
     ```shell
@@ -74,6 +40,10 @@ see [HERE](manual/Preprocess.ipynb)
     cd Codes/
     python scripts/fim.py -s large -m test --save_step 4000
     ```
+- **ATTENTION! default path of model parameters is**
+  ```
+  models/model_params
+  ``` 
 
 ## File Structure
 ### `/data`: basic dictionaries
@@ -100,16 +70,12 @@ see [HERE](manual/Preprocess.ipynb)
 ### `/models`: reproduced models
   - NPA
     - [[23] Npa Neural news recommendation with personalized attention](https://dl.acm.org/doi/abs/10.1145/3292500.3330665)
-    <!-- - ![](../Resources/npa_large_10.png) -->
   - FIM
     - [[29] Fine-grained Interest Matching for Neural News Recommendation](https://www.aclweb.org/anthology/2020.acl-main.77.pdf)
-    <!-- - ![](../Resources/fim_small_6.png) -->
   - NRMS
     - [[22] Neural News Recommendation with Multi-Head Self-Attention](https://www.aclweb.org/anthology/D19-1671.pdf)
-    <!-- - ![](../Resources/nrms_large_6.png) -->
   - KNRM
-    - [[49] End-to-End Neural Ad-hoc Ranking with Kernel Pooling](https://dl.acm.org/doi/pdf/10.1145/3077136.3080809)
-    <!-- - ![](../Resources/knrm_small_10.png) -->
+    - [[49] End-to-End Neural Ad-hoc Ranking with Kernel Pooling](https://dl.acm.org/doi/pdf/10.1145/3077136.3080809)  
   - Soft Top-k Operator 
     - [[51] Differentiable Top-K Operator with Optimal Transport](https://arxiv.org/pdf/2002.06504.pdf)
     - *copy code from paper*
@@ -160,4 +126,3 @@ see [HERE](manual/Preprocess.ipynb)
 - [ ] t-test
 - [ ] inference time comparison
 - [ ] pipeline performance comparison
-- [ ] NRMS bug cdd_size=1 but results are bs*5
