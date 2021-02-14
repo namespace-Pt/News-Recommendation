@@ -30,7 +30,6 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
               [-ss SAVE_STEP] [-te] [-np NPRATIO] [-mc METRICS] [-k K] [--select {pipeline,unified,gating}] [--integrate {gate,harmony}]
               [-hn HEAD_NUM] [-vd VALUE_DIM] [-qd QUERY_DIM] [-v] [-nid]
   ```
-  
   - **e.g. train FIM model on MINDlarge for 2 epochs. At the end of each step, save the model, meanwhile, save model every 2000 steps**
     ```shell
     cd Codes/
