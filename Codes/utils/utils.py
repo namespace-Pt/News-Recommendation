@@ -675,7 +675,7 @@ def load_hparams(hparams):
     parser.add_argument("-te","--train_embedding", dest="train_embedding", help="if clarified, word embedding will be fine-tuned", action='store_true', default=True)
     
     parser.add_argument("-np","--npratio", dest="npratio", help="the number of unclicked news to sample when training", type=int, default=4)
-    parser.add_argument("-mc","--metrics", dest="metrics", help="metrics for evaluating the model, if multiple metrics are needed, seperate with ','", type=str, default="group_auc,mean_mrr,ndcg@5,ndcg@10")
+    parser.add_argument("-mc","--metrics", dest="metrics", help="metrics for evaluating the model, if multiple metrics are needed, seperate with ','", type=str, default="auc,mean_mrr,ndcg@5,ndcg@10")
 
     parser.add_argument("-k","--topk", dest="k", help="intend for topk baseline, if clarified, top k history are involved in interaction calculation", type=int, default=-1)
     parser.add_argument("--select", dest="select", help="choose model for selecting", choices=['pipeline','unified','gating'], default=None)
@@ -739,7 +739,7 @@ def load_hparams(hparams):
 
     return hparams
 
-def prepare(hparams, path='/home/peitian_zhang/Data/MIND'):
+def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True):
     from .MIND import MIND, MIND_iter, MIND_test
     """ prepare dataloader and several paths
     
@@ -757,7 +757,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND'):
         behavior_file_train = path+'/MIND'+hparams['scale']+'_train/behaviors.tsv'
         behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
 
-        dataset_train = MIND(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, shuffle=True)
+        dataset_train = MIND(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, shuffle=shuffle)
         dataset_dev = MIND_iter(hparams=hparams,news_file=news_file_dev,behaviors_file=behavior_file_dev)
 
         vocab = dataset_train.vocab

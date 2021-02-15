@@ -142,7 +142,6 @@ class MIND(IterableDataset):
                 candidate_title_index = []
                 # candidate_category_index = []
                 # candidate_subcategory_index = []
-                user_index = []
                 his_mask = np.zeros((self.his_size,1),dtype=bool)
 
                 label = [1] + [0] * self.npratio
@@ -174,9 +173,11 @@ class MIND(IterableDataset):
                 else:
                     his_mask[-self.his_pad[index]:] = [True]
 
-                user_index.append(self.uindexes[index])
+                user_index = [self.uindexes[index]]
+                # impression_index = [self.impr_indexes[index]]
 
                 back_dic = {
+                    # "impression_index":np.asarray(impression_index),
                     "user_index": np.asarray(user_index),
                     # "cdd_mask": np.asarray(neg_pad),
                     "his_mask": his_mask,
