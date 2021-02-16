@@ -9,8 +9,7 @@
 ## 声明
 - 要引用、转载，请附本仓库链接[https://github.com/namespace-Pt/News-Recommendation]
 
-## Highlight  
-
+## Highlight
 - 黄：需要看的点
 - 蓝：看懂后自己提醒的需要注意的点
 - 绿：不认识的单词
