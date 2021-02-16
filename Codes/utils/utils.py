@@ -740,7 +740,7 @@ def load_hparams(hparams):
     return hparams
 
 def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True):
-    from .MIND import MIND, MIND_iter, MIND_test
+    from .MIND import MIND, MIND_test
     """ prepare dataloader and several paths
     
     Args:
@@ -757,8 +757,8 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True):
         behavior_file_train = path+'/MIND'+hparams['scale']+'_train/behaviors.tsv'
         behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
 
-        dataset_train = MIND(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, shuffle=shuffle)
-        dataset_dev = MIND_iter(hparams=hparams,news_file=news_file_dev,behaviors_file=behavior_file_dev)
+        dataset_train = MIND(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train,shuffle=shuffle)
+        dataset_dev = MIND(hparams=hparams,news_file=news_file_dev,behaviors_file=behavior_file_dev,npratio=0)
 
         vocab = dataset_train.vocab
         embedding = GloVe(dim=300,cache='.vector_cache')
@@ -768,7 +768,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True):
         loader_dev = DataLoader(dataset_dev,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
     
         if hparams['validate']:
-            dataset_validate = MIND_iter(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, mode='train')
+            dataset_validate = MIND(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, npratio=0)
             loader_validate = DataLoader(dataset_validate,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
             return vocab, [loader_train, loader_dev, loader_validate]
         else:
