@@ -13,7 +13,6 @@ if __name__ == "__main__":
         'dropout_p':0.2,
         'embedding_dim':300,
         'filter_num':150,
-        'attrs': ['title']
     }
     hparams = load_hparams(hparams)
     device = torch.device(hparams['device'])
@@ -37,12 +36,14 @@ if __name__ == "__main__":
         sfiModel = SFIModel_gating(vocab=vocab,hparams=hparams).to(device)
 
     if hparams['mode'] == 'dev':
-        sfiModel.load_state_dict(torch.load(hparams['save_path']))
+        state_dict = torch.load(hparams['save_path'])
+        state_dict = {k:v for k,v in state_dict.items() if k not in ['news_reprs.weight','news_embeddings.weight']}
+        sfiModel.load_state_dict(state_dict,strict=False)
         print("testing...")
         evaluate(sfiModel,hparams,loaders[1])
 
     elif hparams['mode'] == 'train':
-        train(sfiModel, hparams, loaders, tb=True)
+        train(sfiModel, hparams, loaders)
     
     elif hparams['mode'] == 'test':
         print(loaders)

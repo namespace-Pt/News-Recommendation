@@ -15,7 +15,6 @@ if __name__ == "__main__":
         'embedding_dim':300,
         'value_dim':16,
         'head_num':16,
-        'attrs': ['title'],
     }
     hparams = load_hparams(hparams)
     device = torch.device(hparams['device'])
@@ -35,7 +34,7 @@ if __name__ == "__main__":
         evaluate(gcaModel,hparams,loaders[1])
 
     elif hparams['mode'] == 'train':
-        train(gcaModel, hparams, loaders, tb=True)
+        train(gcaModel, hparams, loaders)
     
     elif hparams['mode'] == 'test':
         test(gcaModel, hparams, loaders[0])

@@ -12,7 +12,6 @@ if __name__ == "__main__":
         'name':'knrm',
         'embedding_dim':300,
         'kernel_num':11,
-        'attrs': ['title'],
     }
 
     hparams = load_hparams(hparams)
@@ -27,7 +26,7 @@ if __name__ == "__main__":
         evaluate(knrmModel,hparams,loaders[1])
 
     elif hparams['mode'] == 'train':
-        train(knrmModel, hparams, loaders, tb=True)
+        train(knrmModel, hparams, loaders)
     
     elif hparams['mode'] == 'test':
         test(knrmModel, hparams, loaders[0])

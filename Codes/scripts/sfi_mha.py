@@ -12,7 +12,7 @@ if __name__ == "__main__":
         'name':'sfi-mha',
         'dropout_p':0.2,
         'embedding_dim':300,
-        'attrs': ['title']
+
     }
     hparams = load_hparams(hparams)
     device = torch.device(hparams['device'])
@@ -32,7 +32,7 @@ if __name__ == "__main__":
         evaluate(sfiModel,hparams,loaders[1])
 
     elif hparams['mode'] == 'train':
-        train(sfiModel, hparams, loaders, tb=True)
+        train(sfiModel, hparams, loaders)
     
     elif hparams['mode'] == 'test':
         test(sfiModel, hparams, loaders[0])

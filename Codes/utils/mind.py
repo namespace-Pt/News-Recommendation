@@ -31,7 +31,7 @@ class MIND(IterableDataset):
 
         mode = re.search('{}_(.*)/'.format(hparams['scale']),news_file).group(1)
 
-        self.vocab = getVocab('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['scale'],'_'.join(hparams['attrs'])))
+        self.vocab = getVocab('data/dictionaries/vocab_{}.pkl'.format('_'.join(hparams['attrs'])))
         self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_{}.json'.format(hparams['scale'],mode))
         self.uid2index = getId2idx('data/dictionaries/uid2idx_{}.json'.format(hparams['scale']))
 
@@ -283,7 +283,7 @@ class MIND_test(IterableDataset):
 
         self.index2nid = hparams['news_id']
 
-        self.vocab = getVocab('data/dictionaries/vocab_large_{}.pkl'.format('_'.join(hparams['attrs'])))
+        self.vocab = getVocab('data/dictionaries/vocab_{}.pkl'.format('_'.join(hparams['attrs'])))
         self.nid2index = getId2idx('data/dictionaries/nid2idx_large_test.json')
         self.uid2index = getId2idx('data/dictionaries/uid2idx_large.json')
 
@@ -437,7 +437,7 @@ class MIND_news(Dataset):
         news_file(str): path of news_file
         mode(str): train/test
     """
-    def __init__(self,hparams,news_file,mode='train'):
+    def __init__(self,hparams,news_file):
         # initiate the whole iterator
         self.npratio = hparams['npratio']
         self.news_file = news_file
@@ -448,7 +448,9 @@ class MIND_news(Dataset):
         self.attrs = hparams['attrs']
         self.k = hparams['k']
 
-        self.vocab = getVocab('data/dictionaries/vocab_{}_{}.pkl'.format(hparams['scale'],'_'.join(hparams['attrs'])))
+        mode = re.search('{}_(.*)/'.format(hparams['scale']),news_file).group(1)
+
+        self.vocab = getVocab('data/dictionaries/vocab_{}.pkl'.format('_'.join(hparams['attrs'])))
         self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_{}.json'.format(hparams['scale'], mode))
     
     def __len__(self):

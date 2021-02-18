@@ -13,7 +13,6 @@ if __name__ == "__main__":
         'dropout_p':0.2,
         'filter_num':150,
         'embedding_dim':300,
-        'attrs': ['title'],
     }
 
     hparams = load_hparams(hparams)
@@ -28,7 +27,7 @@ if __name__ == "__main__":
         evaluate(fimModel,hparams,loaders[1])
 
     elif hparams['mode'] == 'train':
-        train(fimModel, hparams, loaders, tb=True)
+        train(fimModel, hparams, loaders)
 
     elif hparams['mode'] == 'test':
         test(fimModel, hparams, loaders[0])

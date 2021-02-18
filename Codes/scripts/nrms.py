@@ -16,7 +16,6 @@ if __name__ == "__main__":
         'embedding_dim':300,
         'value_dim':16,
         'head_num':16,
-        'attrs': ['title'],
       }
 
     hparams = load_hparams(hparams)
@@ -31,7 +30,7 @@ if __name__ == "__main__":
         evaluate(nrmsModel,hparams,loaders[1])
 
     elif hparams['mode'] == 'train':
-        train(nrmsModel, hparams, loaders, tb=True)
+        train(nrmsModel, hparams, loaders)
     
     elif hparams['mode'] == 'test':
         test(nrmsModel, hparams, loaders[0])

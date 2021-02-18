@@ -95,7 +95,7 @@ def news_token_generator(news_file_list,tokenizer,attrs):
         
         yield tokenizer(' '.join(content))
 
-def constructVocab(news_file_list, attrs, scale):
+def constructVocab(news_file_list, attrs):
     """
         Build field using torchtext for tokenization
     
@@ -105,7 +105,7 @@ def constructVocab(news_file_list, attrs, scale):
     tokenizer = get_tokenizer('basic_english')
     vocab = build_vocab_from_iterator(news_token_generator(news_file_list,tokenizer,attrs))
 
-    output = open('data/dictionaries/vocab_{}_{}.pkl'.format(scale,','.join(attrs)),'wb')
+    output = open('data/dictionaries/vocab_{}.pkl'.format(','.join(attrs)),'wb')
     pickle.dump(vocab,output)
     output.close()
 
@@ -147,41 +147,39 @@ def constructUid2idx(behavior_file_list, scale):
     json.dump(uid2index,h,ensure_ascii=False)
     h.close()
 
-def constructBasicDict(scale,attrs=['title'],path='/home/peitian_zhang/Data/MIND'):
+def constructBasicDict(attrs=['title'],path='/home/peitian_zhang/Data/MIND'):
     """
         construct basic dictionary
     """
+    news_file_list2 = [path + '/MINDlarge_train/news.tsv', path + '/MINDlarge_dev/news.tsv', path + '/MINDlarge_test/news.tsv']
+    constructVocab(news_file_list2, attrs)
 
-    news_file_list = [path + '/MIND{}_train/news.tsv'.format(scale), path + '/MIND{}_dev/news.tsv'.format(scale), path + '/MIND{}_test/news.tsv'.format(scale)]
-    behavior_file_list = [path + '/MIND{}_train/behaviors.tsv'.format(scale), path + '/MIND{}_dev/behaviors.tsv'.format(scale), path + '/MIND{}_test/behaviors.tsv'.format(scale)]
+    for scale in ['demo','small','large']:
+        news_file_list = [path + '/MIND{}_train/news.tsv'.format(scale), path + '/MIND{}_dev/news.tsv'.format(scale), path + '/MIND{}_test/news.tsv'.format(scale)]
+        behavior_file_list = [path + '/MIND{}_train/behaviors.tsv'.format(scale), path + '/MIND{}_dev/behaviors.tsv'.format(scale), path + '/MIND{}_test/behaviors.tsv'.format(scale)]
+        
+        if scale == 'large':
+            news_file_train = news_file_list[0]
+            news_file_dev = news_file_list[1]
+            news_file_test = news_file_list[2]
 
-    if scale == 'large':
+            constructNid2idx(news_file_train, scale, 'train')
+            constructNid2idx(news_file_dev, scale, 'dev')
+            constructNid2idx(news_file_test, scale, 'test')
 
-        constructVocab(news_file_list, attrs, scale)
+            constructUid2idx(behavior_file_list, scale)
 
-        news_file_train = news_file_list[0]
-        news_file_dev = news_file_list[1]
-        news_file_test = news_file_list[2]
+        else:
+            news_file_list = news_file_list[0:2]
 
-        constructNid2idx(news_file_train, scale, 'train')
-        constructNid2idx(news_file_dev, scale, 'dev')
-        constructNid2idx(news_file_test, scale, 'test')
+            news_file_train = news_file_list[0]
+            news_file_dev = news_file_list[1]
 
-        constructUid2idx(behavior_file_list, scale)
+            constructNid2idx(news_file_train, scale, 'train')
+            constructNid2idx(news_file_dev, scale, 'dev')
 
-    else:
-        news_file_list = news_file_list[0:2]
-
-        constructVocab(news_file_list, attrs, scale)
-
-        news_file_train = news_file_list[0]
-        news_file_dev = news_file_list[1]
-
-        constructNid2idx(news_file_train, scale, 'train')
-        constructNid2idx(news_file_dev, scale, 'dev')
-
-        behavior_file_list = behavior_file_list[0:2]
-        constructUid2idx(behavior_file_list, scale)
+            behavior_file_list = behavior_file_list[0:2]
+            constructUid2idx(behavior_file_list, scale)
 
 
 def tailorData(tsvFile, num):
@@ -529,7 +527,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
             optimizer.step()
             
             if step % interval == 0:
-
+                
                 tqdm_.set_description(
                     "epoch {:d} , step {:d} , loss: {:.4f}".format(epoch+1, step, epoch_loss / step))
                 if writer:
@@ -560,7 +558,13 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
             else:
                 save_path = 'models/model_params/{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],epoch+1, str(hparams['his_size']), str(hparams['k']))
             
-            torch.save(model.state_dict(), save_path)
+            if hparams['select'] == 'pipeline1':
+                state_dict = model.state_dict()
+                state_dict = {k:v for k,v in state_dict.items() if k not in ['news_reprs.weight','news_embeddings.weight']}
+                torch.save(state_dict, save_path)
+            else:
+                torch.save(model.state_dict(), save_path)
+                
             print("saved model of epoch {}".format(epoch+1))
 
     return model
@@ -671,20 +675,21 @@ def load_hparams(hparams):
 
     parser.add_argument("-c","--cuda", dest="cuda", help="device to run on", choices=['0','1'], default='0')
     parser.add_argument("-se","--save_each_epoch", dest="save_each_epoch", help="if clarified, save model of each epoch", action='store_true', default=True)
-    parser.add_argument("-ss","--save_step", dest="save_step", help="if clarified, save model at the interval of given steps", type=int)
+    parser.add_argument("-ss","--save_step", dest="save_step", help="if clarified, save model at the interval of given steps", type=int, default=0)
     parser.add_argument("-te","--train_embedding", dest="train_embedding", help="if clarified, word embedding will be fine-tuned", action='store_true', default=True)
     
     parser.add_argument("-np","--npratio", dest="npratio", help="the number of unclicked news to sample when training", type=int, default=4)
     parser.add_argument("-mc","--metrics", dest="metrics", help="metrics for evaluating the model, if multiple metrics are needed, seperate with ','", type=str, default="auc,mean_mrr,ndcg@5,ndcg@10")
 
-    parser.add_argument("-k","--topk", dest="k", help="intend for topk baseline, if clarified, top k history are involved in interaction calculation", type=int, default=-1)
-    parser.add_argument("--select", dest="select", help="choose model for selecting", choices=['pipeline','unified','gating'], default=None)
+    parser.add_argument("-k","--topk", dest="k", help="intend for topk baseline, if clarified, top k history are involved in interaction calculation", type=int, default=0)
+    parser.add_argument("--select", dest="select", help="choose model for selecting", choices=['pipeline1','pipeline2','unified','gating'], default=None)
     parser.add_argument("--integrate", dest="integration", help="the way history filter is combined", choices=['gate','harmony'], default=None)
 
     parser.add_argument("-hn","--head_num", dest="head_num", help="number of multi-heads", type=int)
     parser.add_argument("-vd","--value_dim", dest="value_dim", help="dimension of projected value", type=int)
     parser.add_argument("-qd","--query_dim", dest="query_dim", help="dimension of projected query", type=int)
 
+    parser.add_argument("-at","--attrs", dest="attrs", help="clarified attributes of news will be yielded by dataloader, seperate with comma", type=str, default='title')
     parser.add_argument("-v","--validate", dest="validate", help="if clarified, evaluate the model on training set", action='store_true')
     parser.add_argument("-nid","--news_id", dest="news_id", help="if clarified, the id of news will be yielded by dataloader", action='store_true')
 
@@ -730,6 +735,7 @@ def load_hparams(hparams):
     if args.integration:
         hparams['integration'] = args.integration
     
+    hparams['attrs'] = args.attrs.split(',')
     hparams['validate'] = args.validate
     hparams['news_id'] = args.news_id
 
@@ -739,8 +745,8 @@ def load_hparams(hparams):
 
     return hparams
 
-def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True):
-    from .MIND import MIND, MIND_test
+def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=False):
+    from .MIND import MIND, MIND_test, MIND_news
     """ prepare dataloader and several paths
     
     Args:
@@ -750,6 +756,31 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True):
         vocab
         loaders(list of dataloaders): 0-loader_train/test, 1-loader_dev, 2-loader_validate
     """
+
+    if news:
+        path='/home/peitian_zhang/Data/MIND'
+        news_file_train = path+'/MIND{}_train/news.tsv'.format(hparams['scale'])
+        news_file_dev = path+'/MIND{}_dev/news.tsv'.format(hparams['scale'])
+
+        dataset_train = MIND_news(hparams, news_file_train)
+        loader_news_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate)
+
+        dataset_dev = MIND_news(hparams, news_file_dev)
+        loader_news_dev = DataLoader(dataset_dev,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate)
+
+        vocab = dataset_train.vocab
+        embedding = GloVe(dim=300,cache='.vector_cache')
+        vocab.load_vectors(embedding)
+
+        if hparams['scale'] == 'large':
+            news_file_test = path+'/MIND{}_test/news.tsv'.format(hparams['scale'])
+            dataset_test = MIND_news(hparams, news_file_test)
+            loader_news_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate)
+
+            return vocab, [loader_news_train, loader_news_dev, loader_news_test]
+        
+        return vocab, [loader_news_train, loader_news_dev]
+    
     if hparams['mode'] in ['train','dev']:
         news_file_train = path+'/MIND'+hparams['scale']+'_train/news.tsv'
         news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
@@ -760,13 +791,13 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True):
         dataset_train = MIND(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train,shuffle=shuffle)
         dataset_dev = MIND(hparams=hparams,news_file=news_file_dev,behaviors_file=behavior_file_dev,npratio=0)
 
+        loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
+        loader_dev = DataLoader(dataset_dev,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
+
         vocab = dataset_train.vocab
         embedding = GloVe(dim=300,cache='.vector_cache')
         vocab.load_vectors(embedding)
 
-        loader_train = DataLoader(dataset_train,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
-        loader_dev = DataLoader(dataset_dev,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
-    
         if hparams['validate']:
             dataset_validate = MIND(hparams=hparams,news_file=news_file_train,behaviors_file=behavior_file_train, npratio=0)
             loader_validate = DataLoader(dataset_validate,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
@@ -783,6 +814,67 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True):
         vocab.load_vectors(embedding)
 
         return vocab, [loader_test]
+
+def pipeline_encode(model, hparams, loaders):
+    news_num_dict = {
+        'demo': {
+            'train': 51282,
+            'dev': 42416
+        },
+        'small': {
+            'train': 51282,
+            'dev': 42416
+        },
+        'large': {
+            'train': 101527,
+            'dev': 72023,
+            'test': 120961
+        }
+    }
+    news_num_train = news_num_dict[hparams['scale']]['train']
+
+    news_reprs = torch.zeros((news_num_train + 1,model.filter_num))
+    news_embeddings = torch.zeros((news_num_train + 1,model.signal_length,model.level,model.filter_num))
+
+    for i,x in tqdm(enumerate(loaders[0])):
+        embedding, repr = model(x)
+        for i in range(embedding.shape[0]):
+            news_reprs[x['news_id'][i]] = repr[i]
+            news_embeddings[x['news_id'][i]] = embedding[i]
+
+    torch.save(news_reprs, 'data/tensors/news_reprs_{}_train-[{}].tensor'.format(hparams['scale'],hparams['name']))
+    torch.save(news_embeddings, 'data/tensors/news_embeddings_{}_train-[{}].tensor'.format(hparams['scale'],hparams['name']))
+
+    news_num_dev = news_num_dict[hparams['scale']]['dev']
+
+    news_reprs = torch.zeros((news_num_dev + 1,model.filter_num))
+    news_embeddings = torch.zeros((news_num_dev + 1,model.signal_length,model.level,model.filter_num))
+
+    for i,x in tqdm(enumerate(loaders[1])):
+        embedding, repr = model(x)
+        for i in range(embedding.shape[0]):
+            news_reprs[x['news_id'][i]] = repr[i]
+            news_embeddings[x['news_id'][i]] = embedding[i]
+
+    torch.save(news_reprs, 'data/tensors/news_reprs_{}_dev-[{}].tensor'.format(hparams['scale'],hparams['name']))
+    torch.save(news_embeddings, 'data/tensors/news_embeddings_{}_dev-[{}].tensor'.format(hparams['scale'],hparams['name']))
+
+    if hparams['mode'] == 'test':
+        news_num_test = news_num_dict[hparams['scale']]['test']
+
+        news_reprs = torch.zeros((news_num_test + 1,model.filter_num))
+        news_embeddings = torch.zeros((news_num_test + 1,model.signal_length,model.level,model.filter_num))
+
+        for i,x in tqdm(enumerate(loaders[1])):
+            embedding, repr = model(x)
+            for i in range(embedding.shape[0]):
+                news_reprs[x['news_id'][i]] = repr[i]
+                news_embeddings[x['news_id'][i]] = embedding[i]
+
+        torch.save(news_reprs, 'data/tensors/news_reprs_{}_test-[{}].tensor'.format(hparams['scale'],hparams['name']))
+        torch.save(news_embeddings, 'data/tensors/news_embeddings_{}_test-[{}].tensor'.format(hparams['scale'],hparams['name']))
+    
+    print('successfully encoded news!')
 
 def analyse(hparams, path='/home/peitian_zhang/Data/MIND'):
     """
