@@ -15,6 +15,9 @@
 - 绿：不认识的单词
 **在[45]之后黄色代表不认识的单词，绿色代表需要看的点**
 
+## 结果
+[LeaderBoard](https://competitions.codalab.org/competitions/24122#results)排行72, **Pt**
+
 # 新闻推荐
 ## Notation
 - 接受推荐的用户记为$u$，某一新闻记为$v$

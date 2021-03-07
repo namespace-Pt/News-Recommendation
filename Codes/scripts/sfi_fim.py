@@ -39,12 +39,10 @@ if __name__ == "__main__":
         state_dict = torch.load(hparams['save_path'])
         state_dict = {k:v for k,v in state_dict.items() if k not in ['news_reprs.weight','news_embeddings.weight']}
         sfiModel.load_state_dict(state_dict,strict=False)
-        print("testing...")
         evaluate(sfiModel,hparams,loaders[1])
 
     elif hparams['mode'] == 'train':
         train(sfiModel, hparams, loaders)
     
     elif hparams['mode'] == 'test':
-        print(loaders)
         test(sfiModel, hparams, loaders[0])

@@ -472,6 +472,7 @@ def evaluate(model,hparams,dataloader,interval=100):
     Returns:
         dict: A dictionary contains evaluation metrics.
     """
+    print("evaluating...")
     hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
     param_list = ['query_words','query_levels']
     model.eval()
@@ -593,7 +594,6 @@ def train(model, hparams, loaders, tb=False, interval=100):
 
     model = run_train(model,loaders[0],optimizer,loss_func,hparams,writer=writer,interval=interval,save_step=hparams['save_step'],save_each_epoch=hparams['save_each_epoch'])
 
-    print("evaluating...")
     evaluate(model, hparams, loaders[1])
 
     # loader_train, loader_dev, loader_validate
@@ -611,6 +611,11 @@ def test(model, hparams, loader_test):
         hparams
         loader_test: DataLoader of MINDlarge_test
     """
+
+    state_dict = torch.load(hparams['save_path'])
+    state_dict = {k:v for k,v in state_dict.items() if k not in ['news_reprs.weight','news_embeddings.weight']}
+    model.load_state_dict(state_dict,strict=False)
+
     print("testing...")
     model.cdd_size = 1
     model.eval()
