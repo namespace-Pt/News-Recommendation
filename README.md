@@ -16,7 +16,7 @@
 **在[45]之后黄色代表不认识的单词，绿色代表需要看的点**
 
 ## 结果
-[LeaderBoard](https://competitions.codalab.org/competitions/24122#results)排行72, **Pt**
+[LeaderBoard](https://competitions.codalab.org/competitions/24122#results), 用户名**Pt**
 
 # 新闻推荐
 ## Notation

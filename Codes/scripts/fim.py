@@ -18,7 +18,7 @@ if __name__ == "__main__":
     hparams = load_hparams(hparams)
     device = torch.device(hparams['device'])
 
-    vocab, loaders = prepare(hparams, validate=False)
+    vocab, loaders = prepare(hparams)
     fimModel = FIMModel(vocab=vocab,hparams=hparams).to(device)
 
     if hparams['mode'] == 'dev':
