@@ -23,7 +23,7 @@ if __name__ == "__main__":
         if hparams['select'] == 'unified':
             from models.SFI_FIM import SFIModel_unified
             sfiModel = SFIModel_unified(vocab=vocab,hparams=hparams).to(hparams['device'])
-        
+    
         elif hparams['select'] == 'pipeline1':
             from models.SFI_FIM import SFIModel_pipeline1
             sfiModel = SFIModel_pipeline1(vocab=vocab,hparams=hparams).to(hparams['device'])

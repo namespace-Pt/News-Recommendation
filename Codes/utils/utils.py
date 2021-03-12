@@ -697,7 +697,7 @@ def evaluate_mtp(i,model,hparams,dataloader,l,interval=10,load=True):
         logging.info("[No.{}, PID:{}] loading model parameters...".format(i,os.getpid()))
 
         step = 22000 + 4000 * i
-        save_path = 'models/model_params/{}-{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'],step, str(hparams['his_size']), str(hparams['k']))
+        save_path = 'models/model_params/{}-{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'], hparams['scale'], hparams['epochs'], step, str(hparams['his_size']), str(hparams['k']))
         model.load_state_dict(torch.load(save_path))
     
     else:
@@ -758,7 +758,7 @@ def tune(model, hparams, loaders, nprocs, best_auc=0):
             optimizer.zero_grad()
 
             if step > 20000 and step % 2000 == 0:
-                save_path = 'models/model_params/{}-{}/_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step,str(hparams['his_size']), str(hparams['k']))
+                save_path = 'models/model_params/{}-{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step,str(hparams['his_size']), str(hparams['k']))
                 torch.save(model.state_dict(), save_path)
                 logging.info("saved model of step {} at epoch {}".format(step, epoch+1))
         
