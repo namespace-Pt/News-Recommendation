@@ -27,7 +27,7 @@ if __name__ == "__main__":
     if hparams['mode'] == 'dev':
         gcaModel.load_state_dict(torch.load(hparams['save_path']))
         print("testing...")
-        evaluate(gcaModel,hparams,loaders[1])
+        evaluate(gcaModel,hparams,loaders[0])
 
     elif hparams['mode'] == 'train':
         train(gcaModel, hparams, loaders)

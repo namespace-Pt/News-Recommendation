@@ -10,13 +10,15 @@ import math
 import json
 import pickle
 import torch
-import argparse
+import argparse, logging
 import pandas as pd
 import torch.nn as nn
-import numpy as np
+import torch.multiprocessing as mp
 import torch.optim as optim
+import numpy as np
 import scipy.stats as ss
 from collections import defaultdict
+from itertools import product
 from tqdm import tqdm
 from datetime import datetime
 from sklearn.metrics import roc_auc_score,log_loss,mean_squared_error,accuracy_score,f1_score
@@ -24,6 +26,8 @@ from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator,GloVe
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader, get_worker_info
+
+logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(levelname)s (%(name)s) %(message)s")
 
 def word_tokenize(sent):
     """ Split sentence into word list using regex.
@@ -460,7 +464,7 @@ def run_eval(model,dataloader,interval):
     
     return group_labels.keys(), all_labels, all_preds
 
-def evaluate(model,hparams,dataloader,interval=100):
+def evaluate(model,hparams,dataloader,interval=100,log=True):
     """Evaluate the given file and returns some evaluation metrics.
     
     Args:
@@ -472,28 +476,37 @@ def evaluate(model,hparams,dataloader,interval=100):
     Returns:
         dict: A dictionary contains evaluation metrics.
     """
-    print("evaluating...")
+    print('\n')
+    logging.info("[pid:{}] evaluating...".format(os.getpid()))
     hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
     param_list = ['query_words','query_levels']
+
     model.eval()
+    cdd_size = model.cdd_size
     model.cdd_size = 1
+
     imp_indexes, labels, preds = run_eval(model,dataloader,interval)
     res = cal_metric(labels,preds,model.metrics.split(','))
-    print("evaluation results:{}".format(res))
-    with open('performance.log','a+') as f:
-        # model_name = '{}-{}_{}_epoch{}_step{}_[hs={},topk={}]:'.format(hparams['name'],hparams['select'],hparams['scale'], str(hparams['epochs']), str(hparams['save_step']), str(hparams['his_size']), str(hparams['k']))
-        # f.write(model_name + '\n')
-        d = {}
-        for k,v in hparams.items():
-            if k in hparam_list:
-                d[k] = v
-        for name, param in model.named_parameters():
-            if name in param_list:
-                d[name] = tuple(param.shape)
+    
+    if log:
+        logging.info("evaluation results:{}".format(res))
+        with open('performance.log','a+') as f:
+            # model_name = '{}-{}_{}_epoch{}_step{}_[hs={},topk={}]:'.format(hparams['name'],hparams['select'],hparams['scale'], str(hparams['epochs']), str(hparams['save_step']), str(hparams['his_size']), str(hparams['k']))
+            # f.write(model_name + '\n')
+            d = {}
+            for k,v in hparams.items():
+                if k in hparam_list:
+                    d[k] = v
+            for name, param in model.named_parameters():
+                if name in param_list:
+                    d[name] = tuple(param.shape)
 
-        f.write(str(d)+'\n')
-        f.write(str(res) +'\n')
-        f.write('\n')        
+            f.write(str(d)+'\n')
+            f.write(str(res) +'\n')
+            f.write('\n')
+    
+    model.train()
+    model.cdd_size = cdd_size
     return res
 
 def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, interval=100, save_step=None, save_each_epoch=False):
@@ -546,7 +559,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
                     else:
                         save_path = 'models/model_params/{}_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],epoch + 1,step, str(hparams['his_size']), str(hparams['k']))
                     torch.save(model.state_dict(), save_path)
-                    print("saved model of step {} at epoch {}".format(step, epoch+1))
+                    logging.info("saved model of step {} at epoch {}".format(step, epoch+1))
 
             total_steps += 1
 
@@ -566,7 +579,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
             else:
                 torch.save(model.state_dict(), save_path)
                 
-            print("saved model of epoch {}".format(epoch+1))
+            logging.info("saved model of epoch {}".format(epoch+1))
 
     return model
 
@@ -588,17 +601,20 @@ def train(model, hparams, loaders, tb=False, interval=100):
         else:
             writer = SummaryWriter('data/tb/{}/{}/{}/'.format(hparams['name'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
 
-    print("training...")
+    logging.info("training...")
     loss_func = getLoss(model)
-    optimizer = optim.Adam(model.parameters(),lr=0.001)
-
+    if 'learning_rate' in hparams:
+        learning_rate = hparams['learning_rate']
+    else:
+        learning_rate = 1e-3
+    optimizer = optim.Adam(model.parameters(),lr=learning_rate)
     model = run_train(model,loaders[0],optimizer,loss_func,hparams,writer=writer,interval=interval,save_step=hparams['save_step'],save_each_epoch=hparams['save_each_epoch'])
 
     evaluate(model, hparams, loaders[1])
 
     # loader_train, loader_dev, loader_validate
     if len(loaders) > 2:
-        print("validating...")
+        logging.info("validating...")
         evaluate(model, hparams, loaders[2])
     
     return model
@@ -616,7 +632,7 @@ def test(model, hparams, loader_test):
     state_dict = {k:v for k,v in state_dict.items() if k not in ['news_reprs.weight','news_embeddings.weight']}
     model.load_state_dict(state_dict,strict=False)
 
-    print("testing...")
+    logging.info("testing...")
     model.cdd_size = 1
     model.eval()
 
@@ -645,7 +661,7 @@ def test(model, hparams, loader_test):
             line = str(k) + ' [' + ','.join([str(i) for i in rank_list]) + ']' + '\n'
             f.write(line)
 
-    print("written to prediction!")
+    logging.info("written to prediction!")
     
     hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
     param_list = ['query_words','query_levels']
@@ -663,7 +679,115 @@ def test(model, hparams, loader_test):
         f.write(str(d)+'\n')
         f.write('\n')
         f.write('\n')
+
+def evaluate_mtp(i,model,hparams,dataloader,l,interval=10,load=True):
+    """evaluate in multi-processing
     
+    Args:
+        i(int) Subprocess No.
+        model(nn.Module)
+        hparams(dict)
+        dataloader(torch.utils.data.DataLoader): provide data
+        interval(int): within each epoch, the interval of steps to display loss
+
+    Returns:
+        dict: A dictionary contains evaluation metrics.
+    """
+    if load:
+        logging.info("[No.{}, PID:{}] loading model parameters...".format(i,os.getpid()))
+
+        step = 22000 + 4000 * i
+        save_path = 'models/model_params/{}-{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'],step, str(hparams['his_size']), str(hparams['k']))
+        model.load_state_dict(torch.load(save_path))
+    
+    else:
+        step = 0
+    
+    logging.info("[No.{}, PID:{}] evaluating...".format(i,os.getpid()))
+    hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
+    param_list = ['query_words','query_levels']
+
+    model.eval()
+    cdd_size = model.cdd_size
+    model.cdd_size = 1
+
+    imp_indexes, labels, preds = run_eval(model,dataloader,interval)
+    res = cal_metric(labels,preds,model.metrics.split(','))
+
+    res['step'] = step
+    logging.info("\nevaluation results of process NO.{} is {}".format(i,res))
+
+    model.train()
+    model.cdd_size = cdd_size
+
+    l.append(res)
+
+def tune(model, hparams, loaders, nprocs, best_auc=0):
+    """ tune hyper parameters
+    """
+    hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
+    param_list = ['query_words','query_levels']
+
+    logging.info("current hyper parameter settings are:{}".format(hparams))
+
+    loader_train = loaders[0]
+    loader_dev = loaders[1]
+
+    loss_func = getLoss(model)
+
+    if 'learning_rate' in hparams:
+        learning_rate = hparams['learning_rate']
+    else:
+        learning_rate = 1e-3
+    optimizer = optim.Adam(model.parameters(),lr=learning_rate)
+
+    for epoch in range(hparams['epochs']):
+        epoch_loss = 0
+        tqdm_ = tqdm(enumerate(loader_train))
+        for step,x in tqdm_:
+            pred = model(x)
+            label = getLabel(model,x)
+            loss = loss_func(pred,label)
+
+            tqdm_.set_description("epoch {:d} , step {:d} , loss: {:.4f}".format(epoch+1, step, epoch_loss / (step+1)))
+
+            epoch_loss += loss
+
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+
+            if step > 20000 and step % 2000 == 0:
+                save_path = 'models/model_params/{}-{}/_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step,str(hparams['his_size']), str(hparams['k']))
+                torch.save(model.state_dict(), save_path)
+                logging.info("saved model of step {} at epoch {}".format(step, epoch+1))
+        
+        logging.info("evaluating in {} processes...".format(nprocs))
+
+        with torch.no_grad():
+            model.share_memory()
+            res_list = mp.Manager().list()
+            mp.spawn(evaluate_mtp, args=(model, hparams, loader_dev, res_list), nprocs=nprocs)
+
+            with open('sfi-performance.log','a+') as f:
+                for result in res_list:
+                    if result['auc'] > best_auc:
+                        best_auc = result['auc']
+
+                        d = {}
+                        for k,v in hparams.items():
+                            if k in hparam_list:
+                                d[k] = v
+
+                        for name, param in model.named_parameters():
+                            if name in param_list:
+                                d[name] = tuple(param.shape)
+
+                        f.write(str(d)+'\n')
+                        f.write(str(result) +'\n')
+                        f.write('\n')
+
+    return best_auc
 
 def load_hparams(hparams):
     """ 
@@ -671,7 +795,7 @@ def load_hparams(hparams):
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("-s","--scale", dest="scale", help="data scale", choices=['demo','small','large'],required=True)
-    parser.add_argument("-m","--mode", dest="mode", help="train or test", choices=['train','dev','test'], default='train')
+    parser.add_argument("-m","--mode", dest="mode", help="train or test", choices=['train','dev','test','tune'], default='train')
     parser.add_argument("-e","--epochs", dest="epochs", help="epochs to train the model", type=int, default=10)
 
     parser.add_argument("-bs","--batch_size", dest="batch_size", help="batch size", type=int, default=100)
@@ -679,10 +803,12 @@ def load_hparams(hparams):
     parser.add_argument("-hs","--his_size", dest="his_size", help="history size", type=int, default=50)
 
     parser.add_argument("-c","--cuda", dest="cuda", help="device to run on", choices=['0','1'], default='0')
-    parser.add_argument("-se","--save_each_epoch", dest="save_each_epoch", help="if clarified, save model of each epoch", action='store_true', default=True)
+    parser.add_argument("-se","--save_each_epoch", dest="save_each_epoch", help="if clarified, save model of each epoch", default=True)
     parser.add_argument("-ss","--save_step", dest="save_step", help="if clarified, save model at the interval of given steps", type=int, default=0)
-    parser.add_argument("-te","--train_embedding", dest="train_embedding", help="if clarified, word embedding will be fine-tuned", action='store_true', default=True)
-    
+    parser.add_argument("-te","--train_embedding", dest="train_embedding", help="if clarified, word embedding will be fine-tuned", default=True)
+    parser.add_argument("-lr","--learning_rate", dest="learning_rate", help="learning rate when training", type=float, default=1e-3)
+    # parser.add_argument("--nni", dest="use_nni", help="if clarified, the nni package will be used", action='store_true')
+
     parser.add_argument("-np","--npratio", dest="npratio", help="the number of unclicked news to sample when training", type=int, default=4)
     parser.add_argument("-mc","--metrics", dest="metrics", help="metrics for evaluating the model, if multiple metrics are needed, seperate with ','", type=str, default="auc,mean_mrr,ndcg@5,ndcg@10")
 
@@ -712,10 +838,11 @@ def load_hparams(hparams):
     hparams['epochs'] = args.epochs
     hparams['batch_size'] = args.batch_size
     hparams['title_size'] = args.title_size
-    hparams['his_size'] = args.his_size
     hparams['npratio'] = args.npratio
     hparams['metrics'] = args.metrics
+    hparams['learning_rate'] = args.learning_rate
 
+    hparams['his_size'] = args.his_size
     hparams['k'] = args.k
     hparams['select'] = args.select
 
@@ -750,6 +877,27 @@ def load_hparams(hparams):
 
     return hparams
 
+def generate_hparams(hparams, config):
+    """ update hyper parameters with values in config
+
+    Args:
+        hparams
+        config(dict)
+    
+    Returns:
+        hparams
+    """
+    val_pool = []
+    for vals in config.values():
+        val_pool.append(vals)
+    key_list = list(config.keys())
+
+    for vals in product(*val_pool):
+        for i,val in enumerate(vals):
+            hparams[key_list[i]] = val
+        
+        yield hparams
+
 def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=False):
     from .MIND import MIND, MIND_test, MIND_news
     """ prepare dataloader and several paths
@@ -759,8 +907,11 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
     
     Returns:
         vocab
-        loaders(list of dataloaders): 0-loader_train/test, 1-loader_dev, 2-loader_validate
+        loaders(list of dataloaders): 0-loader_train/test/dev, 1-loader_dev, 2-loader_validate
     """
+    logging.info("Hyper Parameters are\n{}".format(hparams))
+
+    logging.info("preparing dataset...")
 
     if news:
         path='/home/peitian_zhang/Data/MIND'
@@ -786,7 +937,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         
         return vocab, [loader_news_train, loader_news_dev]
     
-    if hparams['mode'] in ['train','dev']:
+    if hparams['mode'] in ['train','tune']:
         news_file_train = path+'/MIND'+hparams['scale']+'_train/news.tsv'
         news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
 
@@ -810,6 +961,17 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         else:
             return vocab, [loader_train, loader_dev]
     
+    elif hparams['mode'] == 'dev':
+        news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
+        behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
+        dataset_dev = MIND(hparams=hparams,news_file=news_file_dev,behaviors_file=behavior_file_dev,npratio=0)
+        loader_dev = DataLoader(dataset_dev,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
+        vocab = dataset_dev.vocab
+        embedding = GloVe(dim=300,cache='.vector_cache')
+        vocab.load_vectors(embedding)
+
+        return vocab, [loader_dev]
+
     elif hparams['mode'] == 'test':
         dataset_test = MIND_test(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv', '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
         loader_test = DataLoader(dataset_test,batch_size=hparams['batch_size'],pin_memory=True,num_workers=8,drop_last=False,collate_fn=my_collate,worker_init_fn=worker_init_fn)
@@ -841,7 +1003,7 @@ def pipeline_encode(model, hparams, loaders):
     news_reprs = torch.zeros((news_num_train + 1,model.filter_num))
     news_embeddings = torch.zeros((news_num_train + 1,model.signal_length,model.level,model.filter_num))
 
-    for i,x in tqdm(enumerate(loaders[0])):
+    for x in tqdm(loaders[0]):
         embedding, repr = model(x)
         for i in range(embedding.shape[0]):
             news_reprs[x['news_id'][i]] = repr[i]
@@ -855,7 +1017,7 @@ def pipeline_encode(model, hparams, loaders):
     news_reprs = torch.zeros((news_num_dev + 1,model.filter_num))
     news_embeddings = torch.zeros((news_num_dev + 1,model.signal_length,model.level,model.filter_num))
 
-    for i,x in tqdm(enumerate(loaders[1])):
+    for x in tqdm(loaders[1]):
         embedding, repr = model(x)
         for i in range(embedding.shape[0]):
             news_reprs[x['news_id'][i]] = repr[i]
@@ -864,13 +1026,13 @@ def pipeline_encode(model, hparams, loaders):
     torch.save(news_reprs, 'data/tensors/news_reprs_{}_dev-[{}].tensor'.format(hparams['scale'],hparams['name']))
     torch.save(news_embeddings, 'data/tensors/news_embeddings_{}_dev-[{}].tensor'.format(hparams['scale'],hparams['name']))
 
-    if hparams['mode'] == 'test':
+    if hparams['scale'] == 'large':
         news_num_test = news_num_dict[hparams['scale']]['test']
 
         news_reprs = torch.zeros((news_num_test + 1,model.filter_num))
         news_embeddings = torch.zeros((news_num_test + 1,model.signal_length,model.level,model.filter_num))
 
-        for i,x in tqdm(enumerate(loaders[1])):
+        for x in tqdm(loaders[2]):
             embedding, repr = model(x)
             for i in range(embedding.shape[0]):
                 news_reprs[x['news_id'][i]] = repr[i]

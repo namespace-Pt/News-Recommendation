@@ -10,7 +10,7 @@ tqdm
 scikit-learn
 ```
 ## Rank
-[Leaderboard](https://competitions.codalab.org/competitions/24122#results) **No.72**, User Name: **Pt**
+[Leaderboard](https://competitions.codalab.org/competitions/24122#results), User Name: **Pt**
 ## Dataset
 download MIND dataset [HERE](https://msnews.github.io/)
 ### Simple Analysis
@@ -86,10 +86,9 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 
 ### `/utils`: data loader and utility functions
 - `MIND.py`
-  - MIND_map
-    - map style dataset
-    - return dictionary of one behavior log
-      - negtive sampling enabled
+  - MIND
+    - iterable dataset for MIND
+    - when **training**
   - MIND_iter
     - iterator style dataset
     - return dictionary of one candidate news
@@ -124,7 +123,11 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 |baseline-MHA-MHA|$0.6395$|$0.2934$|$0.3203$|$0.385$|`epoch=8` run on `MINDsmall`|
 
 ## TODO
-- [ ] BERT cls
+- [ ] BERT
 - [ ] t-test
 - [ ] inference time comparison
 - [ ] pipeline performance comparison
+- [ ] logging
+- [ ] reproduce Hi-Fi Ark
+- [ ] parallel evaluating/training
+  

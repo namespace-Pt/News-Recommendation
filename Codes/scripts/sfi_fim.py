@@ -15,31 +15,30 @@ if __name__ == "__main__":
         'filter_num':150,
     }
     hparams = load_hparams(hparams)
-    device = torch.device(hparams['device'])
 
     vocab, loaders = prepare(hparams)
 
     if hparams['select'] == 'unified':
         from models.SFI_FIM import SFIModel_unified
-        sfiModel = SFIModel_unified(vocab=vocab,hparams=hparams).to(device)
+        sfiModel = SFIModel_unified(vocab=vocab,hparams=hparams).to(hparams['device'])
     
     elif hparams['select'] == 'pipeline1':
         from models.SFI_FIM import SFIModel_pipeline1
-        sfiModel = SFIModel_pipeline1(vocab=vocab,hparams=hparams).to(device)
+        sfiModel = SFIModel_pipeline1(vocab=vocab,hparams=hparams).to(hparams['device'])
 
     elif hparams['select'] == 'pipeline2':
         from models.SFI_FIM import SFIModel_pipeline2
-        sfiModel = SFIModel_pipeline2(vocab=vocab,hparams=hparams).to(device)
+        sfiModel = SFIModel_pipeline2(vocab=vocab,hparams=hparams).to(hparams['device'])
     
     elif hparams['select'] == 'gating':
         from models.SFI_FIM import SFIModel_gating
-        sfiModel = SFIModel_gating(vocab=vocab,hparams=hparams).to(device)
+        sfiModel = SFIModel_gating(vocab=vocab,hparams=hparams).to(hparams['device'])
 
     if hparams['mode'] == 'dev':
         state_dict = torch.load(hparams['save_path'])
         state_dict = {k:v for k,v in state_dict.items() if k not in ['news_reprs.weight','news_embeddings.weight']}
         sfiModel.load_state_dict(state_dict,strict=False)
-        evaluate(sfiModel,hparams,loaders[1])
+        evaluate(sfiModel,hparams,loaders[0])
 
     elif hparams['mode'] == 'train':
         train(sfiModel, hparams, loaders)

@@ -29,10 +29,10 @@ class MIND(IterableDataset):
 
         self.index2nid = hparams['news_id']
 
-        mode = re.search('{}_(.*)/'.format(hparams['scale']),news_file).group(1)
+        self.mode = re.search('{}_(.*)/'.format(hparams['scale']),news_file).group(1)
 
         self.vocab = getVocab('data/dictionaries/vocab_{}.pkl'.format('_'.join(hparams['attrs'])))
-        self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_{}.json'.format(hparams['scale'],mode))
+        self.nid2index = getId2idx('data/dictionaries/nid2idx_{}_{}.json'.format(hparams['scale'],self.mode))
         self.uid2index = getId2idx('data/dictionaries/uid2idx_{}.json'.format(hparams['scale']))
 
         self.init_news()
@@ -131,7 +131,7 @@ class MIND(IterableDataset):
             impr = self.imprs[index]
             impr_label = self.labels[index]
 
-            if self.npratio:
+            if self.mode == 'train':
                 # user clicked news
                 poss = []
                 # user not clicked news
@@ -204,7 +204,7 @@ class MIND(IterableDataset):
                         back_dic['his_id'] = np.asarray(his_ids)
 
                     yield back_dic
-            else:
+            elif self.mode == 'dev':
                 for news, label in zip(impr, impr_label):
                 # indicate the candidate news title vector from impression
                     candidate_title_index = []
@@ -262,6 +262,9 @@ class MIND(IterableDataset):
                         back_dic['his_id'] = his_ids
                     
                     yield back_dic
+            
+            else:
+                raise ValueError
 
 class MIND_test(IterableDataset):
     """ Iterator Dataset for MIND, yield every behaviors in each impression without labels

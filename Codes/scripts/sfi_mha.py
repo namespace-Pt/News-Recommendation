@@ -29,7 +29,7 @@ if __name__ == "__main__":
     if hparams['mode'] == 'dev':
         sfiModel.load_state_dict(torch.load(hparams['save_path']))
         print("testing...")
-        evaluate(sfiModel,hparams,loaders[1])
+        evaluate(sfiModel,hparams,loaders[0])
 
     elif hparams['mode'] == 'train':
         train(sfiModel, hparams, loaders)
