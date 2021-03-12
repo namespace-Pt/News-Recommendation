@@ -22,9 +22,7 @@ if __name__ == "__main__":
     fimModel = FIMModel(vocab=vocab,hparams=hparams).to(device)
 
     if hparams['mode'] == 'dev':
-        fimModel.load_state_dict(torch.load(hparams['save_path']))
-        print("testing...")
-        evaluate(fimModel,hparams,loaders[0])
+        evaluate(fimModel,hparams,loaders[0],load=True)
 
     elif hparams['mode'] == 'train':
         train(fimModel, hparams, loaders)

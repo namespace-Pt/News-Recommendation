@@ -21,9 +21,7 @@ if __name__ == "__main__":
     knrmModel = KNRMModel(vocab=vocab,hparams=hparams).to(device)
 
     if hparams['mode'] == 'dev':
-        knrmModel.load_state_dict(torch.load(hparams['save_path']))
-        print("testing...")
-        evaluate(knrmModel,hparams,loaders[0])
+        evaluate(knrmModel,hparams,loaders[0],load=True)
 
     elif hparams['mode'] == 'train':
         train(knrmModel, hparams, loaders)

@@ -27,9 +27,7 @@ if __name__ == "__main__":
         sfiModel = SFIModel_gating(vocab=vocab,hparams=hparams).to(device)
 
     if hparams['mode'] == 'dev':
-        sfiModel.load_state_dict(torch.load(hparams['save_path']))
-        print("testing...")
-        evaluate(sfiModel,hparams,loaders[0])
+        evaluate(sfiModel,hparams,loaders[0],load=True)
 
     elif hparams['mode'] == 'train':
         train(sfiModel, hparams, loaders)

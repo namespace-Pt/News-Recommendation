@@ -1,8 +1,3 @@
-'''
-Author: Pt
-Date: 2020-11-10 00:06:47
-LastEditTime: 2020-11-20 10:14:28
-'''
 import random
 import re
 import os
@@ -438,7 +433,7 @@ def run_eval(model,dataloader,interval):
     preds = []
     labels = []
     imp_indexes = []
-    
+
     for i,batch_data_input in tqdm(enumerate(dataloader)):
         pred = model.forward(batch_data_input).squeeze(dim=-1).tolist()
         preds.extend(pred)
@@ -464,35 +459,74 @@ def run_eval(model,dataloader,interval):
     
     return group_labels.keys(), all_labels, all_preds
 
-def evaluate(model,hparams,dataloader,interval=100,log=True):
+@torch.no_grad()
+def _eval_mtp(i,model,hparams,dataloader,result_list):
+    """evaluate in multi-processing
+    
+    Args:
+        i(int) Subprocess No.
+        model(nn.Module)
+        hparams(dict)
+        dataloader(torch.utils.data.DataLoader)
+        result_list(torch.multiprocessing.Manager().list()): contain evaluation results of every subprocesses
+    """
+
+    logging.info("[No.{}, PID:{}] loading model parameters...".format(i,os.getpid()))
+
+    step = hparams['save_step'][i]
+    save_path = 'models/model_params/{}-{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'], hparams['scale'], hparams['epochs'], step, str(hparams['his_size']), str(hparams['k']))
+    model.load_state_dict(torch.load(save_path))
+
+    logging.info("[No.{}, PID:{}] evaluating...".format(i,os.getpid()))
+
+    imp_indexes, labels, preds = run_eval(model,dataloader,10)
+    res = cal_metric(labels,preds,model.metrics.split(','))
+
+    res['step'] = step
+    logging.info("\nevaluation results of process NO.{} is {}".format(i,res))
+
+    result_list.append(res)
+
+@torch.no_grad()
+def evaluate(model,hparams,dataloader,load=False,interval=100):
     """Evaluate the given file and returns some evaluation metrics.
     
     Args:
         model(nn.Module)
         hparams(dict)
         dataloader(torch.utils.data.DataLoader): provide data
+        load(bool): whether to load model in hparams['save_path']
         interval(int): within each epoch, the interval of steps to display loss
 
     Returns:
         dict: A dictionary contains evaluation metrics.
     """
-    print('\n')
-    logging.info("[pid:{}] evaluating...".format(os.getpid()))
-    hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
+    hparam_list = ['name','scale','epochs','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
     param_list = ['query_words','query_levels']
 
     model.eval()
     cdd_size = model.cdd_size
     model.cdd_size = 1
 
-    imp_indexes, labels, preds = run_eval(model,dataloader,interval)
-    res = cal_metric(labels,preds,model.metrics.split(','))
+    steps = len(hparams['save_step'])
     
-    if log:
+    if steps == 1:
+        if load:
+            logging.info("loading model...")
+            state_dict = torch.load(hparams['save_path'])
+            state_dict = {k:v for k,v in state_dict.items() if k not in ['news_reprs.weight','news_embeddings.weight']}
+            model.load_state_dict(state_dict,strict=False)
+
+        logging.info("evaluating...")
+        
+
+        imp_indexes, labels, preds = run_eval(model,dataloader,interval)
+        res = cal_metric(labels,preds,model.metrics.split(','))
+
+        res['step'] = hparams['save_step'][0]
+        
         logging.info("evaluation results:{}".format(res))
         with open('performance.log','a+') as f:
-            # model_name = '{}-{}_{}_epoch{}_step{}_[hs={},topk={}]:'.format(hparams['name'],hparams['select'],hparams['scale'], str(hparams['epochs']), str(hparams['save_step']), str(hparams['his_size']), str(hparams['k']))
-            # f.write(model_name + '\n')
             d = {}
             for k,v in hparams.items():
                 if k in hparam_list:
@@ -504,10 +538,31 @@ def evaluate(model,hparams,dataloader,interval=100,log=True):
             f.write(str(d)+'\n')
             f.write(str(res) +'\n')
             f.write('\n')
+        
+        model.train()
+        model.cdd_size = cdd_size
+        return res
     
-    model.train()
+    elif steps > 1:
+        logging.info("evaluating in {} processes...".format(steps))
+        model.share_memory()
+        res_list = mp.Manager().list()
+        mp.spawn(_eval_mtp, args=(model, hparams, dataloader, res_list), nprocs=steps)
+        with open('performance.log','a+') as f:
+            d = {}
+            for k,v in hparams.items():
+                if k in hparam_list:
+                    d[k] = v
+            for name, param in model.named_parameters():
+                if name in param_list:
+                    d[name] = tuple(param.shape)
+            f.write(str(d)+'\n')
+
+            for result in res_list:
+                f.write(str(result) +'\n')
+            f.write('\n')
+
     model.cdd_size = cdd_size
-    return res
 
 def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, interval=100, save_step=None, save_each_epoch=False):
     ''' train model and print loss meanwhile
@@ -618,7 +673,8 @@ def train(model, hparams, loaders, tb=False, interval=100):
         evaluate(model, hparams, loaders[2])
     
     return model
-
+    
+@torch.no_grad()
 def test(model, hparams, loader_test):
     """ test the model on test dataset of MINDlarge
     
@@ -680,50 +736,11 @@ def test(model, hparams, loader_test):
         f.write('\n')
         f.write('\n')
 
-def evaluate_mtp(i,model,hparams,dataloader,l,interval=10,load=True):
-    """evaluate in multi-processing
-    
-    Args:
-        i(int) Subprocess No.
-        model(nn.Module)
-        hparams(dict)
-        dataloader(torch.utils.data.DataLoader): provide data
-        interval(int): within each epoch, the interval of steps to display loss
-
-    Returns:
-        dict: A dictionary contains evaluation metrics.
-    """
-    if load:
-        logging.info("[No.{}, PID:{}] loading model parameters...".format(i,os.getpid()))
-
-        step = 22000 + 4000 * i
-        save_path = 'models/model_params/{}-{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'], hparams['scale'], hparams['epochs'], step, str(hparams['his_size']), str(hparams['k']))
-        model.load_state_dict(torch.load(save_path))
-    
-    else:
-        step = 0
-    
-    logging.info("[No.{}, PID:{}] evaluating...".format(i,os.getpid()))
-    hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
-    param_list = ['query_words','query_levels']
-
-    model.eval()
-    cdd_size = model.cdd_size
-    model.cdd_size = 1
-
-    imp_indexes, labels, preds = run_eval(model,dataloader,interval)
-    res = cal_metric(labels,preds,model.metrics.split(','))
-
-    res['step'] = step
-    logging.info("\nevaluation results of process NO.{} is {}".format(i,res))
-
-    model.train()
-    model.cdd_size = cdd_size
-
-    l.append(res)
-
-def tune(model, hparams, loaders, nprocs, best_auc=0):
+def tune(model, hparams, loaders, best_auc=0):
     """ tune hyper parameters
+
+    Args:
+        step_list(list): the step of training model
     """
     hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
     param_list = ['query_words','query_levels']
@@ -762,12 +779,12 @@ def tune(model, hparams, loaders, nprocs, best_auc=0):
                 torch.save(model.state_dict(), save_path)
                 logging.info("saved model of step {} at epoch {}".format(step, epoch+1))
         
-        logging.info("evaluating in {} processes...".format(nprocs))
+        logging.info("evaluating in {} processes...".format(len(hparams['step_list'])))
 
         with torch.no_grad():
             model.share_memory()
             res_list = mp.Manager().list()
-            mp.spawn(evaluate_mtp, args=(model, hparams, loader_dev, res_list), nprocs=nprocs)
+            mp.spawn(_eval_mtp, args=(model, hparams, loader_dev, res_list), nprocs=len(hparams['step_list'])))
 
             with open('sfi-performance.log','a+') as f:
                 for result in res_list:
@@ -804,7 +821,7 @@ def load_hparams(hparams):
 
     parser.add_argument("-c","--cuda", dest="cuda", help="device to run on", choices=['0','1'], default='0')
     parser.add_argument("-se","--save_each_epoch", dest="save_each_epoch", help="if clarified, save model of each epoch", default=True)
-    parser.add_argument("-ss","--save_step", dest="save_step", help="if clarified, save model at the interval of given steps", type=int, default=0)
+    parser.add_argument("-ss","--save_step", dest="save_step", help="if clarified, save model at the interval of given steps", type=str, default='0')
     parser.add_argument("-te","--train_embedding", dest="train_embedding", help="if clarified, word embedding will be fine-tuned", default=True)
     parser.add_argument("-lr","--learning_rate", dest="learning_rate", help="learning rate when training", type=float, default=1e-3)
     # parser.add_argument("--nni", dest="use_nni", help="if clarified, the nni package will be used", action='store_true')
@@ -829,7 +846,6 @@ def load_hparams(hparams):
     # parser.add_argument("-qd","--query_dim", dest="query_dim", help="dimension of query tensor", type=int, default=200)
     # parser.add_argument("-fn","--filter_num", dest="filter_num", help="the number of filters (out channels) for convolution", type=int, default=150)    
 
-
     args = parser.parse_args()
 
     hparams['scale'] = args.scale
@@ -846,17 +862,23 @@ def load_hparams(hparams):
     hparams['k'] = args.k
     hparams['select'] = args.select
 
-    # intend for testing mode
-    if args.select:            
-        if args.save_step:
-            hparams['save_path'] = 'models/model_params/{}-{}_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'],args.save_step, str(hparams['his_size']), str(hparams['k']))
+    hparams['save_step'] = [int(i) for i in args.save_step.split(',')]
+    
+    if len(hparams['save_step']) == 1:
+        # intend for testing mode
+        if args.select:            
+            if args.save_step:
+                hparams['save_path'] = 'models/model_params/{}-{}_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'],args.save_step, str(hparams['his_size']), str(hparams['k']))
+            else:
+                hparams['save_path'] = 'models/model_params/{}-{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
         else:
-            hparams['save_path'] = 'models/model_params/{}-{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
+            if args.save_step:
+                hparams['save_path'] = 'models/model_params/{}_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],hparams['epochs'],args.save_step, str(hparams['his_size']), str(hparams['k']))
+            else:
+                hparams['save_path'] = 'models/model_params/{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
+    # FIXME
     else:
-        if args.save_step:
-            hparams['save_path'] = 'models/model_params/{}_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],hparams['epochs'],args.save_step, str(hparams['his_size']), str(hparams['k']))
-        else:
-            hparams['save_path'] = 'models/model_params/{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
+        hparams['save_path'] = 'hello/world'
 
     if args.head_num:
         hparams['head_num'] = args.head_num
@@ -871,7 +893,6 @@ def load_hparams(hparams):
     hparams['validate'] = args.validate
     hparams['news_id'] = args.news_id
 
-    hparams['save_step'] = args.save_step
     hparams['save_each_epoch'] = args.save_each_epoch
     hparams['train_embedding'] = args.train_embedding
 

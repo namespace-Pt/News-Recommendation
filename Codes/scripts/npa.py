@@ -24,9 +24,7 @@ if __name__ == "__main__":
     npaModel = NPAModel(vocab=vocab,hparams=hparams,uid2idx=loaders[0].dataset.uid2index).to(device)
     
     if hparams['mode'] == 'dev':
-        npaModel.load_state_dict(torch.load(hparams['save_path']))
-        print("testing...")
-        evaluate(npaModel,hparams,loaders[0])
+        evaluate(npaModel,hparams,loaders[0],load=True)
 
     elif hparams['mode'] == 'train':
         train(npaModel, hparams, loaders)

@@ -36,7 +36,7 @@ if __name__ == "__main__":
             from models.SFI_FIM import SFIModel_gating
             sfiModel = SFIModel_gating(vocab=vocab,hparams=hparams).to(hparams['device'])
 
-        best_auc_sub = tune(sfiModel, hparam, loaders, nprocs=3, best_auc=best_auc)
+        best_auc_sub = tune(sfiModel, hparam, loaders, best_auc=best_auc)
         
         if best_auc_sub > best_auc:
             best_auc = best_auc_sub

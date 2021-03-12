@@ -35,10 +35,7 @@ if __name__ == "__main__":
         sfiModel = SFIModel_gating(vocab=vocab,hparams=hparams).to(hparams['device'])
 
     if hparams['mode'] == 'dev':
-        state_dict = torch.load(hparams['save_path'])
-        state_dict = {k:v for k,v in state_dict.items() if k not in ['news_reprs.weight','news_embeddings.weight']}
-        sfiModel.load_state_dict(state_dict,strict=False)
-        evaluate(sfiModel,hparams,loaders[0])
+        evaluate(sfiModel,hparams,loaders[0],load=True)
 
     elif hparams['mode'] == 'train':
         train(sfiModel, hparams, loaders)
