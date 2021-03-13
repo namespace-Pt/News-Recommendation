@@ -7,7 +7,7 @@ class KNRMModel(nn.Module):
         super().__init__()
         self.name = hparams['name']
         self.device = hparams['device']
-        self.metrics = hparams['metrics']
+
 
         self.cdd_size = (hparams['npratio'] + 1) if hparams['npratio'] > 0 else 1
         self.batch_size = hparams['batch_size']

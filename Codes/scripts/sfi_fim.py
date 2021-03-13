@@ -15,6 +15,7 @@ if __name__ == "__main__":
         'filter_num':150,
     }
     hparams = load_hparams(hparams)
+    torch.cuda.set_device(hparams['device'])
 
     vocab, loaders = prepare(hparams)
 

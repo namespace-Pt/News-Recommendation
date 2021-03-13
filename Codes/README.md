@@ -114,4 +114,5 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 - [ ] t-test
 - [ ] inference time comparison
 - [ ] pipeline performance comparison
-- [ ] reproduce Hi-Fi Ark  
+- [ ] reproduce Hi-Fi Ark
+- [ ] sfi frame

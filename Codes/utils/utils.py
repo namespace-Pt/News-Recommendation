@@ -475,12 +475,12 @@ def _eval_mtp(i,model,hparams,dataloader,result_list):
 
     step = hparams['save_step'][i]
     save_path = 'models/model_params/{}-{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'], hparams['scale'], hparams['epochs'], step, str(hparams['his_size']), str(hparams['k']))
-    model.load_state_dict(torch.load(save_path))
+    model.load_state_dict(torch.load(save_path, map_location=hparams['device']))
 
     logging.info("[No.{}, PID:{}] evaluating...".format(i,os.getpid()))
 
     imp_indexes, labels, preds = run_eval(model,dataloader,10)
-    res = cal_metric(labels,preds,model.metrics.split(','))
+    res = cal_metric(labels,preds,hparams['metrics'].split(','))
 
     res['step'] = step
     logging.info("\nevaluation results of process NO.{} is {}".format(i,res))
@@ -513,15 +513,15 @@ def evaluate(model,hparams,dataloader,load=False,interval=100):
     if steps == 1:
         if load:
             logging.info("loading model...")
-            state_dict = torch.load(hparams['save_path'])
+            save_path = 'models/model_params/{}-{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'], hparams['scale'], hparams['epochs'], hparams['save_step'][0], hparams['his_size'], hparams['k'])
+            state_dict = torch.load(save_path, map_location=hparams['device'])
             state_dict = {k:v for k,v in state_dict.items() if k not in ['news_reprs.weight','news_embeddings.weight']}
             model.load_state_dict(state_dict,strict=False)
 
         logging.info("evaluating...")
         
-
         imp_indexes, labels, preds = run_eval(model,dataloader,interval)
-        res = cal_metric(labels,preds,model.metrics.split(','))
+        res = cal_metric(labels,preds,hparams['metrics'].split(','))
 
         res['step'] = hparams['save_step'][0]
         
@@ -564,7 +564,7 @@ def evaluate(model,hparams,dataloader,load=False,interval=100):
 
     model.cdd_size = cdd_size
 
-def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, interval=100, save_step=None, save_each_epoch=False):
+def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, interval=100, save_step=None):
     ''' train model and print loss meanwhile
     Args: 
         model(torch.nn.Module): the model to be trained
@@ -609,10 +609,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
             
             if save_step:
                 if step % save_step == 0 and step > 0:
-                    if hparams['select']:
-                        save_path = 'models/model_params/{}-{}_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step, str(hparams['his_size']), str(hparams['k']))
-                    else:
-                        save_path = 'models/model_params/{}_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],epoch + 1,step, str(hparams['his_size']), str(hparams['k']))
+                    save_path = 'models/model_params/{}-{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step, hparams['his_size'], hparams['k'])
                     torch.save(model.state_dict(), save_path)
                     logging.info("saved model of step {} at epoch {}".format(step, epoch+1))
 
@@ -621,18 +618,14 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
         if writer:
             writer.add_scalar('epoch_loss', epoch_loss, epoch)
 
-        if save_each_epoch:
-            if hparams['select']:
-                save_path = 'models/model_params/{}-{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch+1, str(hparams['his_size']), str(hparams['k']))
-            else:
-                save_path = 'models/model_params/{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],epoch+1, str(hparams['his_size']), str(hparams['k']))
-            
-            if hparams['select'] == 'pipeline1':
-                state_dict = model.state_dict()
-                state_dict = {k:v for k,v in state_dict.items() if k not in ['news_reprs.weight','news_embeddings.weight']}
-                torch.save(state_dict, save_path)
-            else:
-                torch.save(model.state_dict(), save_path)
+        save_path = 'models/model_params/{}-{}/{}_epoch{}_step0_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch+1, hparams['his_size'], hparams['k'])
+        
+        if hparams['select'] == 'pipeline1':
+            state_dict = model.state_dict()
+            state_dict = {k:v for k,v in state_dict.items() if k not in ['news_reprs.weight','news_embeddings.weight']}
+            torch.save(state_dict, save_path)
+        else:
+            torch.save(model.state_dict(), save_path)
                 
             logging.info("saved model of epoch {}".format(epoch+1))
 
@@ -663,7 +656,7 @@ def train(model, hparams, loaders, tb=False, interval=100):
     else:
         learning_rate = 1e-3
     optimizer = optim.Adam(model.parameters(),lr=learning_rate)
-    model = run_train(model,loaders[0],optimizer,loss_func,hparams,writer=writer,interval=interval,save_step=hparams['save_step'],save_each_epoch=hparams['save_each_epoch'])
+    model = run_train(model,loaders[0],optimizer,loss_func,hparams,writer=writer,interval=interval,save_step=hparams['save_step'][0])
 
     evaluate(model, hparams, loaders[1])
 
@@ -683,8 +676,8 @@ def test(model, hparams, loader_test):
         hparams
         loader_test: DataLoader of MINDlarge_test
     """
-
-    state_dict = torch.load(hparams['save_path'])
+    save_path = 'models/model_params/{}-{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'], hparams['scale'], hparams['epochs'], hparams['save_step'][0], hparams['his_size'], hparams['k'])
+    state_dict = torch.load(save_path, map_location=hparams['device'])
     state_dict = {k:v for k,v in state_dict.items() if k not in ['news_reprs.weight','news_embeddings.weight']}
     model.load_state_dict(state_dict,strict=False)
 
@@ -692,11 +685,7 @@ def test(model, hparams, loader_test):
     model.cdd_size = 1
     model.eval()
 
-    if hparams['select']:
-        save_path = 'data/results/prediction={}-{}_{}_epoch{}_step{}_[hs={},topk={}].txt'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'],hparams['save_step'],str(hparams['his_size']),str(hparams['k']))
-    else:
-        save_path = 'data/results/prediction={}_{}_epoch{}_step{}_[hs={},topk={}].txt'.format(hparams['name'],hparams['scale'],hparams['epochs'],hparams['save_step'],str(hparams['his_size']),str(hparams['k']))
-    
+    save_path = 'data/results/prediction={}-{}_{}_epoch{}_step{}_[hs={},topk={}].txt'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'],hparams['save_step'][0],hparams['his_size'],hparams['k'])
     with open(save_path, 'w') as f:
         preds = []
         imp_indexes = []
@@ -722,8 +711,6 @@ def test(model, hparams, loader_test):
     hparam_list = ['name','scale','epochs','save_step','train_embedding','select','integrate','his_size','k','query_dim','value_dim','head_num']
     param_list = ['query_words','query_levels']
     with open('performance.log','a+') as f:
-        # model_name = '{}-{}_{}_epoch{}_step{}_[hs={},topk={}]:'.format(hparams['name'],hparams['select'],hparams['scale'], str(hparams['epochs']), str(hparams['save_step']), str(hparams['his_size']), str(hparams['k']))
-        # f.write(model_name + '\n')
         d = {}
         for k,v in hparams.items():
             if k in hparam_list:
@@ -778,31 +765,32 @@ def tune(model, hparams, loaders, best_auc=0):
                 save_path = 'models/model_params/{}-{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],epoch + 1,step,str(hparams['his_size']), str(hparams['k']))
                 torch.save(model.state_dict(), save_path)
                 logging.info("saved model of step {} at epoch {}".format(step, epoch+1))
-        
-        logging.info("evaluating in {} processes...".format(len(hparams['step_list'])))
+                
+        # without evaluating, only training
 
-        with torch.no_grad():
-            model.share_memory()
-            res_list = mp.Manager().list()
-            mp.spawn(_eval_mtp, args=(model, hparams, loader_dev, res_list), nprocs=len(hparams['step_list'])))
+        # logging.info("evaluating in {} processes...".format(len(hparams['save_step'])))
+        # with torch.no_grad():
+        #     model.share_memory()
+        #     res_list = mp.Manager().list()
+            # mp.spawn(_eval_mtp, args=(model, hparams, loader_dev, res_list), nprocs=len(hparams['step_list']))
 
-            with open('sfi-performance.log','a+') as f:
-                for result in res_list:
-                    if result['auc'] > best_auc:
-                        best_auc = result['auc']
+        #     with open('sfi-performance.log','a+') as f:
+        #         for result in res_list:
+        #             if result['auc'] > best_auc:
+        #                 best_auc = result['auc']
 
-                        d = {}
-                        for k,v in hparams.items():
-                            if k in hparam_list:
-                                d[k] = v
+        #                 d = {}
+        #                 for k,v in hparams.items():
+        #                     if k in hparam_list:
+        #                         d[k] = v
 
-                        for name, param in model.named_parameters():
-                            if name in param_list:
-                                d[name] = tuple(param.shape)
+        #                 for name, param in model.named_parameters():
+        #                     if name in param_list:
+        #                         d[name] = tuple(param.shape)
 
-                        f.write(str(d)+'\n')
-                        f.write(str(result) +'\n')
-                        f.write('\n')
+        #                 f.write(str(d)+'\n')
+        #                 f.write(str(result) +'\n')
+        #                 f.write('\n')
 
     return best_auc
 
@@ -819,17 +807,18 @@ def load_hparams(hparams):
     parser.add_argument("-ts","--title_size", dest="title_size", help="news title size", type=int, default=20)
     parser.add_argument("-hs","--his_size", dest="his_size", help="history size", type=int, default=50)
 
-    parser.add_argument("-c","--cuda", dest="cuda", help="device to run on", choices=['0','1'], default='0')
-    parser.add_argument("-se","--save_each_epoch", dest="save_each_epoch", help="if clarified, save model of each epoch", default=True)
-    parser.add_argument("-ss","--save_step", dest="save_step", help="if clarified, save model at the interval of given steps", type=str, default='0')
-    parser.add_argument("-te","--train_embedding", dest="train_embedding", help="if clarified, word embedding will be fine-tuned", default=True)
+    parser.add_argument("--cuda", dest="cuda", help="device to run on", choices=['0','1'], default='0')
+    # parser.add_argument("--save_each_epoch", dest="save_each_epoch", help="if clarified, save model of each epoch", default=True)
+    parser.add_argument("--save_step", dest="save_step", help="if clarified, save model at the interval of given steps", type=str, default='0')
+    parser.add_argument("--train_embedding", dest="train_embedding", help="if clarified, word embedding will be fine-tuned", default=True)
     parser.add_argument("-lr","--learning_rate", dest="learning_rate", help="learning rate when training", type=float, default=1e-3)
     # parser.add_argument("--nni", dest="use_nni", help="if clarified, the nni package will be used", action='store_true')
 
     parser.add_argument("-np","--npratio", dest="npratio", help="the number of unclicked news to sample when training", type=int, default=4)
     parser.add_argument("-mc","--metrics", dest="metrics", help="metrics for evaluating the model, if multiple metrics are needed, seperate with ','", type=str, default="auc,mean_mrr,ndcg@5,ndcg@10")
 
-    parser.add_argument("-k","--topk", dest="k", help="intend for topk baseline, if clarified, top k history are involved in interaction calculation", type=int, default=0)
+    # parser.add_argument("--level", dest="level", help="intend for fim baseline, if clarified, level representations will be learnt for a token", type=int)
+    parser.add_argument("--topk", dest="k", help="intend for topk baseline, if clarified, top k history are involved in interaction calculation", type=int, default=0)
     parser.add_argument("--select", dest="select", help="choose model for selecting", choices=['pipeline1','pipeline2','unified','gating'], default=None)
     parser.add_argument("--integrate", dest="integration", help="the way history filter is combined", choices=['gate','harmony'], default=None)
 
@@ -837,7 +826,7 @@ def load_hparams(hparams):
     parser.add_argument("-vd","--value_dim", dest="value_dim", help="dimension of projected value", type=int)
     parser.add_argument("-qd","--query_dim", dest="query_dim", help="dimension of projected query", type=int)
 
-    parser.add_argument("-at","--attrs", dest="attrs", help="clarified attributes of news will be yielded by dataloader, seperate with comma", type=str, default='title')
+    parser.add_argument("--attrs", dest="attrs", help="clarified attributes of news will be yielded by dataloader, seperate with comma", type=str, default='title')
     parser.add_argument("-v","--validate", dest="validate", help="if clarified, evaluate the model on training set", action='store_true')
     parser.add_argument("-nid","--news_id", dest="news_id", help="if clarified, the id of news will be yielded by dataloader", action='store_true')
 
@@ -864,21 +853,21 @@ def load_hparams(hparams):
 
     hparams['save_step'] = [int(i) for i in args.save_step.split(',')]
     
-    if len(hparams['save_step']) == 1:
-        # intend for testing mode
-        if args.select:            
-            if args.save_step:
-                hparams['save_path'] = 'models/model_params/{}-{}_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'],args.save_step, str(hparams['his_size']), str(hparams['k']))
-            else:
-                hparams['save_path'] = 'models/model_params/{}-{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
-        else:
-            if args.save_step:
-                hparams['save_path'] = 'models/model_params/{}_{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],hparams['epochs'],args.save_step, str(hparams['his_size']), str(hparams['k']))
-            else:
-                hparams['save_path'] = 'models/model_params/{}_{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
-    # FIXME
-    else:
-        hparams['save_path'] = 'hello/world'
+    # if len(hparams['save_step']) == 1 and args.mode in ['dev','test']:
+    #     # intend for testing mode
+    #     if args.select:            
+    #         if args.save_step:
+    #             hparams['save_path'] = 'models/model_params/{}-{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'],args.save_step, str(hparams['his_size']), str(hparams['k']))
+    #         else:
+    #             hparams['save_path'] = 'models/model_params/{}-{}/{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['select'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
+    #     else:
+    #         if args.save_step:
+    #             hparams['save_path'] = 'models/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],hparams['epochs'],args.save_step, str(hparams['his_size']), str(hparams['k']))
+    #         else:
+    #             hparams['save_path'] = 'models/model_params/{}/{}_epoch{}_[hs={},topk={}].model'.format(hparams['name'],hparams['scale'],hparams['epochs'], str(hparams['his_size']), str(hparams['k']))
+    # # FIXME
+    # else:
+    #     hparams['save_path'] = 'hello/world'
 
     if args.head_num:
         hparams['head_num'] = args.head_num
@@ -888,12 +877,14 @@ def load_hparams(hparams):
         hparams['query_dim'] = args.query_dim
     if args.integration:
         hparams['integration'] = args.integration
+    # if args.level:
+    #     hparams['level'] = args.level
     
     hparams['attrs'] = args.attrs.split(',')
     hparams['validate'] = args.validate
     hparams['news_id'] = args.news_id
 
-    hparams['save_each_epoch'] = args.save_each_epoch
+    # hparams['save_each_epoch'] = args.save_each_epoch
     hparams['train_embedding'] = args.train_embedding
 
     return hparams

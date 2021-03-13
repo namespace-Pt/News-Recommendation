@@ -7,7 +7,7 @@ class NRMSModel(nn.Module):
         self.name = hparams['name']
         
         self.cdd_size = (hparams['npratio'] + 1) if hparams['npratio'] > 0 else 1
-        self.metrics = hparams['metrics']
+
         self.device = torch.device(hparams['device'])
         if hparams['train_embedding']:
             self.embedding = nn.Parameter(vocab.vectors.clone().detach().requires_grad_(True).to(self.device))

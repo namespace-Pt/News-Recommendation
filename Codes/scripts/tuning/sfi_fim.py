@@ -18,6 +18,8 @@ if __name__ == "__main__":
     best_auc = 0
 
     for hparam in generate_hparams(hparams, config):
+        if hparam['his_size'] == 50 and hparam['k'] == 10:
+            continue
         vocab, loaders = prepare(hparams)
 
         if hparams['select'] == 'unified':

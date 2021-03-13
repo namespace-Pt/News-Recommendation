@@ -6,7 +6,7 @@ class GCAModel(nn.Module):
         super().__init__()
 
         self.cdd_size = (hparams['npratio'] + 1) if hparams['npratio'] > 0 else 1
-        self.metrics = hparams['metrics']
+
         self.device = torch.device(hparams['device'])
         self.embedding = vocab.vectors.to(self.device)
 
