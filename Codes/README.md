@@ -42,6 +42,8 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
     python scripts/fim.py -s large -m test --save_step 4000
     ```
 - **ATTENTION! default path of model parameters is** `models/model_params`, since I didn't upload this folder, you need to create one.
+
+- **ATTENTION! files under `deprecated/` will no longer be maintained**
    
 
 ## File Structure

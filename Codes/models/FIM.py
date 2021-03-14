@@ -14,7 +14,7 @@ class FIMModel(nn.Module):
         self.dropout_p = hparams['dropout_p']
         
         # concatenate category embedding and subcategory embedding
-        self.signal_length = hparams['title_size']# + 1 + 1
+        self.signal_length = hparams['title_size']
 
         self.kernel_size = 3
         self.level = 3
