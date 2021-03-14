@@ -41,7 +41,7 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
     cd Codes/
     python scripts/fim.py -s large -m test --save_step 4000
     ```
-- **ATTENTION! default path of model parameters is** `models/model_params`, since I didn't upload this folder, you need to create one.
+- **ATTENTION! default path of model parameters is** `models/model_params/[model_name]`, since I didn't upload this folder, you need to create one.
 
 - **ATTENTION! files under `deprecated/` will no longer be maintained**
    
@@ -106,7 +106,7 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 |ITR-CNN-CNN|$0.647$|$0.3022$|$0.3289$|$0.3957$|`epoch=1`|
 |ITR-MHA-MHA|$0.6201$|||
 |SFI-pipeline||
-|SFI-unified||
+|SFI-unified|$0.6782$|$0.3237$|$0.3598$|$0.4237$|
 |SFI-gating|$\mathbf{0.6853}$|$\mathbf{0.3303}$|$\mathbf{0.3663}$|$\mathbf{0.4294}$|`epoch=1, step=18000`|
 |baseline-MHA-CNN|$0.6239$|$0.2796$|$0.3067$|$0.3698$|`epoch=8` run on `MINDsmall`|
 |baseline-MHA-MHA|$0.6395$|$0.2934$|$0.3203$|$0.385$|`epoch=8` run on `MINDsmall`|

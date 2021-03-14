@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 
 
-class MultiHead_Encoder(nn.Module):
+class MHA_Encoder(nn.Module):
     def __init__(self, hparams, vocab):
         super().__init__()
         self.name = 'mha-encoder'

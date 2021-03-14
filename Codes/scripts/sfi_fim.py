@@ -20,18 +20,22 @@ if __name__ == "__main__":
     vocab, loaders = prepare(hparams)
 
     if hparams['select'] == 'unified':
+        hparams['name'] = hparams['name'] + '-unified'
         from models.SFI_FIM import SFIModel_unified
         sfiModel = SFIModel_unified(vocab=vocab,hparams=hparams).to(hparams['device'])
     
     elif hparams['select'] == 'pipeline1':
+        hparams['name'] = hparams['name'] + '-pipeline1'
         from models.SFI_FIM import SFIModel_pipeline1
         sfiModel = SFIModel_pipeline1(vocab=vocab,hparams=hparams).to(hparams['device'])
 
     elif hparams['select'] == 'pipeline2':
+        hparams['name'] = hparams['name'] + '-pipeline2'
         from models.SFI_FIM import SFIModel_pipeline2
         sfiModel = SFIModel_pipeline2(vocab=vocab,hparams=hparams).to(hparams['device'])
     
     elif hparams['select'] == 'gating':
+        hparams['name'] = hparams['name'] + '-gating'
         from models.SFI_FIM import SFIModel_gating
         sfiModel = SFIModel_gating(vocab=vocab,hparams=hparams).to(hparams['device'])
 
