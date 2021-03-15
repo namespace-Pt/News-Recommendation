@@ -210,21 +210,26 @@ def tailorData(tsvFile, num):
 
     directory = pattern.group(1)
     mode = pattern.group(3)
-    target_file = pattern.group(4)
+    behavior_file = pattern.group(4)
 
-    target_file = directory + 'MINDdemo' + \
-        '_{}/'.format(mode) + target_file + '.tsv'.format(mode)
+    behavior_file = directory + 'MINDdemo' + \
+        '_{}/'.format(mode) + behavior_file + '.tsv'
 
-    f = open(target_file, 'w', encoding='utf-8')
+    f = open(behavior_file, 'w', encoding='utf-8')
     count = 0
     with open(tsvFile, 'r', encoding='utf-8') as g:
         for line in g:
             if count >= num:
                 f.close()
-                return
+                break
             f.write(line)
             count += 1
+    news_file = re.sub('behaviors', 'news', tsvFile)
+    news_file_new = re.sub('behaviors', 'news', behavior_file)
 
+    os.system("cp {} {}".format(news_file, news_file_new))
+    logging.info("tailored {} behaviors to {}, copied news file also".format(num, behavior_file))
+    return
 
 def getId2idx(file):
     """
@@ -733,7 +738,7 @@ def test(model, hparams, loader_test):
     model.cdd_size = 1
     model.eval()
 
-    save_path = 'data/results/prediction={}-{}_{}_epoch{}_step{}_[hs={},topk={}].txt'.format(
+    save_path = 'data/results/prediction={}_{}_epoch{}_step{}_[hs={},topk={}].txt'.format(
         hparams['name'], hparams['scale'], hparams['epochs'], hparams['save_step'][0], hparams['his_size'], hparams['k'])
     with open(save_path, 'w') as f:
         preds = []
@@ -948,11 +953,6 @@ def load_hparams(hparams):
 
     # hparams['save_each_epoch'] = args.save_each_epoch
     hparams['train_embedding'] = args.train_embedding
-
-    save_directory = 'models/model_params/{}'.format(hparams['name'])
-    if not os.path.exists(save_directory):
-        # if args.mode in ['train','tune']:
-        os.mkdir(save_directory)
 
     return hparams
 

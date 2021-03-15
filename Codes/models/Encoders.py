@@ -20,7 +20,8 @@ class MHA_Encoder(nn.Module):
 
         self.device = hparams['device']
 
-        self.embedding = nn.Embedding.from_pretrained(vocab.vectors).to(self.device)
+        self.embedding = nn.Embedding.from_pretrained(
+            vocab.vectors).to(self.device)
 
         self.softmax = nn.Softmax(dim=-1)
         self.DropOut = nn.Dropout(p=hparams['dropout_p'])
@@ -126,7 +127,8 @@ class FIM_Encoder(nn.Module):
         self.device = hparams['device']
 
         # pretrained embedding
-        self.embedding = nn.Embedding.from_pretrained(vocab.vectors).to(self.device)
+        self.embedding = nn.Embedding.from_pretrained(
+            vocab.vectors).to(self.device)
 
         # elements in the slice along dim will sum up to 1
         self.softmax = nn.Softmax(dim=-1)
@@ -230,11 +232,12 @@ class FIM_Encoder(nn.Module):
             dim=-2).view(news_batch.shape[0], news_batch.shape[1], self.hidden_dim)
         return news_embedding_dilations, news_reprs
 
+
 class NPA_Encoder(nn.Module):
-    def __init__(self,hparams,vocab, user_num):
+    def __init__(self, hparams, vocab, user_num):
         super().__init__()
         self.name = 'npa-encoder'
-        
+
         self.dropout_p = hparams['dropout_p']
 
         self.level = 1
@@ -246,22 +249,23 @@ class NPA_Encoder(nn.Module):
         self.device = torch.device(hparams['device'])
 
         # pretrained embedding
-        self.embedding = nn.Embedding.from_pretrained(vocab.vectors).to(self.device)
-        # elements in the slice along dim will sum up to 1 
+        self.embedding = nn.Embedding.from_pretrained(
+            vocab.vectors).to(self.device)
+        # elements in the slice along dim will sum up to 1
         self.softmax = nn.Softmax(dim=-1)
 
         # trainable lookup layer for user embedding, important to have len(uid2idx) + 1 rows because user indexes start from 1
-        self.user_embedding = nn.Embedding(user_num + 1,self.user_dim)
+        self.user_embedding = nn.Embedding(user_num + 1, self.user_dim)
         # project e_u to word query preference vector of query_dim
-        self.wordQueryProject = nn.Linear(self.user_dim,self.query_dim)
+        self.wordQueryProject = nn.Linear(self.user_dim, self.query_dim)
         # project preference query to vector of hidden_dim
-        self.wordPrefProject = nn.Linear(self.query_dim,self.hidden_dim)
-
+        self.wordPrefProject = nn.Linear(self.query_dim, self.hidden_dim)
 
         # input tensor shape is [batch_size,in_channels,signal_length]
         # in_channels is the length of embedding, out_channels indicates the number of filters, signal_length is the length of title
         # set paddings=1 to get the same length of title, referring M in the paper
-        self.CNN = nn.Conv1d(in_channels=self.embedding_dim,out_channels=self.hidden_dim,kernel_size=3,padding=1)
+        self.CNN = nn.Conv1d(in_channels=self.embedding_dim,
+                             out_channels=self.hidden_dim, kernel_size=3, padding=1)
         self.RELU = nn.ReLU()
         self.Tanh = nn.Tanh()
         self.DropOut = nn.Dropout(p=hparams['dropout_p'])
@@ -288,10 +292,10 @@ class NPA_Encoder(nn.Module):
 
         attn_output = torch.matmul(attn_weights, value)
         return attn_output
-    
+
     def forward(self, news_batch, user_index):
         """ encode news through 1-d CNN and combine embeddings with personalized attention
-        
+
         Args:
             news_batch: tensor of [batch_size, *, signal_length]
 
@@ -300,10 +304,14 @@ class NPA_Encoder(nn.Module):
             news_repr: hidden vector of each news, of size [batch_size, *, hidden_dim]
         """
         e_u = self.DropOut(self.user_embedding(user_index))
-        word_query = self.Tanh(self.wordPrefProject(self.RELU(self.wordQueryProject(e_u))))
+        word_query = self.Tanh(self.wordPrefProject(
+            self.RELU(self.wordQueryProject(e_u))))
 
-        news_embedding_pretrained = self.DropOut(self.embedding(news_batch)).view(-1, news_batch.shape[-1], self.embedding_dim).transpose(-2,-1)
-        news_embedding = self.RELU(self.CNN(news_embedding_pretrained)).transpose(-2,-1).view(news_batch.shape + (self.hidden_dim,))
+        news_embedding_pretrained = self.DropOut(self.embedding(
+            news_batch)).view(-1, news_batch.shape[-1], self.embedding_dim).transpose(-2, -1)
+        news_embedding = self.RELU(self.CNN(
+            news_embedding_pretrained)).transpose(-2, -1).view(news_batch.shape + (self.hidden_dim,))
 
-        news_repr = self._scaled_dp_attention(word_query.view(word_query.shape[0],1,1,word_query.shape[-1]), news_embedding, news_embedding).squeeze(dim=-2)
+        news_repr = self._scaled_dp_attention(word_query.view(
+            word_query.shape[0], 1, 1, word_query.shape[-1]), news_embedding, news_embedding).squeeze(dim=-2)
         return news_embedding.view(news_batch.shape + (self.level, self.hidden_dim)), news_repr
