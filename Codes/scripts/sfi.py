@@ -20,12 +20,10 @@ if __name__ == "__main__":
     vocab, loaders = prepare(hparams)
 
     if hparams['encoder'] == 'fim':
-        hparams['name'] = hparams['name'] + '-fim'
         from models.Encoders import FIM_Encoder
         encoder = FIM_Encoder(hparams, vocab)
 
     elif hparams['encoder'] == 'mha':
-        hparams['name'] = hparams['name'] + '-mha'
         hparams['value_dim'] = 16
         hparams['query_dim'] = 200
         hparams['head_num'] = 16
@@ -33,30 +31,41 @@ if __name__ == "__main__":
         encoder = MHA_Encoder(hparams, vocab)
 
     elif hparams['encoder'] == 'npa':
-        hparams['name'] = hparams['name'] + '-npa'
         hparams['user_dim'] = 200
         hparams['query_dim'] = 200
         hparams['filter_num'] = 400
         from models.Encoders import NPA_Encoder
         encoder = NPA_Encoder(hparams, vocab, len(loaders[0].dataset.uid2index))
+    
+    elif hparams['encoder'] == 'nrms':
+        hparams['value_dim'] = 16
+        hparams['query_dim'] = 200
+        hparams['head_num'] = 16
+        from models.Encoders import NRMS_Encoder
+        encoder = NRMS_Encoder(hparams, vocab)
+    
+    elif hparams['encoder'] == 'pipeline':
+        hparams['encoder'] = hparams['encoder'] + '-[{}]'.format(hparams['pipeline'])
+        from models.Encoders import Pipeline_Encoder
+        encoder = Pipeline_Encoder(hparams)
+
+    elif hparams['encoder'] == 'bert':
+        hparams['encoder'] = hparams['encoder'] + '-[{}]'.format(hparams['bert'])
+        from models.Encoders import Bert_Encoder
+        encoder = Bert_Encoder(hparams)
 
     if hparams['select'] == 'unified':
-        hparams['name'] = hparams['name'] + '-unified'
+        hparams['name'] = '-'.join([hparams['name'], hparams['encoder'], hparams['select']])
         from models.SFI import SFI_unified
         sfiModel = SFI_unified(hparams, encoder).to(hparams['device'])
     
     elif hparams['select'] == 'pipeline1':
-        hparams['name'] = hparams['name'] + '-pipeline1'
+        hparams['name'] = '-'.join([hparams['name'], hparams['encoder'], hparams['select']])
         from models.SFI import SFI_pipeline1
         sfiModel = SFI_pipeline1(hparams, encoder).to(hparams['device'])
-
-    elif hparams['select'] == 'pipeline2':
-        hparams['name'] = hparams['name'] + '-pipeline2'
-        from models.SFI import SFI_pipeline2
-        sfiModel = SFI_pipeline2(hparams, encoder).to(hparams['device'])
     
     elif hparams['select'] == 'gating':
-        hparams['name'] = hparams['name'] + '-gating'
+        hparams['name'] = '-'.join([hparams['name'], hparams['encoder'], hparams['select']])
         from models.SFI import SFI_gating
         sfiModel = SFI_gating(hparams, encoder).to(hparams['device'])
     

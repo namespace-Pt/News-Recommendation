@@ -43,7 +43,7 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
     ```
 - **ATTENTION! default path of model parameters is** `models/model_params/[model_name]`, since I didn't upload this folder, you need to create one.
 
-- **ATTENTION! files under `deprecated/` will no longer be maintained**
+- **ATTENTION! codes under `deprecated/` will no longer be maintained**
    
 
 ## File Structure
@@ -112,9 +112,9 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 |baseline-MHA-MHA|$0.6395$|$0.2934$|$0.3203$|$0.385$|`epoch=8` run on `MINDsmall`|
 
 ## TODO
-- [ ] BERT
+- [x] BERT
 - [ ] t-test
-- [ ] inference time comparison
-- [ ] pipeline performance comparison
+- [x] inference time comparison
+- [x] pipeline performance comparison
 - [ ] reproduce Hi-Fi Ark
-- [ ] sfi frame
+- [x] sfi frame

@@ -554,9 +554,10 @@ def evaluate(model, hparams, dataloader, load=False, interval=100):
 
     if steps == 1:
         if load:
-            logging.info("loading model...")
             save_path = 'models/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
                 hparams['name'], hparams['scale'], hparams['epochs'], hparams['save_step'][0], hparams['his_size'], hparams['k'])
+            logging.info("loading model from {}...".format(save_path))
+
             state_dict = torch.load(save_path, map_location=hparams['device'])
             state_dict = {k: v for k, v in state_dict.items() if k not in [
                 'news_repr.weight', 'news_embedding.weight']}
@@ -663,7 +664,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
                         'news_repr.weight', 'news_embedding.weight']}
                     torch.save(state_dict, save_path)
                     logging.info(
-                        "saved model of step {} at epoch {}".format(step, epoch+1))
+                        "saved model of step {}, epoch {} at {}".format(step, epoch+1, save_path))
 
             total_steps += 1
 
@@ -677,7 +678,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
         state_dict = {k: v for k, v in state_dict.items() if k not in [
             'news_repr.weight', 'news_embedding.weight']}
         torch.save(state_dict, save_path)
-        logging.info("saved model of epoch {}".format(epoch+1))
+        logging.info("saved model of epoch {} at {}".format(epoch+1, save_path))
 
     return model
 
@@ -734,6 +735,8 @@ def test(model, hparams, loader_test):
     """
     save_path = 'models/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
         hparams['name'], hparams['scale'], hparams['epochs'], hparams['save_step'][0], hparams['his_size'], hparams['k'])
+    logging.info("loading model from {}...".format(save_path))
+
     state_dict = torch.load(save_path, map_location=hparams['device'])
     state_dict = {k: v for k, v in state_dict.items() if k not in [
         'news_repr.weight', 'news_embedding.weight']}
@@ -885,7 +888,6 @@ def load_hparams(hparams):
                         help="if clarified, word embedding will be fine-tuned", default=True)
     parser.add_argument("-lr", "--learning_rate", dest="learning_rate",
                         help="learning rate when training", type=float, default=1e-3)
-    # parser.add_argument("--nni", dest="use_nni", help="if clarified, the nni package will be used", action='store_true')
 
     parser.add_argument("-np", "--npratio", dest="npratio",
                         help="the number of unclicked news to sample when training", type=int, default=4)
@@ -899,7 +901,11 @@ def load_hparams(hparams):
                         choices=['pipeline1', 'pipeline2', 'unified', 'gating'], default=None)
     parser.add_argument("--integrate", dest="integration",
                         help="the way history filter is combined", choices=['gate', 'harmony'], default=None)
-    parser.add_argument("--encoder", dest="encoder", help="choose encoder", choices=['fim', 'npa', 'mha'], default=None)
+    parser.add_argument("--encoder", dest="encoder", help="choose encoder", choices=['fim', 'npa', 'mha', 'nrms', 'pipeline', 'bert'], default=None)
+    parser.add_argument("--bert", dest="bert", help="choose bert model(encoder)", choices=['bert-base-uncased'], default=None)
+
+    # FIXME, clarify all choices
+    parser.add_argument("--pipeline", dest="pipeline", help="choose pipeline-encoder", choices=['sfi', 'npa', 'mha', 'nrms'], default=None)
 
     parser.add_argument("-hn", "--head_num", dest="head_num",
                         help="number of multi-heads", type=int)
@@ -948,6 +954,12 @@ def load_hparams(hparams):
         hparams['integration'] = args.integration
     if args.encoder:
         hparams['encoder'] = args.encoder
+    if args.bert:
+        hparams['encoder'] = 'bert'
+        hparams['bert'] = args.bert
+
+    if args.pipeline:
+        hparams['pipeline'] = args.pipeline
 
     # if args.level:
     #     hparams['level'] = args.level
@@ -1049,8 +1061,9 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
                                 num_workers=8, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
 
         vocab = dataset_train.vocab
-        embedding = GloVe(dim=300, cache='.vector_cache')
-        vocab.load_vectors(embedding)
+        if 'bert' not in hparams:
+            embedding = GloVe(dim=300, cache='.vector_cache')
+            vocab.load_vectors(embedding)
 
         if hparams['validate']:
             dataset_validate = MIND(
@@ -1069,8 +1082,9 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=True,
                                 num_workers=8, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
         vocab = dataset_dev.vocab
-        embedding = GloVe(dim=300, cache='.vector_cache')
-        vocab.load_vectors(embedding)
+        if 'bert' not in hparams:
+            embedding = GloVe(dim=300, cache='.vector_cache')
+            vocab.load_vectors(embedding)
 
         return vocab, [loader_dev]
 
@@ -1081,8 +1095,9 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
                                  num_workers=8, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
 
         vocab = dataset_test.vocab
-        embedding = GloVe(dim=300, cache='.vector_cache')
-        vocab.load_vectors(embedding)
+        if 'bert' not in hparams:
+            embedding = GloVe(dim=300, cache='.vector_cache')
+            vocab.load_vectors(embedding)
 
         return vocab, [loader_test]
 

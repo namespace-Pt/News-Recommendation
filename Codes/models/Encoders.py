@@ -3,12 +3,13 @@ import logging
 import math
 import torch
 import torch.nn as nn
+from transformers import BertModel
 
 
-class MHA_Encoder(nn.Module):
+class NRMS_Encoder(nn.Module):
     def __init__(self, hparams, vocab):
         super().__init__()
-        self.name = 'mha-encoder'
+        self.name = 'nrms-encoder'
 
         self.level = 1
 
@@ -39,7 +40,7 @@ class MHA_Encoder(nn.Module):
         """ calculate scaled attended output of values
 
         Args:
-            query: tensor of [*, query_num, key_dim]
+            query: tensor of [batch_size, *, query_num, key_dim]
             key: tensor of [batch_size, *, key_num, key_dim]
             value: tensor of [batch_size, *, key_num, value_dim]
 
@@ -312,6 +313,7 @@ class NPA_Encoder(nn.Module):
             word_query.shape[0], 1, 1, word_query.shape[-1]), news_embedding, news_embedding).squeeze(dim=-2)
         return news_embedding.view(news_batch.shape + (self.level, self.hidden_dim)), news_repr
 
+
 class Pipeline_Encoder(nn.Module):
     def __init__(self, hparams):
         super().__init__()
@@ -348,3 +350,114 @@ class Pipeline_Encoder(nn.Module):
         news_repr = self.news_repr(kwargs['news_id'])
         news_embedding = self.news_embedding(kwargs['news_id']).view(news_batch.shape + (self.level, self.hidden_dim))
         return news_embedding, news_repr
+
+
+class MHA_Encoder(nn.Module):
+    def __init__(self, hparams, vocab):
+        super().__init__()
+        self.name = 'mha-encoder'
+
+        self.level = 1
+
+        self.embedding_dim = hparams['embedding_dim']
+        self.value_dim = hparams['value_dim']
+        self.query_dim = hparams['query_dim']
+        self.head_num = hparams['head_num']
+
+        # dimension for the final output embedding/representation
+        self.hidden_dim = self.value_dim * self.head_num
+
+        self.embedding = nn.Embedding.from_pretrained(
+            vocab.vectors)
+
+        self.softmax = nn.Softmax(dim=-1)
+
+        self.query = nn.Parameter(torch.randn(
+            (1, self.query_dim), requires_grad=True))
+
+        self.MHA = nn.MultiheadAttention(self.hidden_dim, self.head_num, dropout=hparams['dropout_p'], kdim=self.embedding_dim, vdim=self.embedding_dim)
+        self.queryProject = nn.Linear(self.embedding_dim, self.hidden_dim)
+        self.keyProject = nn.Linear(self.hidden_dim, self.query_dim)
+        self.valueProject = nn.Linear(self.hidden_dim, self.hidden_dim)
+    
+    def _scaled_dp_attention(self, query, key, value):
+        """ calculate scaled attended output of values
+
+        Args:
+            query: tensor of [*, query_num, key_dim]
+            key: tensor of [batch_size, *, key_num, key_dim]
+            value: tensor of [batch_size, *, key_num, value_dim]
+
+        Returns:
+            attn_output: tensor of [batch_size, *, query_num, value_dim]
+        """
+
+        # make sure dimension matches
+        assert query.shape[-1] == key.shape[-1]
+        key = key.transpose(-2, -1)
+
+        attn_weights = torch.matmul(query, key)/math.sqrt(query.shape[-1])
+        attn_weights = self.softmax(attn_weights)
+
+        attn_output = torch.matmul(attn_weights, value)
+        return attn_output
+
+    def forward(self, news_batch, **kwargs):
+        """ encode news with built-in multihead attention
+
+        Args:
+            news_batch: batch of news tokens, of size [batch_size, *, signal_length]
+
+        Returns:
+            news_embedding: hidden vector of each token in news, of size [batch_size, *, signal_length, level, hidden_dim]
+            news_repr: hidden vector of each news, of size [batch_size, *, hidden_dim]
+        """
+        news_embedding_pretrained = self.embedding(news_batch)
+
+        # news_embedding, news_repr = self._multi_head_self_attention(
+        #     news_embedding_pretrained)
+        query = self.queryProject(news_embedding_pretrained).view(-1,news_batch.shape[2],self.hidden_dim).transpose(0,1)
+        key = news_embedding_pretrained.view(-1,news_batch.shape[2],self.embedding_dim).transpose(0,1)
+        value = key
+
+        news_embedding,_ = self.MHA(query, key, value)
+        news_embedding = news_embedding.transpose(0,1).view(news_batch.shape + (self.hidden_dim,))
+
+        multi_head_self_attn_key = torch.tanh(self.keyProject(news_embedding))
+        news_repr = self._scaled_dp_attention(
+            self.query, multi_head_self_attn_key, news_embedding).squeeze(dim=-2)
+
+        return news_embedding.view(news_batch.shape + (self.level, self.hidden_dim)), news_repr
+
+class Bert_Encoder(nn.Module):
+    def __init__(self, hparams):
+        super().__init__()
+        self.name = 'bert-encoder'
+
+        self.level = 1
+
+        # dimension for the final output embedding/representation
+        self.hidden_dim = 768
+
+        self.bert = BertModel.from_pretrained(
+            hparams['bert'],
+            # output hidden embedding of each transformer layer
+            output_hidden_states=True
+        )    
+    
+    def forward(self, news_batch, **kwargs):
+        """ encode news with bert
+
+        Args:
+            news_batch: batch of news tokens, of size [batch_size, *, signal_length]
+
+        Returns:
+            news_embedding: hidden vector of each token in news, of size [batch_size, *, signal_length, level, hidden_dim]
+            news_repr: hidden vector of each news, of size [batch_size, *, hidden_dim]
+        """
+        output = self.bert(news_batch.view(-1, news_batch.shape[2]), attention_mask=kwargs['attn_mask'].view(-1, news_batch.shape[2]))
+
+        news_embedding = output['hidden_states'][-1]
+        news_repr = news_embedding[:,0,:].view(news_batch.shape[0], news_batch.shape[1], self.hidden_dim)
+
+        return news_embedding.view(news_batch.shape + (self.level, self.hidden_dim)), news_repr
