@@ -1,3 +1,5 @@
+import os
+import logging
 import math
 import torch
 import torch.nn as nn
@@ -18,10 +20,8 @@ class MHA_Encoder(nn.Module):
         # dimension for the final output embedding/representation
         self.hidden_dim = self.value_dim * self.head_num
 
-        self.device = hparams['device']
-
         self.embedding = nn.Embedding.from_pretrained(
-            vocab.vectors).to(self.device)
+            vocab.vectors)
 
         self.softmax = nn.Softmax(dim=-1)
         self.DropOut = nn.Dropout(p=hparams['dropout_p'])
@@ -96,7 +96,7 @@ class MHA_Encoder(nn.Module):
             self.query, multi_head_self_attn_key, mha_embedding_native).squeeze(dim=-2)
         return mha_embedding, mha_repr
 
-    def forward(self, news_batch, user_index):
+    def forward(self, news_batch, **kwargs):
         """ encode news
 
         Args:
@@ -124,11 +124,9 @@ class FIM_Encoder(nn.Module):
         self.hidden_dim = hparams['filter_num']
         self.embedding_dim = hparams['embedding_dim']
 
-        self.device = hparams['device']
-
         # pretrained embedding
         self.embedding = nn.Embedding.from_pretrained(
-            vocab.vectors).to(self.device)
+            vocab.vectors)
 
         # elements in the slice along dim will sum up to 1
         self.softmax = nn.Softmax(dim=-1)
@@ -164,7 +162,7 @@ class FIM_Encoder(nn.Module):
         """ calculate scaled attended output of values
 
         Args:
-            query: tensor of [*, query_num, key_dim]
+            query: tensor of [batch_size, *, query_num, key_dim]
             key: tensor of [batch_size, *, key_num, key_dim]
             value: tensor of [batch_size, *, key_num, value_dim]
 
@@ -194,7 +192,7 @@ class FIM_Encoder(nn.Module):
 
         # don't know what d_0 meant in the original paper
         news_embedding_dilations = torch.zeros(
-            (news_embedding_set.shape[0], news_embedding_set.shape[1], self.level, self.hidden_dim), device=self.device)
+            (news_embedding_set.shape[0], news_embedding_set.shape[1], self.level, self.hidden_dim), device=news_embedding_set.device)
 
         news_embedding_set = news_embedding_set.transpose(-2, -1)
 
@@ -212,7 +210,7 @@ class FIM_Encoder(nn.Module):
 
         return news_embedding_dilations
 
-    def forward(self, news_batch, user_index):
+    def forward(self, news_batch, **kwargs):
         """ encode set of news to news representation
 
         Args:
@@ -246,11 +244,9 @@ class NPA_Encoder(nn.Module):
         self.user_dim = hparams['user_dim']
         self.query_dim = hparams['query_dim']
 
-        self.device = torch.device(hparams['device'])
-
         # pretrained embedding
         self.embedding = nn.Embedding.from_pretrained(
-            vocab.vectors).to(self.device)
+            vocab.vectors)
         # elements in the slice along dim will sum up to 1
         self.softmax = nn.Softmax(dim=-1)
 
@@ -293,7 +289,7 @@ class NPA_Encoder(nn.Module):
         attn_output = torch.matmul(attn_weights, value)
         return attn_output
 
-    def forward(self, news_batch, user_index):
+    def forward(self, news_batch, **kwargs):
         """ encode news through 1-d CNN and combine embeddings with personalized attention
 
         Args:
@@ -303,7 +299,7 @@ class NPA_Encoder(nn.Module):
             news_embedding: hidden vector of each token in news, of size [batch_size, *, signal_length, hidden_dim]
             news_repr: hidden vector of each news, of size [batch_size, *, hidden_dim]
         """
-        e_u = self.DropOut(self.user_embedding(user_index))
+        e_u = self.DropOut(self.user_embedding(kwargs['user_index']))
         word_query = self.Tanh(self.wordPrefProject(
             self.RELU(self.wordQueryProject(e_u))))
 
@@ -315,3 +311,40 @@ class NPA_Encoder(nn.Module):
         news_repr = self._scaled_dp_attention(word_query.view(
             word_query.shape[0], 1, 1, word_query.shape[-1]), news_embedding, news_embedding).squeeze(dim=-2)
         return news_embedding.view(news_batch.shape + (self.level, self.hidden_dim)), news_repr
+
+class Pipeline_Encoder(nn.Module):
+    def __init__(self, hparams):
+        super().__init__()
+        self.name = 'pipeline-encoder'
+
+        news_repr_path = 'data/tensors/news_repr_{}_{}-[{}].tensor'.format(hparams['scale'],hparams['mode'],hparams['pipeline'])
+        news_embedding_path = 'data/tensors/news_embedding_{}_{}-[{}].tensor'.format(hparams['scale'],hparams['mode'],hparams['pipeline'])
+
+        if os.path.exists(news_repr_path) and os.path.exists(news_embedding_path):
+            self.news_repr = nn.Embedding.from_pretrained(torch.load(news_repr_path), freeze=True)
+            news_embedding = torch.load(news_embedding_path)
+            self.news_embedding = nn.Embedding.from_pretrained(news_embedding.view(news_embedding.shape[0],-1), freeze=True)
+        else:
+            logging.warning("No encoded news at '{}', please encode news first!".format(news_embedding_path))
+            raise ValueError
+
+        # print(self.news_repr.weight.shape, news_embedding.shape, self.news_embedding.weight.shape)
+            
+        #FIXME
+        self.level = news_embedding.shape[-2]
+        self.hidden_dim = news_embedding.shape[-1]
+        # print(self.level, self.hidden_dim)
+
+    def forward(self,news_batch,**kwargs):
+        """ encode news by lookup table
+
+        Args:
+            news_batch: tensor of [batch_size, *, signal_length]
+
+        Returns:
+            news_embedding: hidden vector of each token in news, of size [batch_size, *, signal_length, hidden_dim]
+            news_repr: hidden vector of each news, of size [batch_size, *, hidden_dim]
+        """
+        news_repr = self.news_repr(kwargs['news_id'])
+        news_embedding = self.news_embedding(kwargs['news_id']).view(news_batch.shape + (self.level, self.hidden_dim))
+        return news_embedding, news_repr

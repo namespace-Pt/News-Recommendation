@@ -559,7 +559,7 @@ def evaluate(model, hparams, dataloader, load=False, interval=100):
                 hparams['name'], hparams['scale'], hparams['epochs'], hparams['save_step'][0], hparams['his_size'], hparams['k'])
             state_dict = torch.load(save_path, map_location=hparams['device'])
             state_dict = {k: v for k, v in state_dict.items() if k not in [
-                'news_reprs.weight', 'news_embeddings.weight']}
+                'news_repr.weight', 'news_embedding.weight']}
             model.load_state_dict(state_dict, strict=False)
 
         logging.info("evaluating...")
@@ -657,10 +657,11 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
                 if step % save_step == 0 and step > 0:
                     save_path = 'models/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
                         hparams['name'], hparams['scale'], epoch + 1, step, hparams['his_size'], hparams['k'])
-                    if not os.path.exists(save_path):
-                        os.makedirs('/'.join(save_path.split('/')[:-1]))
 
-                    torch.save(model.state_dict(), save_path)
+                    state_dict = model.state_dict()
+                    state_dict = {k: v for k, v in state_dict.items() if k not in [
+                        'news_repr.weight', 'news_embedding.weight']}
+                    torch.save(state_dict, save_path)
                     logging.info(
                         "saved model of step {} at epoch {}".format(step, epoch+1))
 
@@ -674,7 +675,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
 
         state_dict = model.state_dict()
         state_dict = {k: v for k, v in state_dict.items() if k not in [
-            'news_reprs.weight', 'news_embeddings.weight']}
+            'news_repr.weight', 'news_embedding.weight']}
         torch.save(state_dict, save_path)
         logging.info("saved model of epoch {}".format(epoch+1))
 
@@ -694,12 +695,13 @@ def train(model, hparams, loaders, tb=False, interval=100):
     writer = None
 
     if tb:
-        if hparams['select']:
-            writer = SummaryWriter('data/tb/{}-{}/{}/{}/'.format(
-                hparams['name'], hparams['select'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
-        else:
-            writer = SummaryWriter('data/tb/{}/{}/{}/'.format(
-                hparams['name'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
+        writer = SummaryWriter('data/tb/{}-{}/{}/{}/'.format(
+            hparams['name'], hparams['select'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
+    
+    # in case the folder does not exists, create one
+    save_derectory = 'models/model_params/{}'.format(hparams['name'])
+    if not os.path.exists(save_derectory):
+        os.mkdir(save_derectory)
 
     logging.info("training...")
     loss_func = getLoss(model)
@@ -734,7 +736,7 @@ def test(model, hparams, loader_test):
         hparams['name'], hparams['scale'], hparams['epochs'], hparams['save_step'][0], hparams['his_size'], hparams['k'])
     state_dict = torch.load(save_path, map_location=hparams['device'])
     state_dict = {k: v for k, v in state_dict.items() if k not in [
-        'news_reprs.weight', 'news_embeddings.weight']}
+        'news_repr.weight', 'news_embedding.weight']}
     model.load_state_dict(state_dict, strict=False)
 
     logging.info("testing...")
@@ -952,7 +954,9 @@ def load_hparams(hparams):
 
     hparams['attrs'] = args.attrs.split(',')
     hparams['validate'] = args.validate
-    hparams['news_id'] = args.news_id
+    # FIXME
+    # yield news id by default
+    hparams['news_id'] = True
 
     # hparams['save_each_epoch'] = args.save_each_epoch
     hparams['train_embedding'] = args.train_embedding
@@ -1111,9 +1115,9 @@ def pipeline_encode(model, hparams, loaders):
             news_reprs[x['news_id'][i]] = repr[i]
             news_embeddings[x['news_id'][i]] = embedding[i]
 
-    torch.save(news_reprs, 'data/tensors/news_reprs_{}_train-[{}].tensor'.format(
+    torch.save(news_reprs, 'data/tensors/news_repr_{}_train-[{}].tensor'.format(
         hparams['scale'], hparams['name']))
-    torch.save(news_embeddings, 'data/tensors/news_embeddings_{}_train-[{}].tensor'.format(
+    torch.save(news_embeddings, 'data/tensors/news_embedding_{}_train-[{}].tensor'.format(
         hparams['scale'], hparams['name']))
 
     news_num_dev = news_num_dict[hparams['scale']]['dev']
@@ -1128,9 +1132,9 @@ def pipeline_encode(model, hparams, loaders):
             news_reprs[x['news_id'][i]] = repr[i]
             news_embeddings[x['news_id'][i]] = embedding[i]
 
-    torch.save(news_reprs, 'data/tensors/news_reprs_{}_dev-[{}].tensor'.format(
+    torch.save(news_reprs, 'data/tensors/news_repr_{}_dev-[{}].tensor'.format(
         hparams['scale'], hparams['name']))
-    torch.save(news_embeddings, 'data/tensors/news_embeddings_{}_dev-[{}].tensor'.format(
+    torch.save(news_embeddings, 'data/tensors/news_embedding_{}_dev-[{}].tensor'.format(
         hparams['scale'], hparams['name']))
 
     if hparams['scale'] == 'large':
@@ -1146,9 +1150,9 @@ def pipeline_encode(model, hparams, loaders):
                 news_reprs[x['news_id'][i]] = repr[i]
                 news_embeddings[x['news_id'][i]] = embedding[i]
 
-        torch.save(news_reprs, 'data/tensors/news_reprs_{}_test-[{}].tensor'.format(
+        torch.save(news_reprs, 'data/tensors/news_repr_{}_test-[{}].tensor'.format(
             hparams['scale'], hparams['name']))
-        torch.save(news_embeddings, 'data/tensors/news_embeddings_{}_test-[{}].tensor'.format(
+        torch.save(news_embeddings, 'data/tensors/news_embedding_{}_test-[{}].tensor'.format(
             hparams['scale'], hparams['name']))
 
     logging.info('successfully encoded news!')
