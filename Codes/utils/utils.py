@@ -212,6 +212,9 @@ def tailorData(tsvFile, num):
     mode = pattern.group(3)
     behavior_file = pattern.group(4)
 
+    if not os.path.exists(directory + 'MINDdemo' + '_{}/'.format(mode)):
+        os.mkdir(directory + 'MINDdemo' + '_{}/'.format(mode))
+
     behavior_file = directory + 'MINDdemo' + \
         '_{}/'.format(mode) + behavior_file + '.tsv'
 
