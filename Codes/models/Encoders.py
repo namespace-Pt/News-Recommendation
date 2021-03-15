@@ -327,7 +327,8 @@ class Pipeline_Encoder(nn.Module):
             news_embedding = torch.load(news_embedding_path)
             self.news_embedding = nn.Embedding.from_pretrained(news_embedding.view(news_embedding.shape[0],-1), freeze=True)
         else:
-            logging.warning("No encoded news at '{}', please encode news first!".format(news_embedding_path))
+            logger = logging.getLogger(__name__)
+            logger.warning("No encoded news at '{}', please encode news first!".format(news_embedding_path))
             raise ValueError
 
         # print(self.news_repr.weight.shape, news_embedding.shape, self.news_embedding.weight.shape)
