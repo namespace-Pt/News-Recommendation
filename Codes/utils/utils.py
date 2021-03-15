@@ -512,7 +512,7 @@ def _eval_mtp(i, model, hparams, dataloader, result_list):
         "[No.{}, PID:{}] loading model parameters...".format(i, os.getpid()))
 
     step = hparams['save_step'][i]
-    save_path = 'models/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
+    save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
         hparams['name'], hparams['scale'], hparams['epochs'], step, str(hparams['his_size']), str(hparams['k']))
     model.load_state_dict(torch.load(
         save_path, map_location=hparams['device']))
@@ -554,7 +554,7 @@ def evaluate(model, hparams, dataloader, load=False, interval=100):
 
     if steps == 1:
         if load:
-            save_path = 'models/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
+            save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
                 hparams['name'], hparams['scale'], hparams['epochs'], hparams['save_step'][0], hparams['his_size'], hparams['k'])
             logging.info("loading model from {}...".format(save_path))
 
@@ -656,7 +656,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
 
             if save_step:
                 if step % save_step == 0 and step > 0:
-                    save_path = 'models/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
+                    save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
                         hparams['name'], hparams['scale'], epoch + 1, step, hparams['his_size'], hparams['k'])
 
                     state_dict = model.state_dict()
@@ -671,7 +671,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
         if writer:
             writer.add_scalar('epoch_loss', epoch_loss, epoch)
 
-        save_path = 'models/model_params/{}/{}_epoch{}_step0_[hs={},topk={}].model'.format(
+        save_path = 'data/model_params/{}/{}_epoch{}_step0_[hs={},topk={}].model'.format(
             hparams['name'], hparams['scale'], epoch+1, hparams['his_size'], hparams['k'])
 
         state_dict = model.state_dict()
@@ -700,7 +700,7 @@ def train(model, hparams, loaders, tb=False, interval=100):
             hparams['name'], hparams['select'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
     
     # in case the folder does not exists, create one
-    save_derectory = 'models/model_params/{}'.format(hparams['name'])
+    save_derectory = 'data/model_params/{}'.format(hparams['name'])
     if not os.path.exists(save_derectory):
         os.mkdir(save_derectory)
 
@@ -733,7 +733,7 @@ def test(model, hparams, loader_test):
         hparams
         loader_test: DataLoader of MINDlarge_test
     """
-    save_path = 'models/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
+    save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
         hparams['name'], hparams['scale'], hparams['epochs'], hparams['save_step'][0], hparams['his_size'], hparams['k'])
     logging.info("loading model from {}...".format(save_path))
 
@@ -825,7 +825,7 @@ def tune(model, hparams, loaders, best_auc=0):
             optimizer.zero_grad()
 
             if step > 19999 and step % 2000 == 0:
-                save_path = 'models/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
+                save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
                     hparams['name'], hparams['scale'], epoch + 1, step, str(hparams['his_size']), str(hparams['k']))
                 torch.save(model.state_dict(), save_path)
                 logging.info(
