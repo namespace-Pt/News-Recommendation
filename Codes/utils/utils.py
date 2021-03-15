@@ -649,6 +649,9 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
                 if step % save_step == 0 and step > 0:
                     save_path = 'models/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
                         hparams['name'], hparams['scale'], epoch + 1, step, hparams['his_size'], hparams['k'])
+                    if not os.path.exists(save_path):
+                        os.makedirs('/'.join(save_path.split('/')[:-1]))
+
                     torch.save(model.state_dict(), save_path)
                     logging.info(
                         "saved model of step {} at epoch {}".format(step, epoch+1))
@@ -946,6 +949,11 @@ def load_hparams(hparams):
     # hparams['save_each_epoch'] = args.save_each_epoch
     hparams['train_embedding'] = args.train_embedding
 
+    save_directory = 'models/model_params/{}'.format(hparams['name'])
+    if not os.path.exists(save_directory):
+        # if args.mode in ['train','tune']:
+        os.mkdir(save_directory)
+
     return hparams
 
 
@@ -1140,7 +1148,7 @@ def pipeline_encode(model, hparams, loaders):
         torch.save(news_embeddings, 'data/tensors/news_embeddings_{}_test-[{}].tensor'.format(
             hparams['scale'], hparams['name']))
 
-    print('successfully encoded news!')
+    logging.info('successfully encoded news!')
 
 
 def analyse(hparams, path='/home/peitian_zhang/Data/MIND'):
