@@ -470,7 +470,7 @@ def run_eval(model, dataloader, interval):
     labels = []
     imp_indexes = []
 
-    for i, batch_data_input in tqdm(enumerate(dataloader)):
+    for i, batch_data_input in tqdm(enumerate(dataloader),smoothing=0):
         pred = model.forward(batch_data_input).squeeze(dim=-1).tolist()
         preds.extend(pred)
         label = batch_data_input['labels'].squeeze(dim=-1).tolist()
@@ -630,7 +630,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
 
     for epoch in range(hparams['epochs']):
         epoch_loss = 0
-        tqdm_ = tqdm(enumerate(dataloader))
+        tqdm_ = tqdm(enumerate(dataloader),smoothing=0)
         for step, x in tqdm_:
             pred = model(x)
             label = getLabel(model, x)
@@ -751,7 +751,7 @@ def test(model, hparams, loader_test):
     with open(save_path, 'w') as f:
         preds = []
         imp_indexes = []
-        for i, x in tqdm(enumerate(loader_test)):
+        for i, x in tqdm(enumerate(loader_test),smoothing=0):
             preds.extend(model.forward(x).tolist())
             imp_indexes.extend(x['impression_index'])
 
@@ -809,7 +809,7 @@ def tune(model, hparams, loaders, best_auc=0):
 
     for epoch in range(hparams['epochs']):
         epoch_loss = 0
-        tqdm_ = tqdm(enumerate(loader_train))
+        tqdm_ = tqdm(enumerate(loader_train),smoothing=0)
         for step, x in tqdm_:
             pred = model(x)
             label = getLabel(model, x)
@@ -900,7 +900,7 @@ def load_hparams(hparams):
     parser.add_argument("--select", dest="select", help="choose model for selecting",
                         choices=['pipeline1', 'pipeline2', 'unified', 'gating'], default=None)
     parser.add_argument("--integrate", dest="integration",
-                        help="the way history filter is combined", choices=['gate', 'harmony'], default=None)
+                        help="the way history filter is combined", choices=['gate', 'harmony'], default='gate')
     parser.add_argument("--encoder", dest="encoder", help="choose encoder", choices=['fim', 'npa', 'mha', 'nrms', 'pipeline', 'bert'], default=None)
     parser.add_argument("--bert", dest="bert", help="choose bert model(encoder)", choices=['bert-base-uncased'], default=None)
 
@@ -944,14 +944,16 @@ def load_hparams(hparams):
 
     hparams['save_step'] = [int(i) for i in args.save_step.split(',')]
 
+    if hparams['select'] == 'unified':
+        hparams['integration'] = args.integration
+
+
     if args.head_num:
         hparams['head_num'] = args.head_num
     if args.value_dim:
         hparams['value_dim'] = args.value_dim
     if args.query_dim:
         hparams['query_dim'] = args.query_dim
-    if args.integration:
-        hparams['integration'] = args.integration
     if args.encoder:
         hparams['encoder'] = args.encoder
     if args.bert:
@@ -1065,7 +1067,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
             embedding = GloVe(dim=300, cache='.vector_cache')
             vocab.load_vectors(embedding)
 
-        if hparams['validate']:
+        if 'validate' in hparams and hparams['validate']:
             dataset_validate = MIND(
                 hparams=hparams, news_file=news_file_train, behaviors_file=behavior_file_train, npratio=0)
             loader_validate = DataLoader(dataset_validate, batch_size=hparams['batch_size'], pin_memory=True,

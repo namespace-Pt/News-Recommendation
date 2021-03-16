@@ -1,6 +1,6 @@
 import numpy as np
 import re
-from transformers import BertTokenizerFast
+from transformers import AutoTokenizer
 from torch.utils.data import Dataset, IterableDataset
 from .utils import newsample, getId2idx, word_tokenize_vocab, getVocab
 
@@ -46,7 +46,7 @@ class MIND(IterableDataset):
         self.bert = False
         if 'bert' in hparams:
             self.bert = True
-            self.tokenizer = BertTokenizerFast.from_pretrained(hparams['bert'])
+            self.tokenizer = AutoTokenizer.from_pretrained(hparams['bert'])
 
         self.init_news()
         self.init_behaviors(shuffle=shuffle)
@@ -376,7 +376,7 @@ class MIND_test(IterableDataset):
         self.bert = False
         if 'bert' in hparams:
             self.bert = True
-            self.tokenizer = BertTokenizerFast.from_pretrained(hparams['bert'])
+            self.tokenizer = AutoTokenizer.from_pretrained(hparams['bert'])
 
         self.init_news()
         self.init_behaviors()
