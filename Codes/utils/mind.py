@@ -366,7 +366,7 @@ class MIND_test(IterableDataset):
         self.his_size = hparams['his_size']
         self.k = hparams['k']
 
-        self.index2nid = hparams['news_id']
+        # self.index2nid = hparams['news_id']
 
         self.vocab = getVocab(
             'data/dictionaries/vocab_{}.pkl'.format('_'.join(hparams['attrs'])))
@@ -599,7 +599,7 @@ class MIND_news(Dataset):
         # category_token = [[0]]
         # subcategory_token = [[0]]
 
-        title_pad = [[self.title_size]]
+        title_pad = []
         news_ids = []
 
         with open(self.news_file, "r", encoding='utf-8') as rd:
@@ -636,7 +636,9 @@ class MIND_news(Dataset):
         if not hasattr(self, "news_title_array"):
             self.init_news()
 
+        candidate_title_pad = [(self.title_size - self.title_pad[idx][0])*[1] + self.title_pad[idx][0]*[0]]
         return {
             "candidate_title": np.asarray([self.news_title_array[idx]]),
             "news_id": self.news_ids[idx],
+            "candidate_title_pad":np.asarray(candidate_title_pad)
         }

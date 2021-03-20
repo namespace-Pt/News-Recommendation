@@ -1,12 +1,14 @@
 import random
 import re
 import os
+import sys
 import math
 import json
 import pickle
 import torch
 import argparse
 import logging
+import subprocess
 import pandas as pd
 import torch.nn as nn
 import torch.multiprocessing as mp
@@ -507,13 +509,13 @@ def _eval_mtp(i, model, hparams, dataloader, result_list):
         dataloader(torch.utils.data.DataLoader)
         result_list(torch.multiprocessing.Manager().list()): contain evaluation results of every subprocesses
     """
-
-    logging.info(
-        "[No.{}, PID:{}] loading model parameters...".format(i, os.getpid()))
-
     step = hparams['save_step'][i]
     save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
         hparams['name'], hparams['scale'], hparams['epochs'], step, str(hparams['his_size']), str(hparams['k']))
+
+    logging.info(
+        "[No.{}, PID:{}] loading model parameters from {}...".format(i, os.getpid(), save_path))
+
     model.load_state_dict(torch.load(
         save_path, map_location=hparams['device']))
 
@@ -542,6 +544,11 @@ def evaluate(model, hparams, dataloader, load=False, interval=100):
     Returns:
         dict: A dictionary contains evaluation metrics.
     """
+    if len(hparams['save_step']) > 1:
+        for step in hparams['save_step'][1:]:
+            command = re.sub(','.join([str(i) for i in hparams['save_step']]),str(step),hparams['command'])
+            subprocess.Popen(command, shell=True)
+    
     hparam_list = ['name', 'scale', 'epochs', 'train_embedding', 'select',
                    'integrate', 'his_size', 'k', 'query_dim', 'value_dim', 'head_num']
     param_list = ['query_words', 'query_levels']
@@ -550,66 +557,62 @@ def evaluate(model, hparams, dataloader, load=False, interval=100):
     cdd_size = model.cdd_size
     model.cdd_size = 1
 
-    steps = len(hparams['save_step'])
+    if load:
+        save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
+            hparams['name'], hparams['scale'], hparams['epochs'], hparams['save_step'][0], hparams['his_size'], hparams['k'])
+        logging.info("loading model from {}...".format(save_path))
 
-    if steps == 1:
-        if load:
-            save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
-                hparams['name'], hparams['scale'], hparams['epochs'], hparams['save_step'][0], hparams['his_size'], hparams['k'])
-            logging.info("loading model from {}...".format(save_path))
+        state_dict = torch.load(save_path, map_location=hparams['device'])
+        state_dict = {k: v for k, v in state_dict.items() if k not in [
+            'news_repr.weight', 'news_embedding.weight']}
+        model.load_state_dict(state_dict, strict=False)
 
-            state_dict = torch.load(save_path, map_location=hparams['device'])
-            state_dict = {k: v for k, v in state_dict.items() if k not in [
-                'news_repr.weight', 'news_embedding.weight']}
-            model.load_state_dict(state_dict, strict=False)
+    logging.info("evaluating...")
 
-        logging.info("evaluating...")
+    imp_indexes, labels, preds = run_eval(model, dataloader, interval)
+    res = cal_metric(labels, preds, hparams['metrics'].split(','))
 
-        imp_indexes, labels, preds = run_eval(model, dataloader, interval)
-        res = cal_metric(labels, preds, hparams['metrics'].split(','))
+    res['epoch'] = hparams['epochs']
+    res['step'] = hparams['save_step'][0]
 
-        res['step'] = hparams['save_step'][0]
+    logging.info("evaluation results:{}".format(res))
+    with open('performance.log', 'a+') as f:
+        d = {}
+        for k, v in hparams.items():
+            if k in hparam_list:
+                d[k] = v
+        for name, param in model.named_parameters():
+            if name in param_list:
+                d[name] = tuple(param.shape)
 
-        logging.info("evaluation results:{}".format(res))
-        with open('performance.log', 'a+') as f:
-            d = {}
-            for k, v in hparams.items():
-                if k in hparam_list:
-                    d[k] = v
-            for name, param in model.named_parameters():
-                if name in param_list:
-                    d[name] = tuple(param.shape)
-
-            f.write(str(d)+'\n')
-            f.write(str(res) + '\n')
-            f.write('\n')
+        f.write(str(d)+'\n')
+        f.write(str(res) + '\n')
+        f.write('\n')
 
         model.train()
         model.cdd_size = cdd_size
-        return res
 
-    elif steps > 1:
-        logging.info("evaluating in {} processes...".format(steps))
-        model.share_memory()
-        res_list = mp.Manager().list()
-        mp.spawn(_eval_mtp, args=(model, hparams,
-                                  dataloader, res_list), nprocs=steps)
-        with open('performance.log', 'a+') as f:
-            d = {}
-            for k, v in hparams.items():
-                if k in hparam_list:
-                    d[k] = v
-            for name, param in model.named_parameters():
-                if name in param_list:
-                    d[name] = tuple(param.shape)
-            f.write(str(d)+'\n')
+    # elif steps > 1:
+    #     logging.info("evaluating in {} processes...".format(steps))
+    #     model.share_memory()
+    #     res_list = mp.Manager().list()
+    #     mp.spawn(_eval_mtp, args=(model, hparams,
+    #                               dataloader, res_list), nprocs=steps)
+    #     with open('performance.log', 'a+') as f:
+    #         d = {}
+    #         for k, v in hparams.items():
+    #             if k in hparam_list:
+    #                 d[k] = v
+    #         for name, param in model.named_parameters():
+    #             if name in param_list:
+    #                 d[name] = tuple(param.shape)
+    #         f.write(str(d)+'\n')
 
-            for result in res_list:
-                f.write(str(result) + '\n')
-            f.write('\n')
+    #         for result in res_list:
+    #             f.write(str(result) + '\n')
+    #         f.write('\n')
 
-    model.cdd_size = cdd_size
-
+    return res
 
 def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, interval=100, save_step=None):
     ''' train model and print loss meanwhile
@@ -893,8 +896,7 @@ def load_hparams(hparams):
                         help="the number of unclicked news to sample when training", type=int, default=4)
     parser.add_argument("-mc", "--metrics", dest="metrics",
                         help="metrics for evaluating the model, if multiple metrics are needed, seperate with ','", type=str, default="auc,mean_mrr,ndcg@5,ndcg@10")
-
-    # parser.add_argument("--level", dest="level", help="intend for fim baseline, if clarified, level representations will be learnt for a token", type=int)
+    
     parser.add_argument(
         "--topk", dest="k", help="intend for topk baseline, if clarified, top k history are involved in interaction calculation", type=int, default=0)
     parser.add_argument("--select", dest="select", help="choose model for selecting",
@@ -902,10 +904,12 @@ def load_hparams(hparams):
     parser.add_argument("--integrate", dest="integration",
                         help="the way history filter is combined", choices=['gate', 'harmony'], default='gate')
     parser.add_argument("--encoder", dest="encoder", help="choose encoder", choices=['fim', 'npa', 'mha', 'nrms', 'pipeline', 'bert'], default=None)
-    parser.add_argument("--bert", dest="bert", help="choose bert model(encoder)", choices=['bert-base-uncased'], default=None)
+
+    parser.add_argument("--bert", dest="bert", help="choose bert model(encoder)", choices=['bert-base-uncased','albert-base-v2'], default=None)
+    parser.add_argument("--level", dest="level", help="intend for bert encoder, if clarified, level representations will be kept for a token", type=int, default=1)
 
     # FIXME, clarify all choices
-    parser.add_argument("--pipeline", dest="pipeline", help="choose pipeline-encoder", choices=['sfi', 'npa', 'mha', 'nrms'], default=None)
+    parser.add_argument("--pipeline", dest="pipeline", help="choose pipeline-encoder", choices=['fim', 'npa', 'mha', 'nrms', 'bert'], default=None)
 
     parser.add_argument("-hn", "--head_num", dest="head_num",
                         help="number of multi-heads", type=int)
@@ -918,8 +922,8 @@ def load_hparams(hparams):
                         help="clarified attributes of news will be yielded by dataloader, seperate with comma", type=str, default='title')
     parser.add_argument("-v", "--validate", dest="validate",
                         help="if clarified, evaluate the model on training set", action='store_true')
-    parser.add_argument("-nid", "--news_id", dest="news_id",
-                        help="if clarified, the id of news will be yielded by dataloader", action='store_true')
+    # parser.add_argument("-nid", "--news_id", dest="news_id",
+    #                     help="if clarified, the id of news will be yielded by dataloader", action='store_true')
 
     # parser.add_argument("-dp","--dropout", dest="dropout", help="drop out probability", type=float, default=0.2)
     # parser.add_argument("-ed","--embedding_dim", dest="embedding_dim", help="dimension of word embedding", type=int, default=300)
@@ -942,11 +946,13 @@ def load_hparams(hparams):
     hparams['k'] = args.k
     hparams['select'] = args.select
 
+    hparams['attrs'] = args.attrs.split(',')
     hparams['save_step'] = [int(i) for i in args.save_step.split(',')]
+    if len(hparams['save_step']) > 1:
+        hparams['command'] = " ".join(sys.argv)
 
     if hparams['select'] == 'unified':
         hparams['integration'] = args.integration
-
 
     if args.head_num:
         hparams['head_num'] = args.head_num
@@ -954,26 +960,26 @@ def load_hparams(hparams):
         hparams['value_dim'] = args.value_dim
     if args.query_dim:
         hparams['query_dim'] = args.query_dim
+    if args.validate:
+        hparams['validate'] = args.validate
     if args.encoder:
         hparams['encoder'] = args.encoder
     if args.bert:
         hparams['encoder'] = 'bert'
         hparams['bert'] = args.bert
+        hparams['level'] = args.level
 
     if args.pipeline:
         hparams['pipeline'] = args.pipeline
+        hparams['encoder'] = 'pipeline'
 
     # if args.level:
     #     hparams['level'] = args.level
 
-    hparams['attrs'] = args.attrs.split(',')
-    hparams['validate'] = args.validate
-    # FIXME
-    # yield news id by default
-    hparams['news_id'] = True
-
-    # hparams['save_each_epoch'] = args.save_each_epoch
     hparams['train_embedding'] = args.train_embedding
+
+    if len(hparams['save_step']) > 1:
+        hparams['command'] = "python " + " ".join(sys.argv)
 
     return hparams
 
