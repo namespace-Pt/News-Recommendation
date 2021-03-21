@@ -39,7 +39,7 @@ class NRMS_Encoder(nn.Module):
         """ calculate scaled attended output of values
 
         Args:
-            query: tensor of [batch_size, *, query_num, key_dim]
+            query: tensor of [batch_size, batch_size, *, query_num, key_dim]
             key: tensor of [batch_size, *, key_num, key_dim]
             value: tensor of [batch_size, *, key_num, value_dim]
 
@@ -161,7 +161,7 @@ class NRMS_Encoder(nn.Module):
 #         """ calculate scaled attended output of values
 
 #         Args:
-#             query: tensor of [batch_size, *, query_num, key_dim]
+#             query: tensor of [batch_size, batch_size, *, query_num, key_dim]
 #             key: tensor of [batch_size, *, key_num, key_dim]
 #             value: tensor of [batch_size, *, key_num, value_dim]
 
@@ -279,7 +279,7 @@ class FIM_Encoder(nn.Module):
         """ calculate scaled attended output of values
 
         Args:
-            query: tensor of [batch_size, *, query_num, key_dim]
+            query: tensor of [batch_size, batch_size, *, query_num, key_dim]
             key: tensor of [batch_size, *, key_num, key_dim]
             value: tensor of [batch_size, *, key_num, value_dim]
 
@@ -359,7 +359,7 @@ class NPA_Encoder(nn.Module):
         self.hidden_dim = hparams['filter_num']
         self.embedding_dim = hparams['embedding_dim']
         self.user_dim = hparams['user_dim']
-        self.query_dim = hparams['query_dim']
+        self.query_dim = hparams['preference_dim']
 
         # pretrained embedding
         self.embedding = nn.Embedding.from_pretrained(vocab.vectors,freeze=False)
@@ -367,11 +367,13 @@ class NPA_Encoder(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
 
         # trainable lookup layer for user embedding, important to have len(uid2idx) + 1 rows because user indexes start from 1
-        self.user_embedding = nn.Embedding(user_num + 1, self.user_dim, requires_grad=True)
+        self.user_embedding = nn.Embedding(user_num + 1, self.user_dim)
+        self.user_embedding.weight.requires_grad = True
+        
         # project e_u to word query preference vector of query_dim
-        self.wordQueryProject = nn.Linear(self.user_dim, self.query_dim)
+        self.wordPrefProject = nn.Linear(self.user_dim, self.query_dim)
         # project preference query to vector of hidden_dim
-        self.wordPrefProject = nn.Linear(self.query_dim, self.hidden_dim)
+        self.wordQueryProject = nn.Linear(self.query_dim, self.hidden_dim)
 
         # input tensor shape is [batch_size,in_channels,signal_length]
         # in_channels is the length of embedding, out_channels indicates the number of filters, signal_length is the length of title
@@ -386,7 +388,7 @@ class NPA_Encoder(nn.Module):
         """ calculate scaled attended output of values
 
         Args:
-            query: tensor of [*, query_num, key_dim]
+            query: tensor of [batch_size, *, query_num, key_dim]
             key: tensor of [batch_size, *, key_num, key_dim]
             value: tensor of [batch_size, *, key_num, value_dim]
 
@@ -416,8 +418,8 @@ class NPA_Encoder(nn.Module):
             news_repr: hidden vector of each news, of size [batch_size, *, hidden_dim]
         """
         e_u = self.DropOut(self.user_embedding(kwargs['user_index']))
-        word_query = self.Tanh(self.wordPrefProject(
-            self.RELU(self.wordQueryProject(e_u))))
+        word_query = self.Tanh(self.wordQueryProject(
+            self.RELU(self.wordPrefProject(e_u))))
 
         news_embedding_pretrained = self.DropOut(self.embedding(
             news_batch)).view(-1, news_batch.shape[-1], self.embedding_dim).transpose(-2, -1)
@@ -498,7 +500,7 @@ class MHA_Encoder(nn.Module):
         """ calculate scaled attended output of values
 
         Args:
-            query: tensor of [*, query_num, key_dim]
+            query: tensor of [batch_size, *, query_num, key_dim]
             key: tensor of [batch_size, *, key_num, key_dim]
             value: tensor of [batch_size, *, key_num, value_dim]
 
@@ -576,3 +578,23 @@ class Bert_Encoder(nn.Module):
         news_repr = news_embedding[:,0,-1,:].view(news_batch.shape[0], news_batch.shape[1], self.hidden_dim)
 
         return news_embedding.view(news_batch.shape + (self.level, self.hidden_dim)), news_repr
+
+class Encoder_Wrapper(nn.Module):
+    def __init__(self, hparams, encoder):
+        super().__init__()
+        self.encoder = encoder
+        self.name = 'pipeline-'+encoder.name
+
+        self.device = hparams['device']
+    
+    def forward(self,x):
+        if x['candidate_title'].shape[0] != self.batch_size:
+            self.batch_size = x['candidate_title'].shape[0]
+
+        news = x['candidate_title'].long().to(self.device)
+        news_embedding, news_repr = self.encoder(
+            news,
+            news_id=x['news_id'].long().to(self.device),
+            attn_mask=x['candidate_title_pad'].to(self.device))
+
+        return news_embedding, news_repr

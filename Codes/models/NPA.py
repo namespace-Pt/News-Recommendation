@@ -1,175 +1,60 @@
-'''
-Author: Pt
-Date: 2020-11-05 18:05:03
-LastEditTime: 2020-12-09 15:41:02
-'''
-
 import torch
+import math
 import torch.nn as nn
+from .Encoders import NPA_Encoder
 
 class NPAModel(nn.Module):
-    def __init__(self,hparams,vocab,uid2idx):
+    def __init__(self,hparams,vocab,user_num):
         super().__init__()
-        self.name = hparams['name']
-        
-        self.cdd_size = (hparams['npratio'] + 1) if hparams['npratio'] > 0 else 1
-        self.dropout_p = hparams['dropout_p']
-        self.metrics = hparams['metrics']
+        self.name = 'npa'
 
+        self.cdd_size = (hparams['npratio'] + 1) if hparams['npratio'] > 0 else 1
         self.batch_size = hparams['batch_size']
         self.signal_length = hparams['title_size']
         self.his_size =hparams['his_size']
 
-        self.filter_num = hparams['filter_num']
-        self.embedding_dim = hparams['embedding_dim']
-        self.user_dim = hparams['user_dim']
-        self.preference_dim =hparams['preference_dim']
+        self.encoder = NPA_Encoder(hparams, vocab, user_num)
+
+        self.hidden_dim = self.encoder.hidden_dim
+        self.preference_dim =self.encoder.query_dim
+        self.user_dim = self.encoder.user_dim
 
         self.device = torch.device(hparams['device'])
-       
-        # pretrained embedding
-        if hparams['train_embedding']:
-            self.embedding = nn.Parameter(vocab.vectors.clone().detach().requires_grad_(True).to(self.device))
-        else:
-            self.embedding = vocab.vectors.to(self.device)
-        # elements in the slice along dim will sum up to 1 
-        self.softmax = nn.Softmax(dim=-1)
 
-        # project userID to dense vector e_u of user_dim
-        # self.userProject = nn.Linear(1,self.user_dim)
-        
         # trainable lookup layer for user embedding, important to have len(uid2idx) + 1 rows because user indexes start from 1
-        self.user_embedding = nn.Parameter(torch.rand((len(uid2idx) + 1,self.user_dim)))
-        # project e_u to word query preference vector of preference_dim
-        self.wordQueryProject = nn.Linear(self.user_dim,self.preference_dim)
+        self.user_embedding = self.encoder.user_embedding
         # project e_u to word news preference vector of preference_dim
-        self.newsQueryProject = nn.Linear(self.user_dim,self.preference_dim)
+        self.newsPrefProject = nn.Linear(self.user_dim,self.preference_dim)
         # project preference query to vector of filter_num
-        self.wordPrefProject = nn.Linear(self.preference_dim,self.filter_num)
-        self.newsPrefProject = nn.Linear(self.preference_dim,self.filter_num)
-
-        # input tensor shape is [batch_size,in_channels,signal_length]
-        # in_channels is the length of embedding, out_channels indicates the number of filters, signal_length is the length of title
-        # set paddings=1 to get the same length of title, referring M in the paper
-        self.CNN = nn.Conv1d(in_channels=self.embedding_dim,out_channels=self.filter_num,kernel_size=3,padding=1)
+        self.newsQueryProject = nn.Linear(self.preference_dim,self.hidden_dim)
+        
         self.RELU = nn.ReLU()
-        self.DropOut = nn.Dropout(p=self.dropout_p)
+        self.softmax = nn.Softmax(dim=-1)
+        self.Tanh = nn.Tanh()
+        self.DropOut = self.encoder.DropOut
 
-    def _user_projection(self,user_index_batch):
-        """ embed user ID to dense vector e_u of [batch_size,user_dim] through lookup table and store it for further use
-        
+    def _scaled_dp_attention(self, query, key, value):
+        """ calculate scaled attended output of values
+
         Args:
-            user_index_batch: tensor of [batch_size, 1]      
-        """
-        
-        # e_u = self.userProject(user_index_batch)
-        e_u = self.user_embedding[user_index_batch.squeeze()]
+            query: tensor of [batch_size, *, query_num, key_dim]
+            key: tensor of [batch_size, *, key_num, key_dim]
+            value: tensor of [batch_size, *, key_num, value_dim]
 
-        if self.dropout_p > 0:
-            e_u = self.DropOut(e_u)
-        self.e_u = e_u
-    
-    def _word_query_projection(self):
-        """ project e_u to word preference query vector of [batch_size,preference_dim]
-        
         Returns:
-            word_query: tensor of batch_size * preference_dim       
-        """
-        word_query = self.wordQueryProject(self.e_u)
-        word_query = self.RELU(word_query)
-        if self.dropout_p > 0:
-            word_query = self.DropOut(word_query)
-
-        return word_query
-    
-    def _news_query_projection(self):
-        """ project e_u to news preference query vector of [batch_size,preference_dim]
-        
-        Returns:
-            news_query: tensor of batch_size * preference_dim       
-        """
-        news_query = self.newsQueryProject(self.e_u)
-        news_query = self.RELU(news_query)
-        if self.dropout_p > 0:
-            news_query = self.DropOut(news_query)
-        
-        return news_query
-
-    def _attention_word(self,query,keys):
-        """ apply original attention mechanism over words in news
-        
-        Args:
-            query: tensor of [set_size, preference_dim]
-            keys: tensor of [set_size, filter_num, title_size]
-        
-        Returns:
-            attn_aggr: tensor of [set_size, filter_num], which is set of news embedding
+            attn_output: tensor of [batch_size, *, query_num, value_dim]
         """
 
-        # return tensor of batch_size * 1 * filter_num
-        query = self.wordPrefProject(query).unsqueeze(dim=1)
-    
-        # return tensor of batch_size * 1 * title_size
-        attn_results = torch.bmm(query,keys)
-        # return tensor of batch_size * title_size * 1
-        attn_weights = self.softmax(attn_results).permute(0,2,1)
-        
-        # return tensor of batch_size * filter_num
-        attn_aggr = torch.bmm(keys,attn_weights).squeeze()
-        return attn_aggr
+        # make sure dimension matches
+        assert query.shape[-1] == key.shape[-1]
+        key = key.transpose(-2, -1)
 
-    def _attention_news(self,query,keys):
-        """ apply original attention mechanism over news in user history
-        
-        Args:
-            query: tensor of [batch_size, preference_dim]
-            keys: tensor of [batch_size, filter_num, his_size]
-        
-        Returns:
-            attn_aggr: tensor of [batch_size, filter_num], which is batch of user embedding
-        """
+        attn_weights = torch.matmul(query, key)/math.sqrt(query.shape[-1])
+        # print(attn_weights.shape)
+        attn_weights = self.softmax(attn_weights)
 
-        # return tensor of batch_size * 1 * filter_num
-        query = self.newsPrefProject(query).unsqueeze(dim=1)
-    
-        # return tensor of batch_size * 1 * his_size
-        attn_results = torch.bmm(query,keys)
-        # return tensor of batch_size * title_size * 1
-        attn_weights = self.softmax(attn_results).permute(0,2,1)
-        
-        # return tensor of batch_size * filter_num
-        attn_aggr = torch.bmm(keys,attn_weights).squeeze()
-        return attn_aggr
-
-    def _news_encoder(self,news_batch,word_query):
-        """ encode set of news to news representations of [batch_size, cdd_size, filter_num]
-        
-        Args:
-            news_batch: tensor of [batch_size, cdd_size, title_size]
-            word_query: tensor of [set_size, preference_dim]
-        
-        Returns:
-            news_repr: tensor of [set_size, filter_num] 
-        """
-
-        # important not to directly apply view function
-        # return tensor of batch_size * cdd_size * embedding_dim * title_size
-        cdd_title_embedding = self.embedding[news_batch]
-        cdd_title_embedding = cdd_title_embedding.view(-1,self.signal_length,self.embedding_dim).permute(0,2,1)
-        
-        # return tensor of batch_size * cdd_size * filter_num * title_size
-        cdd_title_embedding = self.CNN(cdd_title_embedding)
-        cdd_title_embedding = self.RELU(cdd_title_embedding)
-        if self.dropout_p > 0:
-            cdd_title_embedding = self.DropOut(cdd_title_embedding)
-        
-        if news_batch.shape[1] > 1:
-            # repeat tensor cdd_size times along dim=0, because they all correspond to the same user thus the same query
-            word_query = torch.repeat_interleave(word_query,repeats=news_batch.shape[1],dim=0)
-
-        news_repr = self._attention_word(word_query,cdd_title_embedding)
-
-        return news_repr
+        attn_output = torch.matmul(attn_weights, value)
+        return attn_output
 
     def _user_encoder(self,his_news_batch,news_query,word_query):
         """ encode batch of user history clicked news to user representations of [batch_size,filter_num]
@@ -191,13 +76,13 @@ class NPAModel(nn.Module):
         """ calculate batch of click probability
         
         Args:
-            cdd_news_repr: tensor of [batch_size, cdd_size, filter_num]
-            user_repr: tensor of [batch_size, 1, filter_num]
+            cdd_news_repr: tensor of [batch_size, cdd_size, hidden_dim]
+            user_repr: tensor of [batch_size, 1, hidden_dim]
         
         Returns:
             score: tensor of [batch_size, cdd_size]
         """
-        score = torch.bmm(cdd_news_repr,user_repr.permute(0,2,1)).squeeze(dim=-1)
+        score = torch.bmm(cdd_news_repr,user_repr.transpose(-2,-1)).squeeze(dim=-1)
         if self.cdd_size > 1:
             score = nn.functional.log_softmax(score,dim=1)
         else:
@@ -207,18 +92,23 @@ class NPAModel(nn.Module):
     def forward(self,x):
         if x['candidate_title'].shape[0] != self.batch_size:
             self.batch_size = x['candidate_title'].shape[0]
-        self._user_projection(x['user_index'].to(self.device))
-        word_query = self._word_query_projection()
-        news_query = self._news_query_projection()
-        cdd_news_batch = x['candidate_title'].long().to(self.device)
-
-        if self.cdd_size > 1:
-            cdd_news_reprs = self._news_encoder(cdd_news_batch,word_query).view(self.batch_size,self.cdd_size,self.filter_num)
-
-        else:
-            cdd_news_reprs = self._news_encoder(cdd_news_batch,word_query).unsqueeze(dim=1)
         
-        user_reprs = self._user_encoder(x['clicked_title'].long().to(self.device),news_query,word_query)
+        user_index = x['user_index'].long().to(self.device)
         
-        score = self._click_predictor(cdd_news_reprs.view(self.batch_size,-1,self.filter_num),user_reprs.unsqueeze(dim=1))
+        cdd_news = x['candidate_title'].long().to(self.device)
+        _, cdd_news_repr = self.encoder(
+            cdd_news,
+            user_index=user_index)
+
+        his_news = x['clicked_title'].long().to(self.device)
+        _, his_news_repr = self.encoder(
+            his_news,
+            user_index=user_index)
+        
+        e_u = self.DropOut(self.user_embedding(user_index))
+        news_query = self.Tanh(self.newsQueryProject(
+            self.RELU(self.newsPrefProject(e_u))))
+        
+        user_repr = self._scaled_dp_attention(news_query, his_news_repr, his_news_repr)
+        score = self._click_predictor(cdd_news_repr, user_repr)
         return score

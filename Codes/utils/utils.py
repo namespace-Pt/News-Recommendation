@@ -1006,7 +1006,7 @@ def generate_hparams(hparams, config):
         yield hparams
 
 
-def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=False):
+def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=False, pin_memory=True):
     from .MIND import MIND, MIND_test, MIND_news
     """ prepare dataloader and several paths
     
@@ -1029,11 +1029,11 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
 
         dataset_train = MIND_news(hparams, news_file_train)
         loader_news_train = DataLoader(
-            dataset_train, batch_size=hparams['batch_size'], pin_memory=True, num_workers=8, drop_last=False, collate_fn=my_collate)
+            dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=8, drop_last=False, collate_fn=my_collate)
 
         dataset_dev = MIND_news(hparams, news_file_dev)
         loader_news_dev = DataLoader(
-            dataset_dev, batch_size=hparams['batch_size'], pin_memory=True, num_workers=8, drop_last=False, collate_fn=my_collate)
+            dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=8, drop_last=False, collate_fn=my_collate)
 
         vocab = dataset_train.vocab
         embedding = GloVe(dim=300, cache='.vector_cache')
@@ -1044,7 +1044,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
                 '/MIND{}_test/news.tsv'.format(hparams['scale'])
             dataset_test = MIND_news(hparams, news_file_test)
             loader_news_test = DataLoader(
-                dataset_test, batch_size=hparams['batch_size'], pin_memory=True, num_workers=8, drop_last=False, collate_fn=my_collate)
+                dataset_test, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=8, drop_last=False, collate_fn=my_collate)
 
             return vocab, [loader_news_train, loader_news_dev, loader_news_test]
 
@@ -1063,9 +1063,9 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
                            behaviors_file=behavior_file_dev, npratio=0)
 
-        loader_train = DataLoader(dataset_train, batch_size=hparams['batch_size'], pin_memory=True,
+        loader_train = DataLoader(dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                   num_workers=8, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
-        loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=True,
+        loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                 num_workers=8, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
 
         vocab = dataset_train.vocab
@@ -1076,7 +1076,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         if 'validate' in hparams and hparams['validate']:
             dataset_validate = MIND(
                 hparams=hparams, news_file=news_file_train, behaviors_file=behavior_file_train, npratio=0)
-            loader_validate = DataLoader(dataset_validate, batch_size=hparams['batch_size'], pin_memory=True,
+            loader_validate = DataLoader(dataset_validate, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                          num_workers=8, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
             return vocab, [loader_train, loader_dev, loader_validate]
         else:
@@ -1087,7 +1087,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
         dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
                            behaviors_file=behavior_file_dev, npratio=0)
-        loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=True,
+        loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                 num_workers=8, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
         vocab = dataset_dev.vocab
         if 'bert' not in hparams:
@@ -1099,7 +1099,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
     elif hparams['mode'] == 'test':
         dataset_test = MIND_test(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv',
                                  '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
-        loader_test = DataLoader(dataset_test, batch_size=hparams['batch_size'], pin_memory=True,
+        loader_test = DataLoader(dataset_test, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                  num_workers=8, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
 
         vocab = dataset_test.vocab
