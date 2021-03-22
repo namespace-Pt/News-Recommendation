@@ -298,6 +298,9 @@ def my_collate(data):
 
 
 def worker_init_fn(worker_id):
+    """
+        enable multi-processing in Iterable dataset
+    """
     worker_info = get_worker_info()
     dataset = worker_info.dataset  # the dataset copy in this worker process
     overall_impr_indexes = dataset.impr_indexes
@@ -310,6 +313,23 @@ def worker_init_fn(worker_id):
     end = (worker_id + 1) * per_worker
 
     dataset.impr_indexes = dataset.impr_indexes[start: end]
+
+
+def parameter(model, param_list, exclude=False):
+    """
+        yield model parameters
+    """
+    # params = []
+    if exclude:
+        for name,param in model.named_parameters():
+            if name not in param_list:
+                # params.append(param)
+                yield param
+    else:
+        for name,param in model.named_parameters():
+            if name in param_list:
+                # params.append(param)
+                yield param
 
 
 def mrr_score(y_true, y_score):
@@ -614,12 +634,12 @@ def evaluate(model, hparams, dataloader, load=False, interval=100):
 
     return res
 
-def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, interval=100, save_step=None):
+def run_train(model, dataloader, optimizers, loss_func, hparams, writer=None, interval=100, save_step=None):
     ''' train model and print loss meanwhile
     Args: 
         model(torch.nn.Module): the model to be trained
         dataloader(torch.utils.data.DataLoader): provide data
-        optimizer(torch.nn.optim): optimizer for training
+        optimizer(list of torch.nn.optim): optimizer for training
         loss_func(torch.nn.Loss): loss function for training
         hparams(dict): hyper parameters
         writer(torch.utils.tensorboard.SummaryWriter): tensorboard writer
@@ -643,7 +663,8 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
             total_loss += loss
 
             loss.backward()
-            optimizer.step()
+            for optimizer in optimizers:
+                optimizer.step()
 
             if step % interval == 0:
 
@@ -655,10 +676,11 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
 
                     writer.add_scalar('data_loss',
                                       total_loss/total_steps)
-            optimizer.zero_grad()
+            for optimizer in optimizers:
+                optimizer.zero_grad()
 
             if save_step:
-                if step % save_step == 0 and step > 0:
+                if step % save_step == 0 and step > 12000:
                     save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
                         hparams['name'], hparams['scale'], epoch + 1, step, hparams['his_size'], hparams['k'])
 
@@ -686,7 +708,7 @@ def run_train(model, dataloader, optimizer, loss_func, hparams, writer=None, int
     return model
 
 
-def train(model, hparams, loaders, tb=False, interval=100):
+def train(model, hparams, loaders, spadam=False, tb=False, interval=100):
     """ wrap training process
 
     Args:
@@ -713,8 +735,16 @@ def train(model, hparams, loaders, tb=False, interval=100):
         learning_rate = hparams['learning_rate']
     else:
         learning_rate = 1e-3
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    model = run_train(model, loaders[0], optimizer, loss_func, hparams,
+
+    if spadam:
+        optimizer_param = optim.Adam(parameter(model,['encoder.embedding.weight'],exclude=True), lr=learning_rate)
+        optimizer_embedding = optim.SparseAdam(list(model.encoder.embedding.parameters()), lr=learning_rate)
+        optimizers = [optimizer_param, optimizer_embedding]
+    else:
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        optimizers = [optimizer]
+
+    model = run_train(model, loaders[0], optimizers, loss_func, hparams,
                       writer=writer, interval=interval, save_step=hparams['save_step'][0])
 
     evaluate(model, hparams, loaders[1], load=False)

@@ -15,6 +15,15 @@ scikit-learn
 download MIND dataset [HERE](https://msnews.github.io/)
 ### Simple Analysis on MIND
 see [Preprocess.ipynb](manual/Preprocess.ipynb)
+```
+ avg_title_length:10.67731736385395
+ avg_abstract_length:36.4448570331045
+ avg_his_length:32.99787212887438
+ avg_impr_length:37.40116394684935
+ cnt_his_lg_50:447829
+ cnt_his_eq_0:46065
+ cnt_imp_multi:567571
+```
 
 ## Instruction
 - **check out [Preprocess.ipynb](manual/Preprocess.ipynb) first to get familiar with datasets**
