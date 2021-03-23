@@ -21,17 +21,25 @@ class NRMS_Encoder(nn.Module):
         # dimension for the final output embedding/representation
         self.hidden_dim = self.value_dim * self.head_num
 
-        self.embedding = nn.Embedding.from_pretrained(vocab.vectors,freeze=False)
+        self.embedding = nn.Embedding.from_pretrained(vocab.vectors,sparse=True,freeze=False)
 
         self.softmax = nn.Softmax(dim=-1)
         self.DropOut = nn.Dropout(p=hparams['dropout_p'])
 
         self.query = nn.Parameter(torch.randn(
             (1, self.query_dim), requires_grad=True))
-        self.queryProjects = nn.ModuleList(
-            [nn.Linear(self.embedding_dim, self.embedding_dim) for _ in range(self.head_num)])
-        self.valueProjects = nn.ModuleList(
-            [nn.Linear(self.embedding_dim, self.value_dim) for _ in range(self.head_num)])
+
+        # [hn, ed, hd]
+        self.queryWeight = nn.Parameter(torch.randn(self.head_num, self.embedding_dim, self.embedding_dim))
+        self.queryBias = nn.Parameter(torch.randn(self.head_num, 1, self.embedding_dim))
+
+        self.valueWeight = nn.Parameter(torch.randn(self.head_num, self.embedding_dim, self.value_dim))
+        self.valueBias = nn.Parameter(torch.randn(self.head_num, 1, self.value_dim))
+
+        # self.queryProjects = nn.ModuleList(
+        #     [nn.Linear(self.embedding_dim, self.embedding_dim) for _ in range(self.head_num)])
+        # self.valueProjects = nn.ModuleList(
+        #     [nn.Linear(self.embedding_dim, self.value_dim) for _ in range(self.head_num)])
         self.keyProject = nn.Linear(self.hidden_dim, self.query_dim)
         self.valueProject = nn.Linear(self.hidden_dim, self.hidden_dim)
 
@@ -39,7 +47,7 @@ class NRMS_Encoder(nn.Module):
         """ calculate scaled attended output of values
 
         Args:
-            query: tensor of [batch_size, batch_size, *, query_num, key_dim]
+            query: tensor of [batch_size, *, query_num, key_dim]
             key: tensor of [batch_size, *, key_num, key_dim]
             value: tensor of [batch_size, *, key_num, value_dim]
 
@@ -57,43 +65,32 @@ class NRMS_Encoder(nn.Module):
         attn_output = torch.matmul(attn_weights, value)
         return attn_output
 
-    def _self_attention(self, input, head_idx):
-        """ apply self attention of head#idx over input tensor
-
-        Args:
-            input: tensor of [batch_size, *, embedding_dim]
-            head_idx: interger of attention head index
-
-        Returns:
-            self_attn_output: tensor of [batch_size, *, value_dim]
-        """
-        query = self.queryProjects[head_idx](input)
-        attn_output = self._scaled_dp_attention(query, input, input)
-        self_attn_output = self.valueProjects[head_idx](attn_output)
-        return self_attn_output
-
-    def _multi_head_self_attention(self, input):
+    def _multi_head_self_attention(self, news_embedding_pretrained):
         """ apply multi-head self attention over input tensor
 
         Args:
-            input: tensor of [batch_size, *, signal_length, repr_dim]
+            news_embedding_pretrained: tensor of [batch_size, *, signal_length, embedding_dim]
 
         Returns:
             additive_attn_repr: tensor of [batch_size, *, repr_dim]
             multi_head_self_attn_value: tensor of [batch_size, *, signal_length, repr_dim]
 
         """
-        self_attn_outputs = [self._self_attention(
-            input, i) for i in range(self.head_num)]
-        mha_embedding_native = torch.cat(self_attn_outputs, dim=-1)
-        mha_embedding = self.valueProject(mha_embedding_native)
+        # [bs, news_num, 1, sl, ed]
+        mha_key = news_embedding_pretrained.unsqueeze(dim=-3)
+        # [bs, news_num, head_num, sl, ed]
+        mha_query = news_embedding_pretrained.unsqueeze(dim=-3).matmul(self.queryWeight) + self.queryBias
+        # [bs, news_num, head_num, sl, vd]
+        mha_value = self._scaled_dp_attention(mha_query, mha_key, mha_key).matmul(self.valueWeight) + self.valueBias
+
+        mha_embedding = mha_value.transpose(-2,-3).reshape(news_embedding_pretrained.shape[0:-1]+(self.hidden_dim,))
 
         # project the embedding of each words to query subspace
         # keep the original embedding of each words as values
-        multi_head_self_attn_key = torch.tanh(
-            self.keyProject(mha_embedding_native))
+        additive_attn_key = torch.tanh(
+            self.keyProject(mha_embedding))
         mha_repr = self._scaled_dp_attention(
-            self.query, multi_head_self_attn_key, mha_embedding_native).squeeze(dim=-2)
+            self.query, additive_attn_key, mha_embedding).squeeze(dim=-2)
         return mha_embedding, mha_repr
 
     def forward(self, news_batch, **kwargs):
@@ -125,7 +122,7 @@ class NRMS_Encoder(nn.Module):
 #         self.embedding_dim = hparams['embedding_dim']
 
 #         # pretrained embedding
-#         self.embedding = nn.Embedding.from_pretrained(vocab.vectors, freeze=False)
+#         self.embedding = nn.Embedding.from_pretrained(vocab.vectors,sparse=True,freeze=False)
 
 #         # elements in the slice along dim will sum up to 1
 #         self.softmax = nn.Softmax(dim=-1)
@@ -243,7 +240,7 @@ class FIM_Encoder(nn.Module):
         self.embedding_dim = hparams['embedding_dim']
 
         # pretrained embedding
-        self.embedding = nn.Embedding.from_pretrained(vocab.vectors, freeze=False)
+        self.embedding = nn.Embedding.from_pretrained(vocab.vectors,sparse=True,freeze=False)
 
         # elements in the slice along dim will sum up to 1
         self.softmax = nn.Softmax(dim=-1)
@@ -362,12 +359,12 @@ class NPA_Encoder(nn.Module):
         self.query_dim = hparams['preference_dim']
 
         # pretrained embedding
-        self.embedding = nn.Embedding.from_pretrained(vocab.vectors,freeze=False)
+        self.embedding = nn.Embedding.from_pretrained(vocab.vectors,sparse=True,freeze=False)
         # elements in the slice along dim will sum up to 1
         self.softmax = nn.Softmax(dim=-1)
 
         # trainable lookup layer for user embedding, important to have len(uid2idx) + 1 rows because user indexes start from 1
-        self.user_embedding = nn.Embedding(user_num + 1, self.user_dim)
+        self.user_embedding = nn.Embedding(user_num + 1, self.user_dim, sparse=True)
         self.user_embedding.weight.requires_grad = True
         
         # project e_u to word query preference vector of query_dim
@@ -484,7 +481,7 @@ class MHA_Encoder(nn.Module):
         # dimension for the final output embedding/representation
         self.hidden_dim = self.value_dim * self.head_num
 
-        self.embedding = nn.Embedding.from_pretrained(vocab.vectors, freeze=False)
+        self.embedding = nn.Embedding.from_pretrained(vocab.vectors,sparse=True,freeze=False)
 
         self.softmax = nn.Softmax(dim=-1)
 
@@ -578,6 +575,41 @@ class Bert_Encoder(nn.Module):
         news_repr = news_embedding[:,0,-1,:].view(news_batch.shape[0], news_batch.shape[1], self.hidden_dim)
 
         return news_embedding.view(news_batch.shape + (self.level, self.hidden_dim)), news_repr
+
+
+class RNN_Encoder(nn.Module):
+    def __init__(self, hparams, vocab):
+        super().__init__()
+        self.name = 'bert-encoder'
+
+        self.level = 2
+
+        self.embedding_dim = hparams['embedding_dim']
+        self.embedding = nn.Embedding.from_pretrained(vocab.vectors,sparse=True,freeze=False)
+
+        # dimension for the final output embedding/representation
+        self.hidden_dim = hparams['hidden_dim']
+
+        self.lstm = nn.LSTM(self.embedding_dim, self.hidden_dim, batch_first=True,dropout=hparams['dropout_p'],bidirectional=True)
+
+    def forward(self, news_batch, **kwargs):
+        """ encode news with bert
+
+        Args:
+            news_batch: batch of news tokens, of size [batch_size, *, signal_length]
+
+        Returns:
+            news_embedding: hidden vector of each token in news, of size [batch_size, *, signal_length, level, hidden_dim]
+            news_repr: hidden vector of each news, of size [batch_size, *, hidden_dim]
+        """
+
+        # conpress news_num into batch_size
+        news_embedding_pretrained = self.embedding(news_batch).view(-1, news_batch.shape[-1], self.embedding_dim)
+        news_embedding,output = self.lstm(news_embedding_pretrained)
+        news_repr = torch.mean(output[0],dim=0).view(news_batch.shape[0],news_batch.shape[1],self.hidden_dim)
+
+        return news_embedding.view(news_batch.shape + (self.level, self.hidden_dim)), news_repr
+
 
 class Encoder_Wrapper(nn.Module):
     def __init__(self, hparams, encoder):

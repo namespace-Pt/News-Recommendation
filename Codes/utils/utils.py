@@ -655,6 +655,10 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, writer=None, in
         epoch_loss = 0
         tqdm_ = tqdm(enumerate(dataloader),smoothing=0)
         for step, x in tqdm_:
+
+            for optimizer in optimizers:
+                optimizer.zero_grad()
+
             pred = model(x)
             label = getLabel(model, x)
             loss = loss_func(pred, label)
@@ -663,6 +667,7 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, writer=None, in
             total_loss += loss
 
             loss.backward()
+
             for optimizer in optimizers:
                 optimizer.step()
 
@@ -676,11 +681,9 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, writer=None, in
 
                     writer.add_scalar('data_loss',
                                       total_loss/total_steps)
-            for optimizer in optimizers:
-                optimizer.zero_grad()
 
             if save_step:
-                if step % save_step == 0 and step > 12000:
+                if step % save_step == 0 and step > 0:
                     save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
                         hparams['name'], hparams['scale'], epoch + 1, step, hparams['his_size'], hparams['k'])
 
@@ -708,7 +711,7 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, writer=None, in
     return model
 
 
-def train(model, hparams, loaders, spadam=False, tb=False, interval=100):
+def train(model, hparams, loaders, spadam=True, tb=False, interval=100):
     """ wrap training process
 
     Args:
