@@ -79,7 +79,7 @@ class NRMS_Encoder(nn.Module):
         # [bs, news_num, 1, sl, ed]
         mha_key = news_embedding_pretrained.unsqueeze(dim=-3)
         # [bs, news_num, head_num, sl, ed]
-        mha_query = news_embedding_pretrained.unsqueeze(dim=-3).matmul(self.queryWeight) + self.queryBias
+        mha_query = mha_key.matmul(self.queryWeight) + self.queryBias
         # [bs, news_num, head_num, sl, vd]
         mha_value = self._scaled_dp_attention(mha_query, mha_key, mha_key).matmul(self.valueWeight) + self.valueBias
 
@@ -609,24 +609,3 @@ class RNN_Encoder(nn.Module):
         news_repr = torch.mean(output[0],dim=0).view(news_batch.shape[0],news_batch.shape[1],self.hidden_dim)
 
         return news_embedding.view(news_batch.shape + (self.level, self.hidden_dim)), news_repr
-
-
-class Encoder_Wrapper(nn.Module):
-    def __init__(self, hparams, encoder):
-        super().__init__()
-        self.encoder = encoder
-        self.name = 'pipeline-'+encoder.name
-
-        self.device = hparams['device']
-    
-    def forward(self,x):
-        if x['candidate_title'].shape[0] != self.batch_size:
-            self.batch_size = x['candidate_title'].shape[0]
-
-        news = x['candidate_title'].long().to(self.device)
-        news_embedding, news_repr = self.encoder(
-            news,
-            news_id=x['news_id'].long().to(self.device),
-            attn_mask=x['candidate_title_pad'].to(self.device))
-
-        return news_embedding, news_repr

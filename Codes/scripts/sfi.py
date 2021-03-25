@@ -72,7 +72,7 @@ if __name__ == "__main__":
     if hparams['mode'] == 'dev':
         evaluate(sfiModel,hparams,loaders[0],load=True)
 
-    elif hparams['mode'] == 'train':
+    elif hparams['mode'] == 'train' or hparams['mode'] == 'whole':
         train(sfiModel, hparams, loaders, spadam=True)
 
     elif hparams['mode'] == 'test':

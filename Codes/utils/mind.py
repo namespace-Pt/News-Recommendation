@@ -42,11 +42,15 @@ class MIND(IterableDataset):
             'data/dictionaries/nid2idx_{}_{}.json'.format(hparams['scale'], self.mode))
         self.uid2index = getId2idx(
             'data/dictionaries/uid2idx_{}.json'.format(hparams['scale']))
-        
+
         self.bert = False
         if 'bert' in hparams:
             self.bert = True
             self.tokenizer = AutoTokenizer.from_pretrained(hparams['bert'])
+
+        # parse whole mode
+        if self.mode == 'whole':
+            self.mode = 'train'
 
         self.init_news()
         self.init_behaviors(shuffle=shuffle)

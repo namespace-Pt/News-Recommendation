@@ -236,6 +236,18 @@ def tailorData(tsvFile, num):
     logging.info("tailored {} behaviors to {}, copied news file also".format(num, behavior_file))
     return
 
+
+def expandData():
+    """ Beta
+    """
+    a = pd.read_table(r'D:\Data\MIND\MINDlarge_train\behaviors.tsv', index_col=0, names=['a','b','c','d','e'], quoting=3)
+    b = pd.read_table(r'D:\Data\MIND\MINDlarge_dev\behaviors.tsv', index_col=0, names=['a','b','c','d','e'], quoting=3)
+    c = pd.concat([a,b]).drop_duplicates().reset_index(inplace=True)
+    c = c[['b','c','d','e']]
+
+    c.to_csv(r'D:\Data\MIND\MINDlarge_whole\behaviors.tsv',index=True,sep='\t',header=False)
+
+
 def getId2idx(file):
     """
         get Id2idx dictionary from json file 
@@ -726,7 +738,7 @@ def train(model, hparams, loaders, spadam=True, tb=False, interval=100):
     if tb:
         writer = SummaryWriter('data/tb/{}-{}/{}/{}/'.format(
             hparams['name'], hparams['select'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
-    
+
     # in case the folder does not exists, create one
     save_derectory = 'data/model_params/{}'.format(hparams['name'])
     if not os.path.exists(save_derectory):
@@ -750,12 +762,11 @@ def train(model, hparams, loaders, spadam=True, tb=False, interval=100):
     model = run_train(model, loaders[0], optimizers, loss_func, hparams,
                       writer=writer, interval=interval, save_step=hparams['save_step'][0])
 
-    evaluate(model, hparams, loaders[1], load=False)
-
     # loader_train, loader_dev, loader_validate
-    if len(loaders) > 2:
-        logging.info("validating...")
-        evaluate(model, hparams, loaders[2])
+    if len(loaders) > 1:
+        for loader in loaders:
+            logging.info("evaluating...")
+            evaluate(model, hparams, loaders[2])
 
     return model
 
@@ -904,7 +915,7 @@ def load_hparams(hparams):
     parser.add_argument("-s", "--scale", dest="scale", help="data scale",
                         choices=['demo', 'small', 'large'], required=True)
     parser.add_argument("-m", "--mode", dest="mode", help="train or test",
-                        choices=['train', 'dev', 'test', 'tune'], default='train')
+                        choices=['train', 'dev', 'test', 'tune', 'whole'], default='train')
     parser.add_argument("-e", "--epochs", dest="epochs",
                         help="epochs to train the model", type=int, default=10)
 
@@ -1083,7 +1094,19 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
 
         return vocab, [loader_news_train, loader_news_dev]
 
-    if hparams['mode'] in ['train', 'tune']:
+    elif hparams['mode'] == 'whole':
+        dataset_whole = MIND(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_whole/news.tsv',
+                                 '/home/peitian_zhang/Data/MIND/MINDlarge_whole/behaviors.tsv')
+        loader_whole = DataLoader(dataset_whole, batch_size=hparams['batch_size'], pin_memory=pin_memory,
+                                 num_workers=8, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
+
+        vocab = dataset_whole.vocab
+        if 'bert' not in hparams:
+            embedding = GloVe(dim=300, cache='.vector_cache')
+            vocab.load_vectors(embedding)
+        return vocab, [loader_whole]
+
+    elif hparams['mode'] in ['train', 'tune']:
         news_file_train = path+'/MIND'+hparams['scale']+'_train/news.tsv'
         news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
 
