@@ -70,7 +70,7 @@ if __name__ == "__main__":
         sfiModel = SFI_gating(hparams, encoder).to(hparams['device'])
 
     if hparams['mode'] == 'dev':
-        evaluate(sfiModel,hparams,loaders[0],load=True)
+        evaluate(sfiModel,hparams,loaders[0],loading=True)
 
     elif hparams['mode'] == 'train' or hparams['mode'] == 'whole':
         train(sfiModel, hparams, loaders, spadam=True)

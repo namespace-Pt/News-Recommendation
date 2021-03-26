@@ -295,6 +295,52 @@ def getLabel(model, x):
     return label
 
 
+def save(model, hparams, epoch, step, optimizers=[]):
+    """
+        shortcut for saving the model and optimizer
+    """
+    save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], hparams['k'])
+    state_dict = model.state_dict()
+
+    if re.search('pipeline', hparams['name']):
+        state_dict = {k: v for k, v in state_dict.items() if k not in ['news_repr.weight', 'news_embedding.weight']}
+
+    save_dict = {}
+    save_dict['model'] = state_dict
+
+    if len(optimizers) > 1:
+        save_dict['optimizer'] = optimizers[0].state_dict()
+        save_dict['optimizer_embedding'] = optimizers[1].state_dict()
+    else:
+        save_dict['optimizer'] = optimizers[0].state_dict()
+
+    torch.save(save_dict, save_path)
+    logging.info("saved model of step {}, epoch {} at {}".format(step, epoch, save_path))
+
+
+def load(model, hparams, epoch, step, optimizers=None):
+    """
+        shortcut for loading model and optimizer parameters
+    """
+    save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], hparams['k'])
+
+    state_dict = torch.load(save_path, map_location=hparams['device'])
+    if re.search('pipeline', hparams['name']):
+        model.load_state_dict(state_dict['model'], strict=False)
+    else:
+        try:
+            model.load_state_dict(state_dict['model'])
+        except:
+            logging.warning("saving model without optimizer is going to be deprecated, please use save() instead hahaha!")
+            model.load_state_dict(state_dict)
+
+    if optimizers:
+        optimizers[0].load_state_dict(state_dict['optimizer'])
+        if len(optimizers) > 1:
+            optimizers[1].load_state_dict(state_dict['optimizer_embedding'])        
+
+    logging.info("load model from {}...".format(save_path))
+
 def my_collate(data):
     excluded = ['impression_index']
     result = defaultdict(list)
@@ -531,46 +577,14 @@ def run_eval(model, dataloader, interval):
 
 
 @torch.no_grad()
-def _eval_mtp(i, model, hparams, dataloader, result_list):
-    """evaluate in multi-processing
-
-    Args:
-        i(int) Subprocess No.
-        model(nn.Module)
-        hparams(dict)
-        dataloader(torch.utils.data.DataLoader)
-        result_list(torch.multiprocessing.Manager().list()): contain evaluation results of every subprocesses
-    """
-    step = hparams['save_step'][i]
-    save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
-        hparams['name'], hparams['scale'], hparams['epochs'], step, str(hparams['his_size']), str(hparams['k']))
-
-    logging.info(
-        "[No.{}, PID:{}] loading model parameters from {}...".format(i, os.getpid(), save_path))
-
-    model.load_state_dict(torch.load(
-        save_path, map_location=hparams['device']))
-
-    logging.info("[No.{}, PID:{}] evaluating...".format(i, os.getpid()))
-
-    imp_indexes, labels, preds = run_eval(model, dataloader, 10)
-    res = cal_metric(labels, preds, hparams['metrics'].split(','))
-
-    res['step'] = step
-    logging.info("\nevaluation results of process NO.{} is {}".format(i, res))
-
-    result_list.append(res)
-
-
-@torch.no_grad()
-def evaluate(model, hparams, dataloader, load=False, interval=100):
+def evaluate(model, hparams, dataloader, loading=False, interval=100):
     """Evaluate the given file and returns some evaluation metrics.
 
     Args:
         model(nn.Module)
         hparams(dict)
         dataloader(torch.utils.data.DataLoader): provide data
-        load(bool): whether to load model in hparams['save_path']
+        load(bool): whether to load model
         interval(int): within each epoch, the interval of steps to display loss
 
     Returns:
@@ -580,7 +594,7 @@ def evaluate(model, hparams, dataloader, load=False, interval=100):
         for step in hparams['save_step'][1:]:
             command = re.sub(','.join([str(i) for i in hparams['save_step']]),str(step),hparams['command'])
             subprocess.Popen(command, shell=True)
-    
+
     hparam_list = ['name', 'scale', 'epochs', 'train_embedding', 'select',
                    'integrate', 'his_size', 'k', 'query_dim', 'value_dim', 'head_num']
     param_list = ['query_words', 'query_levels']
@@ -589,15 +603,8 @@ def evaluate(model, hparams, dataloader, load=False, interval=100):
     cdd_size = model.cdd_size
     model.cdd_size = 1
 
-    if load:
-        save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
-            hparams['name'], hparams['scale'], hparams['epochs'], hparams['save_step'][0], hparams['his_size'], hparams['k'])
-        logging.info("loading model from {}...".format(save_path))
-
-        state_dict = torch.load(save_path, map_location=hparams['device'])
-        state_dict = {k: v for k, v in state_dict.items() if k not in [
-            'news_repr.weight', 'news_embedding.weight']}
-        model.load_state_dict(state_dict, strict=False)
+    if loading:
+        load(model, hparams, hparams['epochs'], hparams['save_step'][0])
 
     logging.info("evaluating...")
 
@@ -623,26 +630,6 @@ def evaluate(model, hparams, dataloader, load=False, interval=100):
 
         model.train()
         model.cdd_size = cdd_size
-
-    # elif steps > 1:
-    #     logging.info("evaluating in {} processes...".format(steps))
-    #     model.share_memory()
-    #     res_list = mp.Manager().list()
-    #     mp.spawn(_eval_mtp, args=(model, hparams,
-    #                               dataloader, res_list), nprocs=steps)
-    #     with open('performance.log', 'a+') as f:
-    #         d = {}
-    #         for k, v in hparams.items():
-    #             if k in hparam_list:
-    #                 d[k] = v
-    #         for name, param in model.named_parameters():
-    #             if name in param_list:
-    #                 d[name] = tuple(param.shape)
-    #         f.write(str(d)+'\n')
-
-    #         for result in res_list:
-    #             f.write(str(result) + '\n')
-    #         f.write('\n')
 
     return res
 
@@ -696,29 +683,14 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, writer=None, in
 
             if save_step:
                 if step % save_step == 0 and step > 0:
-                    save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
-                        hparams['name'], hparams['scale'], epoch + 1, step, hparams['his_size'], hparams['k'])
-
-                    state_dict = model.state_dict()
-                    state_dict = {k: v for k, v in state_dict.items() if k not in [
-                        'news_repr.weight', 'news_embedding.weight']}
-                    torch.save(state_dict, save_path)
-                    logging.info(
-                        "saved model of step {}, epoch {} at {}".format(step, epoch+1, save_path))
+                    save(model, hparams, epoch+1, step, optimizers)
 
             total_steps += 1
 
         if writer:
             writer.add_scalar('epoch_loss', epoch_loss, epoch)
 
-        save_path = 'data/model_params/{}/{}_epoch{}_step0_[hs={},topk={}].model'.format(
-            hparams['name'], hparams['scale'], epoch+1, hparams['his_size'], hparams['k'])
-
-        state_dict = model.state_dict()
-        state_dict = {k: v for k, v in state_dict.items() if k not in [
-            'news_repr.weight', 'news_embedding.weight']}
-        torch.save(state_dict, save_path)
-        logging.info("saved model of epoch {} at {}".format(epoch+1, save_path))
+        save(model, hparams, epoch+1, 0, optimizers)
 
     return model
 
@@ -764,9 +736,8 @@ def train(model, hparams, loaders, spadam=True, tb=False, interval=100):
 
     # loader_train, loader_dev, loader_validate
     if len(loaders) > 1:
-        for loader in loaders:
-            logging.info("evaluating...")
-            evaluate(model, hparams, loaders[2])
+        for loader in loaders[1:]:
+            evaluate(model, hparams, loader)
 
     return model
 
@@ -780,14 +751,7 @@ def test(model, hparams, loader_test):
         hparams
         loader_test: DataLoader of MINDlarge_test
     """
-    save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
-        hparams['name'], hparams['scale'], hparams['epochs'], hparams['save_step'][0], hparams['his_size'], hparams['k'])
-    logging.info("loading model from {}...".format(save_path))
-
-    state_dict = torch.load(save_path, map_location=hparams['device'])
-    state_dict = {k: v for k, v in state_dict.items() if k not in [
-        'news_repr.weight', 'news_embedding.weight']}
-    model.load_state_dict(state_dict, strict=False)
+    load(model, hparams, hparams['epochs'], hparams['save_step'][0])
 
     logging.info("testing...")
     model.cdd_size = 1
@@ -852,12 +816,18 @@ def tune(model, hparams, loaders, best_auc=0):
         learning_rate = hparams['learning_rate']
     else:
         learning_rate = 1e-3
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+    optimizer_param = optim.Adam(parameter(model,['encoder.embedding.weight'],exclude=True), lr=learning_rate)
+    optimizer_embedding = optim.SparseAdam(list(model.encoder.embedding.parameters()), lr=learning_rate)
+    optimizers = [optimizer_param, optimizer_embedding]
 
     for epoch in range(hparams['epochs']):
         epoch_loss = 0
         tqdm_ = tqdm(enumerate(loader_train),smoothing=0)
         for step, x in tqdm_:
+            for optimizer in optimizers:
+                optimizer.zero_grad()
+
             pred = model(x)
             label = getLabel(model, x)
             loss = loss_func(pred, label)
@@ -868,41 +838,12 @@ def tune(model, hparams, loaders, best_auc=0):
             epoch_loss += loss
 
             loss.backward()
-            optimizer.step()
-            optimizer.zero_grad()
+
+            for optimizer in optimizers:
+                optimizer.step()
 
             if step > 19999 and step % 2000 == 0:
-                save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
-                    hparams['name'], hparams['scale'], epoch + 1, step, str(hparams['his_size']), str(hparams['k']))
-                torch.save(model.state_dict(), save_path)
-                logging.info(
-                    "saved model of step {} at epoch {}".format(step, epoch+1))
-
-        # without evaluating, only training
-
-        # logging.info("evaluating in {} processes...".format(len(hparams['save_step'])))
-        # with torch.no_grad():
-        #     model.share_memory()
-        #     res_list = mp.Manager().list()
-            # mp.spawn(_eval_mtp, args=(model, hparams, loader_dev, res_list), nprocs=len(hparams['step_list']))
-
-        #     with open('sfi-performance.log','a+') as f:
-        #         for result in res_list:
-        #             if result['auc'] > best_auc:
-        #                 best_auc = result['auc']
-
-        #                 d = {}
-        #                 for k,v in hparams.items():
-        #                     if k in hparam_list:
-        #                         d[k] = v
-
-        #                 for name, param in model.named_parameters():
-        #                     if name in param_list:
-        #                         d[name] = tuple(param.shape)
-
-        #                 f.write(str(d)+'\n')
-        #                 f.write(str(result) +'\n')
-        #                 f.write('\n')
+                save(model, hparams, epoch+1, step, optimizers)
 
     return best_auc
 
@@ -913,9 +854,9 @@ def load_hparams(hparams):
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--scale", dest="scale", help="data scale",
-                        choices=['demo', 'small', 'large'], required=True)
+                        choices=['demo', 'small', 'large', 'whole'], required=True)
     parser.add_argument("-m", "--mode", dest="mode", help="train or test",
-                        choices=['train', 'dev', 'test', 'tune', 'whole'], default='train')
+                        choices=['train', 'dev', 'test', 'tune'], default='train')
     parser.add_argument("-e", "--epochs", dest="epochs",
                         help="epochs to train the model", type=int, default=10)
 
@@ -940,7 +881,7 @@ def load_hparams(hparams):
                         help="the number of unclicked news to sample when training", type=int, default=4)
     parser.add_argument("-mc", "--metrics", dest="metrics",
                         help="metrics for evaluating the model, if multiple metrics are needed, seperate with ','", type=str, default="auc,mean_mrr,ndcg@5,ndcg@10")
-    
+
     parser.add_argument(
         "--topk", dest="k", help="intend for topk baseline, if clarified, top k history are involved in interaction calculation", type=int, default=0)
     parser.add_argument("--select", dest="select", help="choose model for selecting",
@@ -966,8 +907,6 @@ def load_hparams(hparams):
                         help="clarified attributes of news will be yielded by dataloader, seperate with comma", type=str, default='title')
     parser.add_argument("-v", "--validate", dest="validate",
                         help="if clarified, evaluate the model on training set", action='store_true')
-    # parser.add_argument("-nid", "--news_id", dest="news_id",
-    #                     help="if clarified, the id of news will be yielded by dataloader", action='store_true')
 
     # parser.add_argument("-dp","--dropout", dest="dropout", help="drop out probability", type=float, default=0.2)
     # parser.add_argument("-ed","--embedding_dim", dest="embedding_dim", help="dimension of word embedding", type=int, default=300)
@@ -1051,7 +990,7 @@ def generate_hparams(hparams, config):
 
 
 def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=False, pin_memory=True):
-    from .MIND import MIND, MIND_test, MIND_news
+    from .MIND import MIND, MIND_test, MIND_news, MIND_iter
     """ prepare dataloader and several paths
     
     Args:
@@ -1094,46 +1033,33 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
 
         return vocab, [loader_news_train, loader_news_dev]
 
-    elif hparams['mode'] == 'whole':
-        dataset_whole = MIND(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_whole/news.tsv',
-                                 '/home/peitian_zhang/Data/MIND/MINDlarge_whole/behaviors.tsv')
-        loader_whole = DataLoader(dataset_whole, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                 num_workers=8, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
-
-        vocab = dataset_whole.vocab
-        if 'bert' not in hparams:
-            embedding = GloVe(dim=300, cache='.vector_cache')
-            vocab.load_vectors(embedding)
-        return vocab, [loader_whole]
-
     elif hparams['mode'] in ['train', 'tune']:
         news_file_train = path+'/MIND'+hparams['scale']+'_train/news.tsv'
-        news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
-
-        behavior_file_train = path+'/MIND' + \
-            hparams['scale']+'_train/behaviors.tsv'
-        behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
-
+        behavior_file_train = path+'/MIND' + hparams['scale']+'_train/behaviors.tsv'
         dataset_train = MIND(hparams=hparams, news_file=news_file_train,
-                             behaviors_file=behavior_file_train, shuffle=shuffle)
-        dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
-                           behaviors_file=behavior_file_dev, npratio=0)
-
+                             behaviors_file=behavior_file_train)
         loader_train = DataLoader(dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                  num_workers=8, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
-        loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                num_workers=8, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
-
+                                  num_workers=8, drop_last=False, collate_fn=my_collate)
         vocab = dataset_train.vocab
         if 'bert' not in hparams:
             embedding = GloVe(dim=300, cache='.vector_cache')
             vocab.load_vectors(embedding)
 
+        if hparams['scale'] == 'whole':
+            return vocab, [loader_train]
+
+        news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
+        behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
+        dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
+                           behaviors_file=behavior_file_dev)
+        loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
+                                num_workers=8, drop_last=False, collate_fn=my_collate)
+
         if 'validate' in hparams and hparams['validate']:
             dataset_validate = MIND(
-                hparams=hparams, news_file=news_file_train, behaviors_file=behavior_file_train, npratio=0)
+                hparams=hparams, news_file=news_file_train, behaviors_file=behavior_file_train)
             loader_validate = DataLoader(dataset_validate, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                         num_workers=8, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
+                                         num_workers=8, drop_last=False, collate_fn=my_collate)
             return vocab, [loader_train, loader_dev, loader_validate]
         else:
             return vocab, [loader_train, loader_dev]
@@ -1142,9 +1068,9 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
         behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
         dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
-                           behaviors_file=behavior_file_dev, npratio=0)
+                           behaviors_file=behavior_file_dev)
         loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                num_workers=8, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
+                                num_workers=8, drop_last=False, collate_fn=my_collate)
         vocab = dataset_dev.vocab
         if 'bert' not in hparams:
             embedding = GloVe(dim=300, cache='.vector_cache')

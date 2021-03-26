@@ -92,6 +92,10 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 ### `/utils`: data loader and utility functions
 - `MIND.py`
   - MIND
+    - map style dataset for MIND
+    - for each behavior log, either returning positive click behaviors only (training) or returning every behavior (validating)
+
+  - MIND_iter
     - iterable dataset for MIND
     - for each behavior log, either yielding positive click behaviors only (training) or yielding every behavior (validating)
   - MIND_test
@@ -127,3 +131,5 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 - [x] pipeline performance comparison
 - [ ] reproduce Hi-Fi Ark
 - [x] sfi frame
+- [ ] upgrade MIND iterable dataset to MIND map dataset
+- [ ] subspace disentanglement
