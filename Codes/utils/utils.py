@@ -1037,9 +1037,9 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         news_file_train = path+'/MIND'+hparams['scale']+'_train/news.tsv'
         behavior_file_train = path+'/MIND' + hparams['scale']+'_train/behaviors.tsv'
         dataset_train = MIND(hparams=hparams, news_file=news_file_train,
-                             behaviors_file=behavior_file_train)
+                             behaviors_file=behavior_file_train, shuffle_pos=True)
         loader_train = DataLoader(dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                  num_workers=8, drop_last=False, collate_fn=my_collate)
+                                  num_workers=8, drop_last=False, shuffle=True, collate_fn=my_collate)
         vocab = dataset_train.vocab
         if 'bert' not in hparams:
             embedding = GloVe(dim=300, cache='.vector_cache')

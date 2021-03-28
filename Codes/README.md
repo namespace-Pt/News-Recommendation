@@ -10,7 +10,7 @@ tqdm
 scikit-learn
 ```
 ## Rank
-[Leaderboard](https://competitions.codalab.org/competitions/24122#results), User Name: **Pt**
+[Leaderboard](https://msnews.github.io/#leaderboard), User Name: **Pt**
 ## Dataset
 download MIND dataset [HERE](https://msnews.github.io/)
 ### Simple Analysis on MIND
