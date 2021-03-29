@@ -19,10 +19,7 @@ class KNRMModel(nn.Module):
         self.kernel_num = len(mus)
         self.mus = mus.view(1,1,1,1,1,-1)
         self.sigmas = torch.tensor([0.1]*(self.kernel_num - 1) + [0.001], device=self.device).view(1,1,1,1,1,-1)
-        if hparams['train_embedding']:
-            self.embedding = nn.Parameter(vocab.vectors.clone().detach().requires_grad_(True).to(self.device))
-        else:
-            self.embedding = vocab.vectors.to(self.device)
+        self.embedding =  nn.Embedding.from_pretrained(vocab.vectors,sparse=True,freeze=False)
         
         self.query = nn.Parameter(torch.randn((1,self.kernel_num), requires_grad=True))
 
@@ -63,9 +60,9 @@ class KNRMModel(nn.Module):
             fusion_matrixs: tensor of [batch_size, cdd_size, his_size, signal_length, signal_length]
         """
         # [bs, cs, 1, sl, ed]
-        cdd_news_embedding = F.normalize(self.embedding[cdd_news_batch].unsqueeze(dim=2), dim=-1)
+        cdd_news_embedding = F.normalize(self.embedding(cdd_news_batch).unsqueeze(dim=2), dim=-1)
         # [bs, 1, hs, ed, sl]
-        his_news_embedding = F.normalize(self.embedding[his_news_batch].unsqueeze(dim=1), dim=-1).transpose(-1,-2)
+        his_news_embedding = F.normalize(self.embedding(his_news_batch).unsqueeze(dim=1), dim=-1).transpose(-1,-2)
 
         # transform cosine similarity calculation into normalized matrix production
         fusion_matrices = torch.matmul(cdd_news_embedding, his_news_embedding).unsqueeze(dim=-1)

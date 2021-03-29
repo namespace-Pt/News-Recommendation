@@ -11,7 +11,7 @@ import logging
 import subprocess
 import pandas as pd
 import torch.nn as nn
-import torch.multiprocessing as mp
+# import torch.multiprocessing as mp
 import torch.optim as optim
 import numpy as np
 import scipy.stats as ss
@@ -27,6 +27,8 @@ from torch.utils.data import DataLoader, get_worker_info
 
 logging.basicConfig(level=logging.INFO,
                     format="[%(asctime)s] %(levelname)s (%(name)s) %(message)s")
+
+hparam_list = ['name', 'scale', 'select', 'integrate', 'his_size', 'k']
 
 
 def word_tokenize(sent):
@@ -233,19 +235,23 @@ def tailorData(tsvFile, num):
     news_file_new = re.sub('behaviors', 'news', behavior_file)
 
     os.system("cp {} {}".format(news_file, news_file_new))
-    logging.info("tailored {} behaviors to {}, copied news file also".format(num, behavior_file))
+    logging.info("tailored {} behaviors to {}, copied news file also".format(
+        num, behavior_file))
     return
 
 
 def expandData():
     """ Beta
     """
-    a = pd.read_table(r'D:\Data\MIND\MINDlarge_train\behaviors.tsv', index_col=0, names=['a','b','c','d','e'], quoting=3)
-    b = pd.read_table(r'D:\Data\MIND\MINDlarge_dev\behaviors.tsv', index_col=0, names=['a','b','c','d','e'], quoting=3)
-    c = pd.concat([a,b]).drop_duplicates().reset_index(inplace=True)
-    c = c[['b','c','d','e']]
+    a = pd.read_table(r'D:\Data\MIND\MINDlarge_train\behaviors.tsv',
+                      index_col=0, names=['a', 'b', 'c', 'd', 'e'], quoting=3)
+    b = pd.read_table(r'D:\Data\MIND\MINDlarge_dev\behaviors.tsv',
+                      index_col=0, names=['a', 'b', 'c', 'd', 'e'], quoting=3)
+    c = pd.concat([a, b]).drop_duplicates().reset_index(inplace=True)
+    c = c[['b', 'c', 'd', 'e']]
 
-    c.to_csv(r'D:\Data\MIND\MINDlarge_whole\behaviors.tsv',index=True,sep='\t',header=False)
+    c.to_csv(r'D:\Data\MIND\MINDlarge_whole\behaviors.tsv',
+             index=True, sep='\t', header=False)
 
 
 def getId2idx(file):
@@ -299,11 +305,18 @@ def save(model, hparams, epoch, step, optimizers=[]):
     """
         shortcut for saving the model and optimizer
     """
-    save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], hparams['k'])
+    # parse checkpoint
+    if 'checkpoint' in hparams:
+        save_path = 'data/model_params/{}/{}_epoch{}_step{}_ck{}_[hs={},topk={}].model'.format(
+            hparams['name'], hparams['scale'], epoch, step, hparams['checkpoint'], hparams['his_size'], hparams['k'])
+    else:
+        save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
+            hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], hparams['k'])
     state_dict = model.state_dict()
 
     if re.search('pipeline', hparams['name']):
-        state_dict = {k: v for k, v in state_dict.items() if k not in ['news_repr.weight', 'news_embedding.weight']}
+        state_dict = {k: v for k, v in state_dict.items() if k not in [
+            'news_repr.weight', 'news_embedding.weight']}
 
     save_dict = {}
     save_dict['model'] = state_dict
@@ -315,14 +328,16 @@ def save(model, hparams, epoch, step, optimizers=[]):
         save_dict['optimizer'] = optimizers[0].state_dict()
 
     torch.save(save_dict, save_path)
-    logging.info("saved model of step {}, epoch {} at {}".format(step, epoch, save_path))
+    logging.info("saved model of step {}, epoch {} at {}".format(
+        step, epoch, save_path))
 
 
 def load(model, hparams, epoch, step, optimizers=None):
     """
         shortcut for loading model and optimizer parameters
     """
-    save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], hparams['k'])
+    save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
+        hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], hparams['k'])
 
     state_dict = torch.load(save_path, map_location=hparams['device'])
     if re.search('pipeline', hparams['name']):
@@ -331,15 +346,17 @@ def load(model, hparams, epoch, step, optimizers=None):
         try:
             model.load_state_dict(state_dict['model'])
         except:
-            logging.warning("saving model without optimizer is going to be deprecated, please use save() instead hahaha!")
+            logging.warning(
+                "saving model without optimizer is going to be deprecated, please use save()!")
             model.load_state_dict(state_dict)
 
     if optimizers:
         optimizers[0].load_state_dict(state_dict['optimizer'])
         if len(optimizers) > 1:
-            optimizers[1].load_state_dict(state_dict['optimizer_embedding'])        
+            optimizers[1].load_state_dict(state_dict['optimizer_embedding'])
 
     logging.info("load model from {}...".format(save_path))
+
 
 def my_collate(data):
     excluded = ['impression_index']
@@ -379,12 +396,12 @@ def parameter(model, param_list, exclude=False):
     """
     # params = []
     if exclude:
-        for name,param in model.named_parameters():
+        for name, param in model.named_parameters():
             if name not in param_list:
                 # params.append(param)
                 yield param
     else:
-        for name,param in model.named_parameters():
+        for name, param in model.named_parameters():
             if name in param_list:
                 # params.append(param)
                 yield param
@@ -550,7 +567,7 @@ def run_eval(model, dataloader, interval):
     labels = []
     imp_indexes = []
 
-    for i, batch_data_input in tqdm(enumerate(dataloader),smoothing=0):
+    for i, batch_data_input in tqdm(enumerate(dataloader), smoothing=0):
         pred = model.forward(batch_data_input).squeeze(dim=-1).tolist()
         preds.extend(pred)
         label = batch_data_input['labels'].squeeze(dim=-1).tolist()
@@ -592,12 +609,12 @@ def evaluate(model, hparams, dataloader, loading=False, interval=100):
     """
     if len(hparams['save_step']) > 1:
         for step in hparams['save_step'][1:]:
-            command = re.sub(','.join([str(i) for i in hparams['save_step']]),str(step),hparams['command'])
+            command = re.sub(','.join([str(i) for i in hparams['save_step']]), str(
+                step), hparams['command'])
             subprocess.Popen(command, shell=True)
 
-    hparam_list = ['name', 'scale', 'epochs', 'train_embedding', 'select',
-                   'integrate', 'his_size', 'k', 'query_dim', 'value_dim', 'head_num']
-    param_list = ['query_words', 'query_levels']
+    param_list = ['query_words', 'query_levels',
+                  'CoAttention.weight', 'selectionProject.weight']
 
     model.eval()
     cdd_size = model.cdd_size
@@ -633,6 +650,7 @@ def evaluate(model, hparams, dataloader, loading=False, interval=100):
 
     return res
 
+
 def run_train(model, dataloader, optimizers, loss_func, hparams, writer=None, interval=100, save_step=None):
     ''' train model and print loss meanwhile
     Args: 
@@ -652,7 +670,7 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, writer=None, in
 
     for epoch in range(hparams['epochs']):
         epoch_loss = 0
-        tqdm_ = tqdm(enumerate(dataloader),smoothing=0)
+        tqdm_ = tqdm(enumerate(dataloader), smoothing=0)
         for step, x in tqdm_:
 
             for optimizer in optimizers:
@@ -724,12 +742,20 @@ def train(model, hparams, loaders, spadam=True, tb=False, interval=100):
         learning_rate = 1e-3
 
     if spadam:
-        optimizer_param = optim.Adam(parameter(model,['encoder.embedding.weight'],exclude=True), lr=learning_rate)
-        optimizer_embedding = optim.SparseAdam(list(model.encoder.embedding.parameters()), lr=learning_rate)
+        optimizer_param = optim.Adam(
+            parameter(model, ['encoder.embedding.weight'], exclude=True), lr=learning_rate)
+        optimizer_embedding = optim.SparseAdam(
+            list(model.encoder.embedding.parameters()), lr=learning_rate)
         optimizers = [optimizer_param, optimizer_embedding]
     else:
         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         optimizers = [optimizer]
+
+    if 'checkpoint' in hparams:
+        logging.info("loading checkpoint...")
+        ck = hparams['checkpoint'].split(',')
+        # modify the epoch so the model can be properly saved
+        load(model, hparams, ck[0], ck[1], optimizers)
 
     model = run_train(model, loaders[0], optimizers, loss_func, hparams,
                       writer=writer, interval=interval, save_step=hparams['save_step'][0])
@@ -762,7 +788,7 @@ def test(model, hparams, loader_test):
     with open(save_path, 'w') as f:
         preds = []
         imp_indexes = []
-        for i, x in tqdm(enumerate(loader_test),smoothing=0):
+        for i, x in tqdm(enumerate(loader_test), smoothing=0):
             preds.extend(model.forward(x).tolist())
             imp_indexes.extend(x['impression_index'])
 
@@ -782,8 +808,6 @@ def test(model, hparams, loader_test):
 
     logging.info("written to prediction!")
 
-    hparam_list = ['name', 'scale', 'epochs', 'save_step', 'train_embedding',
-                   'select', 'integrate', 'his_size', 'k', 'query_dim', 'value_dim', 'head_num']
     param_list = ['query_words', 'query_levels']
     with open('performance.log', 'a+') as f:
         d = {}
@@ -808,7 +832,7 @@ def tune(model, hparams, loaders, best_auc=0):
     logging.info("current hyper parameter settings are:{}".format(hparams))
 
     loader_train = loaders[0]
-    loader_dev = loaders[1]
+    # loader_dev = loaders[1]
 
     loss_func = getLoss(model)
 
@@ -817,13 +841,15 @@ def tune(model, hparams, loaders, best_auc=0):
     else:
         learning_rate = 1e-3
 
-    optimizer_param = optim.Adam(parameter(model,['encoder.embedding.weight'],exclude=True), lr=learning_rate)
-    optimizer_embedding = optim.SparseAdam(list(model.encoder.embedding.parameters()), lr=learning_rate)
+    optimizer_param = optim.Adam(
+        parameter(model, ['encoder.embedding.weight'], exclude=True), lr=learning_rate)
+    optimizer_embedding = optim.SparseAdam(
+        list(model.encoder.embedding.parameters()), lr=learning_rate)
     optimizers = [optimizer_param, optimizer_embedding]
 
     for epoch in range(hparams['epochs']):
         epoch_loss = 0
-        tqdm_ = tqdm(enumerate(loader_train),smoothing=0)
+        tqdm_ = tqdm(enumerate(loader_train), smoothing=0)
         for step, x in tqdm_:
             for optimizer in optimizers:
                 optimizer.zero_grad()
@@ -872,8 +898,8 @@ def load_hparams(hparams):
     # parser.add_argument("--save_each_epoch", dest="save_each_epoch", help="if clarified, save model of each epoch", default=True)
     parser.add_argument("--save_step", dest="save_step",
                         help="if clarified, save model at the interval of given steps", type=str, default='0')
-    parser.add_argument("--train_embedding", dest="train_embedding",
-                        help="if clarified, word embedding will be fine-tuned", default=True)
+    parser.add_argument("-ck", "--checkpoint", dest="checkpoint",
+                        help="the checkpoint model to load", type=str)
     parser.add_argument("-lr", "--learning_rate", dest="learning_rate",
                         help="learning rate when training", type=float, default=1e-3)
 
@@ -888,13 +914,17 @@ def load_hparams(hparams):
                         choices=['pipeline1', 'pipeline2', 'unified', 'gating'], default=None)
     parser.add_argument("--integrate", dest="integration",
                         help="the way history filter is combined", choices=['gate', 'harmony'], default='gate')
-    parser.add_argument("--encoder", dest="encoder", help="choose encoder", choices=['fim', 'npa', 'mha', 'nrms', 'pipeline', 'bert'], default=None)
+    parser.add_argument("--encoder", dest="encoder", help="choose encoder",
+                        choices=['fim', 'npa', 'mha', 'nrms', 'pipeline', 'bert'], default=None)
 
-    parser.add_argument("--bert", dest="bert", help="choose bert model(encoder)", choices=['bert-base-uncased','albert-base-v2'], default=None)
-    parser.add_argument("--level", dest="level", help="intend for bert encoder, if clarified, level representations will be kept for a token", type=int, default=1)
+    parser.add_argument("--bert", dest="bert", help="choose bert model(encoder)",
+                        choices=['bert-base-uncased', 'albert-base-v2'], default=None)
+    parser.add_argument("--level", dest="level",
+                        help="intend for bert encoder, if clarified, level representations will be kept for a token", type=int, default=1)
 
     # FIXME, clarify all choices
-    parser.add_argument("--pipeline", dest="pipeline", help="choose pipeline-encoder", choices=['fim', 'npa', 'mha', 'nrms', 'bert'], default=None)
+    parser.add_argument("--pipeline", dest="pipeline", help="choose pipeline-encoder",
+                        choices=['fim', 'npa', 'mha', 'nrms', 'bert'], default=None)
 
     parser.add_argument("-hn", "--head_num", dest="head_num",
                         help="number of multi-heads", type=int)
@@ -945,6 +975,8 @@ def load_hparams(hparams):
         hparams['query_dim'] = args.query_dim
     if args.validate:
         hparams['validate'] = args.validate
+    if args.checkpoint:
+        hparams['checkpoint'] = args.checkpoint
     if args.encoder:
         hparams['encoder'] = args.encoder
     if args.bert:
@@ -958,8 +990,6 @@ def load_hparams(hparams):
 
     # if args.level:
     #     hparams['level'] = args.level
-
-    hparams['train_embedding'] = args.train_embedding
 
     if len(hparams['save_step']) > 1:
         hparams['command'] = "python " + " ".join(sys.argv)
@@ -990,12 +1020,12 @@ def generate_hparams(hparams, config):
 
 
 def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=False, pin_memory=True):
-    from .MIND import MIND, MIND_test, MIND_news, MIND_iter
+    from .MIND import MIND, MIND_test, MIND_news
     """ prepare dataloader and several paths
-    
+
     Args:
         hparams(dict): hyper parameters
-    
+
     Returns:
         vocab
         loaders(list of dataloaders): 0-loader_train/test/dev, 1-loader_dev, 2-loader_validate
@@ -1035,7 +1065,8 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
 
     elif hparams['mode'] in ['train', 'tune']:
         news_file_train = path+'/MIND'+hparams['scale']+'_train/news.tsv'
-        behavior_file_train = path+'/MIND' + hparams['scale']+'_train/behaviors.tsv'
+        behavior_file_train = path+'/MIND' + \
+            hparams['scale']+'_train/behaviors.tsv'
         dataset_train = MIND(hparams=hparams, news_file=news_file_train,
                              behaviors_file=behavior_file_train, shuffle_pos=True)
         loader_train = DataLoader(dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory,

@@ -9,10 +9,7 @@ class NRMSModel(nn.Module):
         self.cdd_size = (hparams['npratio'] + 1) if hparams['npratio'] > 0 else 1
 
         self.device = torch.device(hparams['device'])
-        if hparams['train_embedding']:
-            self.embedding = nn.Parameter(vocab.vectors.clone().detach().requires_grad_(True).to(self.device))
-        else:
-            self.embedding = vocab.vectors.to(self.device)
+        self.embedding = nn.Parameter(vocab.vectors.clone().detach().requires_grad_(True).to(self.device))
 
         self.batch_size = hparams['batch_size']
         self.signal_length = hparams['title_size']
