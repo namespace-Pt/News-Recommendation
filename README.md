@@ -23,9 +23,8 @@
 - 接受推荐的用户记为$u$，某一新闻记为$v$
 
 ## 目标
-给定用户$u$，新闻集$\mathcal{V}$，从$\mathcal{V}$中选出前$k$个用户最有可能点击的新闻，推荐给用户
-  - 最大化click through rate（CTR）
-
+给定用户$u$，新闻集$\mathcal{V}$, 根据用户画像对$\forall v\in \mathcal{V}$排序, 使得用户点击可能性大的新闻排在靠前的位置。
+- 最大化CTR(Click Through Rate)
 ## 新闻推荐的特点
 - **Large scale**：用户和新闻数量都很大，新闻更新快
 
