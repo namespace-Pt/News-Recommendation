@@ -4,7 +4,7 @@ os.chdir('/home/peitian_zhang/Codes/News-Recommendation')
 sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
 import torch
-from utils.utils import evaluate,train,prepare,load_hparams,test
+from utils.utils import evaluate,train,prepare,load_hparams,test,load,pipeline_encode
 
 if __name__ == "__main__":
 
@@ -17,7 +17,10 @@ if __name__ == "__main__":
     hparams = load_hparams(hparams)
     torch.cuda.set_device(hparams['device'])
 
-    vocab, loaders = prepare(hparams)
+    if hparams['mode'] == 'encode':
+        vocab, loaders = prepare(hparams, news=True)
+    else:
+        vocab, loaders = prepare(hparams)
 
     if hparams['encoder'] == 'fim':
         from models.Encoders import FIM_Encoder
@@ -44,6 +47,10 @@ if __name__ == "__main__":
         from models.Encoders import NRMS_Encoder
         encoder = NRMS_Encoder(hparams, vocab)
 
+    elif hparams['encoder'] == 'cnn':
+        from models.Encoders import CNN_Encoder
+        encoder = CNN_Encoder(hparams, vocab)
+
     elif hparams['encoder'] == 'pipeline':
         hparams['encoder'] = hparams['encoder'] + '-[{}]'.format(hparams['pipeline'])
         from models.Encoders import Pipeline_Encoder
@@ -59,21 +66,27 @@ if __name__ == "__main__":
         from models.SFI import SFI_unified
         sfiModel = SFI_unified(hparams, encoder).to(hparams['device'])
 
-    elif hparams['select'] == 'pipeline1':
-        hparams['name'] = '-'.join([hparams['name'], hparams['encoder'], hparams['select']])
-        from models.SFI import SFI_pipeline1
-        sfiModel = SFI_pipeline1(hparams, encoder).to(hparams['device'])
-
     elif hparams['select'] == 'gating':
         hparams['name'] = '-'.join([hparams['name'], hparams['encoder'], hparams['select']])
         from models.SFI import SFI_gating
         sfiModel = SFI_gating(hparams, encoder).to(hparams['device'])
 
+    else:
+        raise ValueError("Undefined Selection Method")
+
     if hparams['mode'] == 'dev':
         evaluate(sfiModel,hparams,loaders[0],loading=True)
 
     elif hparams['mode'] == 'train' or hparams['mode'] == 'whole':
-        train(sfiModel, hparams, loaders, spadam=True)
+        train(sfiModel, hparams, loaders)
 
     elif hparams['mode'] == 'test':
         test(sfiModel, hparams, loaders[0])
+
+    elif hparams['mode'] == 'encode':
+        from models.Encoders import Encoder_Wrapper
+        encoder_wrapper = Encoder_Wrapper(hparams, encoder).to(hparams['device'])
+        hparams['name'] = '-'.join([hparams['name'], hparams['encoder'], hparams['select']])
+
+        load(Encoder_Wrapper, hparams, hparams['epochs'], hparams['save_step'], pipeline=True)
+        pipeline_encode(Encoder_Wrapper, hparams, loaders)

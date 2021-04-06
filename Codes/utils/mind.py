@@ -25,8 +25,10 @@ class MIND(Dataset):
         self.batch_size = hparams['batch_size']
         self.title_size = hparams['title_size']
         self.his_size = hparams['his_size']
-        self.attrs = hparams['attrs']
-        self.k = hparams['k']
+        # self.attrs = hparams['attrs']
+
+        if 'k' in hparams:
+            self.k = hparams['k']
 
         self.mode = re.search(
             '{}_(.*)/'.format(hparams['scale']), news_file).group(1)
@@ -51,7 +53,7 @@ class MIND(Dataset):
             init news information given news file, such as news_title_array.
         """
 
-        # VERY IMPORTANT!!! FIXME 
+        # VERY IMPORTANT!!! FIXME
         # The nid2idx dictionary must follow the original order of news in news.tsv
 
         title_token = [[0]*self.title_size]
@@ -258,7 +260,7 @@ class MIND(Dataset):
                 }
 
             return back_dic
-        
+
         # each time called return one sample
         elif self.mode == 'dev':
             cdd_ids = [impr_news]
@@ -340,7 +342,8 @@ class MIND_test(IterableDataset):
         self.batch_size = hparams['batch_size']
         self.title_size = hparams['title_size']
         self.his_size = hparams['his_size']
-        self.k = hparams['k']
+        if 'k' in hparams:
+            self.k = hparams['k']
 
         # self.index2nid = hparams['news_id']
 
@@ -358,7 +361,7 @@ class MIND_test(IterableDataset):
         self.init_behaviors()
 
     def init_news(self):
-        """ 
+        """
             init news information given news file, such as news_title_array.
         """
 
@@ -396,7 +399,7 @@ class MIND_test(IterableDataset):
         self.title_pad = np.asarray(title_pad)
 
     def init_behaviors(self):
-        """ 
+        """
             init behavior logs given behaviors file.
         """
 
@@ -457,7 +460,7 @@ class MIND_test(IterableDataset):
                 user_index = []
                 # indicate history mask
                 his_mask = np.zeros((self.his_size, 1), dtype=bool)
-                
+
                 cdd_ids = [news]
                 his_ids = self.histories[index]
 
@@ -512,7 +515,7 @@ class MIND_test(IterableDataset):
                         (self.title_size - self.title_pad[news][0])*[1] + self.title_pad[news][0]*[0]]
                     click_title_pad = [(self.title_size - i[0])*[1] + i[0]*[0]
                                     for i in self.title_pad[self.histories[index]]]
-                    
+
                     back_dic = {
                         "impression_index": impr_index,
                         "user_index": np.asarray(user_index),
@@ -549,8 +552,7 @@ class MIND_news(Dataset):
         self.batch_size = hparams['batch_size']
         self.title_size = hparams['title_size']
         self.his_size = hparams['his_size']
-        self.attrs = hparams['attrs']
-        self.k = hparams['k']
+        # self.attrs = hparams['attrs']
 
         mode = re.search(
             '{}_(.*)/'.format(hparams['scale']), news_file).group(1)
@@ -567,7 +569,7 @@ class MIND_news(Dataset):
         return len(self.news_title_array)
 
     def init_news(self):
-        """ 
+        """
             init news information given news file, such as news_title_array.
         """
 

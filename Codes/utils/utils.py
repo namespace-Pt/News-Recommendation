@@ -28,7 +28,8 @@ from torch.utils.data import DataLoader, get_worker_info
 logging.basicConfig(level=logging.INFO,
                     format="[%(asctime)s] %(levelname)s (%(name)s) %(message)s")
 
-hparam_list = ['name', 'scale', 'select', 'integrate', 'his_size', 'k']
+hparam_list = ['name', 'scale', 'select', 'integrate', 'his_size', 'k', 'epochs', 'save_step']
+param_list = ['query_words', 'query_levels', 'CoAttention.weight', 'selectionProject.weight']
 
 
 def word_tokenize(sent):
@@ -63,7 +64,7 @@ def word_tokenize_vocab(sent, vocab):
 
 
 def newsample(news, ratio):
-    """ Sample ratio samples from news list. 
+    """ Sample ratio samples from news list.
     If length of news is less than ratio, pad zeros.
 
     Args:
@@ -83,10 +84,10 @@ def newsample(news, ratio):
 def news_token_generator(news_file_list, tokenizer, attrs):
     ''' merge and deduplicate training news and testing news then iterate, collect attrs into a single sentence and generate it
 
-    Args: 
+    Args:
         tokenizer: torchtext.data.utils.tokenizer
         attrs: list of attrs to be collected and yielded
-    Returns: 
+    Returns:
         a generator over attrs in news
     '''
     news_df_list = []
@@ -205,9 +206,9 @@ def constructBasicDict(attrs=['title'], path='/home/peitian_zhang/Data/MIND'):
 def tailorData(tsvFile, num):
     ''' tailor num rows of tsvFile to create demo data file
 
-    Args: 
+    Args:
         tsvFile: str of data path
-    Returns: 
+    Returns:
         create tailored data file
     '''
     pattern = re.search('(.*)MIND(.*)_(.*)/(.*).tsv', tsvFile)
@@ -256,7 +257,7 @@ def expandData():
 
 def getId2idx(file):
     """
-        get Id2idx dictionary from json file 
+        get Id2idx dictionary from json file
     """
     g = open(file, 'r', encoding='utf-8')
     dic = json.load(g)
@@ -336,16 +337,21 @@ def load(model, hparams, epoch, step, optimizers=None):
     """
         shortcut for loading model and optimizer parameters
     """
+    if 'k' not in hparams:
+        k = 0
+    else:
+        k = hparams['k']
+
     save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
-        hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], hparams['k'])
+        hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], k)
 
     state_dict = torch.load(save_path, map_location=hparams['device'])
-    if re.search('pipeline', hparams['name']):
+    if re.search('pipeline',model.name):
         model.load_state_dict(state_dict['model'], strict=False)
     else:
         try:
             model.load_state_dict(state_dict['model'])
-        except:
+        except KeyError:
             logging.warning(
                 "saving model without optimizer is going to be deprecated, please use save()!")
             model.load_state_dict(state_dict)
@@ -355,7 +361,7 @@ def load(model, hparams, epoch, step, optimizers=None):
         if len(optimizers) > 1:
             optimizers[1].load_state_dict(state_dict['optimizer_embedding'])
 
-    logging.info("load model from {}...".format(save_path))
+    logging.info("Loading model from {}...".format(save_path))
 
 
 def my_collate(data):
@@ -567,7 +573,7 @@ def run_eval(model, dataloader, interval):
     labels = []
     imp_indexes = []
 
-    for i, batch_data_input in tqdm(enumerate(dataloader), smoothing=0):
+    for i, batch_data_input in tqdm(enumerate(dataloader), smoothing=1):
         pred = model.forward(batch_data_input).squeeze(dim=-1).tolist()
         preds.extend(pred)
         label = batch_data_input['labels'].squeeze(dim=-1).tolist()
@@ -613,9 +619,6 @@ def evaluate(model, hparams, dataloader, loading=False, interval=100):
                 step), hparams['command'])
             subprocess.Popen(command, shell=True)
 
-    param_list = ['query_words', 'query_levels',
-                  'CoAttention.weight', 'selectionProject.weight']
-
     model.eval()
     cdd_size = model.cdd_size
     model.cdd_size = 1
@@ -653,7 +656,7 @@ def evaluate(model, hparams, dataloader, loading=False, interval=100):
 
 def run_train(model, dataloader, optimizers, loss_func, hparams, writer=None, interval=100, save_step=None):
     ''' train model and print loss meanwhile
-    Args: 
+    Args:
         model(torch.nn.Module): the model to be trained
         dataloader(torch.utils.data.DataLoader): provide data
         optimizer(list of torch.nn.optim): optimizer for training
@@ -662,7 +665,7 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, writer=None, in
         writer(torch.utils.tensorboard.SummaryWriter): tensorboard writer
         interval(int): within each epoch, the interval of training steps to display loss
         save_epoch(bool): whether to save the model after every epoch
-    Returns: 
+    Returns:
         model: trained model
     '''
     total_loss = 0
@@ -670,7 +673,7 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, writer=None, in
 
     for epoch in range(hparams['epochs']):
         epoch_loss = 0
-        tqdm_ = tqdm(enumerate(dataloader), smoothing=0)
+        tqdm_ = tqdm(enumerate(dataloader), smoothing=1)
         for step, x in tqdm_:
 
             for optimizer in optimizers:
@@ -788,7 +791,7 @@ def test(model, hparams, loader_test):
     with open(save_path, 'w') as f:
         preds = []
         imp_indexes = []
-        for i, x in tqdm(enumerate(loader_test), smoothing=0):
+        for i, x in tqdm(enumerate(loader_test), smoothing=1):
             preds.extend(model.forward(x).tolist())
             imp_indexes.extend(x['impression_index'])
 
@@ -808,7 +811,6 @@ def test(model, hparams, loader_test):
 
     logging.info("written to prediction!")
 
-    param_list = ['query_words', 'query_levels']
     with open('performance.log', 'a+') as f:
         d = {}
         for k, v in hparams.items():
@@ -849,7 +851,7 @@ def tune(model, hparams, loaders, best_auc=0):
 
     for epoch in range(hparams['epochs']):
         epoch_loss = 0
-        tqdm_ = tqdm(enumerate(loader_train), smoothing=0)
+        tqdm_ = tqdm(enumerate(loader_train), smoothing=1)
         for step, x in tqdm_:
             for optimizer in optimizers:
                 optimizer.zero_grad()
@@ -875,14 +877,14 @@ def tune(model, hparams, loaders, best_auc=0):
 
 
 def load_hparams(hparams):
-    """ 
+    """
         customize hyper parameters in command line
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--scale", dest="scale", help="data scale",
                         choices=['demo', 'small', 'large', 'whole'], required=True)
     parser.add_argument("-m", "--mode", dest="mode", help="train or test",
-                        choices=['train', 'dev', 'test', 'tune'], default='train')
+                        choices=['train', 'dev', 'test', 'tune', 'encode'], default='train')
     parser.add_argument("-e", "--epochs", dest="epochs",
                         help="epochs to train the model", type=int, default=10)
 
@@ -893,8 +895,8 @@ def load_hparams(hparams):
     parser.add_argument("-hs", "--his_size", dest="his_size",
                         help="history size", type=int, default=50)
 
-    parser.add_argument("--cuda", dest="cuda",
-                        help="device to run on", choices=['0', '1'], default='0')
+    parser.add_argument("--device", dest="device",
+                        help="device to run on", choices=['0', '1', 'cpu'], default='0')
     # parser.add_argument("--save_each_epoch", dest="save_each_epoch", help="if clarified, save model of each epoch", default=True)
     parser.add_argument("--save_step", dest="save_step",
                         help="if clarified, save model at the interval of given steps", type=str, default='0')
@@ -914,8 +916,7 @@ def load_hparams(hparams):
                         choices=['pipeline1', 'pipeline2', 'unified', 'gating'], default=None)
     parser.add_argument("--integrate", dest="integration",
                         help="the way history filter is combined", choices=['gate', 'harmony'], default='gate')
-    parser.add_argument("--encoder", dest="encoder", help="choose encoder",
-                        choices=['fim', 'npa', 'mha', 'nrms', 'pipeline', 'bert'], default=None)
+    parser.add_argument("--encoder", dest="encoder", help="choose encoder", default='gating')
 
     parser.add_argument("--bert", dest="bert", help="choose bert model(encoder)",
                         choices=['bert-base-uncased', 'albert-base-v2'], default=None)
@@ -923,8 +924,7 @@ def load_hparams(hparams):
                         help="intend for bert encoder, if clarified, level representations will be kept for a token", type=int, default=1)
 
     # FIXME, clarify all choices
-    parser.add_argument("--pipeline", dest="pipeline", help="choose pipeline-encoder",
-                        choices=['fim', 'npa', 'mha', 'nrms', 'bert'], default=None)
+    parser.add_argument("--pipeline", dest="pipeline", help="choose pipeline-encoder", default=None)
 
     parser.add_argument("-hn", "--head_num", dest="head_num",
                         help="number of multi-heads", type=int)
@@ -947,7 +947,10 @@ def load_hparams(hparams):
 
     hparams['scale'] = args.scale
     hparams['mode'] = args.mode
-    hparams['device'] = 'cuda:' + args.cuda
+    if len(args.device) > 1:
+        hparams['device'] = args.device
+    else:
+        hparams['device'] = 'cuda:' + args.device
     hparams['epochs'] = args.epochs
     hparams['batch_size'] = args.batch_size
     hparams['title_size'] = args.title_size
@@ -1042,11 +1045,11 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
 
         dataset_train = MIND_news(hparams, news_file_train)
         loader_news_train = DataLoader(
-            dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=8, drop_last=False, collate_fn=my_collate)
+            dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=16, drop_last=False, collate_fn=my_collate)
 
         dataset_dev = MIND_news(hparams, news_file_dev)
         loader_news_dev = DataLoader(
-            dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=8, drop_last=False, collate_fn=my_collate)
+            dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=16, drop_last=False, collate_fn=my_collate)
 
         vocab = dataset_train.vocab
         embedding = GloVe(dim=300, cache='.vector_cache')
@@ -1057,7 +1060,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
                 '/MIND{}_test/news.tsv'.format(hparams['scale'])
             dataset_test = MIND_news(hparams, news_file_test)
             loader_news_test = DataLoader(
-                dataset_test, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=8, drop_last=False, collate_fn=my_collate)
+                dataset_test, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=16, drop_last=False, collate_fn=my_collate)
 
             return vocab, [loader_news_train, loader_news_dev, loader_news_test]
 
@@ -1070,7 +1073,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         dataset_train = MIND(hparams=hparams, news_file=news_file_train,
                              behaviors_file=behavior_file_train, shuffle_pos=True)
         loader_train = DataLoader(dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                  num_workers=8, drop_last=False, shuffle=True, collate_fn=my_collate)
+                                  num_workers=16, drop_last=False, shuffle=True, collate_fn=my_collate)
         vocab = dataset_train.vocab
         if 'bert' not in hparams:
             embedding = GloVe(dim=300, cache='.vector_cache')
@@ -1084,13 +1087,13 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
                            behaviors_file=behavior_file_dev)
         loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                num_workers=8, drop_last=False, collate_fn=my_collate)
+                                num_workers=16, drop_last=False, collate_fn=my_collate)
 
         if 'validate' in hparams and hparams['validate']:
             dataset_validate = MIND(
                 hparams=hparams, news_file=news_file_train, behaviors_file=behavior_file_train)
             loader_validate = DataLoader(dataset_validate, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                         num_workers=8, drop_last=False, collate_fn=my_collate)
+                                         num_workers=16, drop_last=False, collate_fn=my_collate)
             return vocab, [loader_train, loader_dev, loader_validate]
         else:
             return vocab, [loader_train, loader_dev]
@@ -1101,7 +1104,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
                            behaviors_file=behavior_file_dev)
         loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                num_workers=8, drop_last=False, collate_fn=my_collate)
+                                num_workers=16, drop_last=False, collate_fn=my_collate)
         vocab = dataset_dev.vocab
         if 'bert' not in hparams:
             embedding = GloVe(dim=300, cache='.vector_cache')
@@ -1113,7 +1116,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         dataset_test = MIND_test(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv',
                                  '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
         loader_test = DataLoader(dataset_test, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                 num_workers=8, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
+                                 num_workers=16, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
 
         vocab = dataset_test.vocab
         if 'bert' not in hparams:
@@ -1124,6 +1127,9 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
 
 
 def pipeline_encode(model, hparams, loaders):
+    """
+        Encode news of hparams['scale'] in each mode
+    """
     news_num_dict = {
         'demo': {
             'train': 51282,
@@ -1141,9 +1147,9 @@ def pipeline_encode(model, hparams, loaders):
     }
     news_num_train = news_num_dict[hparams['scale']]['train']
 
-    news_reprs = torch.zeros((news_num_train + 1, model.filter_num))
+    news_reprs = torch.zeros((news_num_train + 1, model.hidden_dim))
     news_embeddings = torch.zeros(
-        (news_num_train + 1, model.signal_length, model.level, model.filter_num))
+        (news_num_train + 1, model.signal_length, model.level, model.hidden_dim))
 
     for x in tqdm(loaders[0]):
         embedding, repr = model(x)
@@ -1158,9 +1164,9 @@ def pipeline_encode(model, hparams, loaders):
 
     news_num_dev = news_num_dict[hparams['scale']]['dev']
 
-    news_reprs = torch.zeros((news_num_dev + 1, model.filter_num))
+    news_reprs = torch.zeros((news_num_dev + 1, model.hidden_dim))
     news_embeddings = torch.zeros(
-        (news_num_dev + 1, model.signal_length, model.level, model.filter_num))
+        (news_num_dev + 1, model.signal_length, model.level, model.hidden_dim))
 
     for x in tqdm(loaders[1]):
         embedding, repr = model(x)
@@ -1176,9 +1182,9 @@ def pipeline_encode(model, hparams, loaders):
     if hparams['scale'] == 'large':
         news_num_test = news_num_dict[hparams['scale']]['test']
 
-        news_reprs = torch.zeros((news_num_test + 1, model.filter_num))
+        news_reprs = torch.zeros((news_num_test + 1, model.hidden_dim))
         news_embeddings = torch.zeros(
-            (news_num_test + 1, model.signal_length, model.level, model.filter_num))
+            (news_num_test + 1, model.signal_length, model.level, model.hidden_dim))
 
         for x in tqdm(loaders[2]):
             embedding, repr = model(x)

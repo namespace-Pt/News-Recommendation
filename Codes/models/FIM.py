@@ -4,10 +4,8 @@ import torch.nn as nn
 from .Encoders import FIM_Encoder
 
 class FIMModel(nn.Module):
-    def __init__(self,hparams,vocab):
+    def __init__(self,hparams,encoder):
         super().__init__()
-        self.name = 'fim'
-
 
         self.cdd_size = (hparams['npratio'] + 1) if hparams['npratio'] > 0 else 1
         self.his_size =hparams['his_size']
@@ -16,16 +14,18 @@ class FIMModel(nn.Module):
         self.signal_length = hparams['title_size']
 
         self.kernel_size = 3
-        
-        self.encoder = FIM_Encoder(hparams, vocab)
+
+        self.encoder = encoder
         self.hidden_dim = self.encoder.hidden_dim
         self.level = self.encoder.level
+        self.DropOut = self.encoder.DropOut
+        self.name = 'fim-' + encoder.name
+
 
         self.device = hparams['device']
 
         self.softmax = nn.Softmax(dim=-1)
         self.ReLU = nn.ReLU()
-        self.DropOut = self.encoder.DropOut
         self.SeqCNN3D = nn.Sequential(
             nn.Conv3d(in_channels=3,out_channels=32,kernel_size=[3,3,3],padding=1),
             nn.ReLU(),
@@ -34,7 +34,7 @@ class FIMModel(nn.Module):
             nn.ReLU(),
             nn.MaxPool3d(kernel_size=[3,3,3],stride=[3,3,3])
         )
-        
+
         self.learningToRank = nn.Linear(int((int((self.his_size - 3)/3 + 1) - 3)/3 + 1) * 2 * 2 * 16,1)
 
     def _fusion(self,cdd_news_embedding,his_news_embedding):
@@ -57,15 +57,15 @@ class FIMModel(nn.Module):
         fusion_tensor = fusion_tensor.view(-1, self.his_size, self.level, self.signal_length, self.signal_length).transpose(1,2)
 
         fusion_tensor = self.SeqCNN3D(fusion_tensor).view(self.batch_size,self.cdd_size,-1)
-        
+
         return fusion_tensor
-    
+
     def _click_predictor(self,fusion_tensors):
         """ calculate batch of click probabolity
 
         Args:
             fusion_tensors: tensor of [batch_size, cdd_size, 320]
-        
+
         Returns:
             score: tensor of [batch_size, npratio+1], which is normalized click probabilty
         """
@@ -79,12 +79,20 @@ class FIMModel(nn.Module):
     def forward(self,x):
         if x['candidate_title'].shape[0] != self.batch_size:
             self.batch_size = x['candidate_title'].shape[0]
-        
+
         cdd_news = x['candidate_title'].long().to(self.device)
-        cdd_news_embedding, _ = self.encoder(cdd_news)
+        cdd_news_embedding, cdd_news_repr = self.encoder(
+            cdd_news,
+            user_index=x['user_index'].long().to(self.device),
+            news_id=x['cdd_id'].long().to(self.device),
+            attn_mask=x['candidate_title_pad'].to(self.device))
 
         his_news = x['clicked_title'].long().to(self.device)
-        his_news_embedding, _ = self.encoder(his_news)
+        his_news_embedding, his_news_repr = self.encoder(
+            his_news,
+            user_index=x['user_index'].long().to(self.device),
+            news_id=x['his_id'].long().to(self.device),
+            attn_mask=x['clicked_title_pad'].to(self.device))
 
         fusion_tensors = self._fusion(cdd_news_embedding, his_news_embedding)
 

@@ -28,7 +28,7 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 ## Instruction
 - **check out [Preprocess.ipynb](manual/Preprocess.ipynb) first to get familiar with datasets**
 - you can customize your **MIND directory** by calling `prepare(hparams, path='\your\path\MIND')`
-  
+
 - you can run the specific notebook to train and test the model
   ```shell
   run manual/[model_name].ipynb
@@ -53,14 +53,14 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 - **default path of model parameters is** `data/model_params/[model_name]`, since I didn't upload this folder, you need to create one.
 
 - **ATTENTION! codes under `deprecated/` will no longer be maintained**
-   
+
 
 ## File Structure
 ### `/data`: basic dictionaries
-  - dictionary which maps News ID to increasing integer, training set and testing set are separate because when constructing MIND iterator, the newsID should be mapped to continuous number starting from 1
+  - dictionary which maps News ID to increasing integer, training set and testing set are separate because when constructing MIND iterator. **News index starts from 1.**
     - `nid2idx_[data_mode]_train.json`
     - `nid2idx_[data_mode]_test.json`
-  - dictionary which maps News ID to increasing integer, training set and testing set are unified because user may appear in both training and testing phases which are namely *long-tail users*. However, some users may only appear in testing set, which fomulates *cold start problem*.
+  - dictionary which maps News ID to increasing integer, training set and testing set are unified because user may appear in both training and testing phases. However, some users may only appear in testing set, which fomulates *cold start problem*. **User index starts from 1.**
     - `uid2idx_[data_mode].json`
   - vocabulary which maps word wokens to increasing integer (**instance of torchtest.vocab**) , which can be applied with pre-trained word embeddings.
     - `vocab_[data_mode].pkl`
@@ -82,8 +82,8 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
   - NRMS
     - [[22] Neural News Recommendation with Multi-Head Self-Attention](https://www.aclweb.org/anthology/D19-1671.pdf)
   - KNRM
-    - [[49] End-to-End Neural Ad-hoc Ranking with Kernel Pooling](https://dl.acm.org/doi/pdf/10.1145/3077136.3080809)  
-  - Soft Top-k Operator 
+    - [[49] End-to-End Neural Ad-hoc Ranking with Kernel Pooling](https://dl.acm.org/doi/pdf/10.1145/3077136.3080809)
+  - Soft Top-k Operator
     - [[51] Differentiable Top-K Operator with Optimal Transport](https://arxiv.org/pdf/2002.06504.pdf)
     - *copy code from paper*
 
