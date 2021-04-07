@@ -14,7 +14,7 @@ class MIND(Dataset):
         shuffle(bool): whether to shuffle the order of impressions
     """
 
-    def __init__(self, hparams, news_file, behaviors_file, shuffle_pos=False):
+    def __init__(self, hparams, news_file, behaviors_file, shuffle_pos=False, validate=False):
         # initiate the whole iterator
         self.npratio = hparams['npratio']
         self.shuffle_pos = shuffle_pos
@@ -44,6 +44,8 @@ class MIND(Dataset):
         if 'bert' in hparams:
             self.bert = True
             self.tokenizer = AutoTokenizer.from_pretrained(hparams['bert'])
+        if validate:
+            self.mode = 'dev'
 
         self.init_news()
         self.init_behaviors()

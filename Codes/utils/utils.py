@@ -573,7 +573,7 @@ def run_eval(model, dataloader, interval):
     labels = []
     imp_indexes = []
 
-    for i, batch_data_input in tqdm(enumerate(dataloader), smoothing=1):
+    for i, batch_data_input in tqdm(enumerate(dataloader), smoothing=0):
         pred = model.forward(batch_data_input).squeeze(dim=-1).tolist()
         preds.extend(pred)
         label = batch_data_input['labels'].squeeze(dim=-1).tolist()
@@ -673,7 +673,7 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, writer=None, in
 
     for epoch in range(hparams['epochs']):
         epoch_loss = 0
-        tqdm_ = tqdm(enumerate(dataloader), smoothing=1)
+        tqdm_ = tqdm(enumerate(dataloader), smoothing=0)
         for step, x in tqdm_:
 
             for optimizer in optimizers:
@@ -791,7 +791,7 @@ def test(model, hparams, loader_test):
     with open(save_path, 'w') as f:
         preds = []
         imp_indexes = []
-        for i, x in tqdm(enumerate(loader_test), smoothing=1):
+        for i, x in tqdm(enumerate(loader_test), smoothing=0):
             preds.extend(model.forward(x).tolist())
             imp_indexes.extend(x['impression_index'])
 
@@ -851,7 +851,7 @@ def tune(model, hparams, loaders, best_auc=0):
 
     for epoch in range(hparams['epochs']):
         epoch_loss = 0
-        tqdm_ = tqdm(enumerate(loader_train), smoothing=1)
+        tqdm_ = tqdm(enumerate(loader_train), smoothing=0)
         for step, x in tqdm_:
             for optimizer in optimizers:
                 optimizer.zero_grad()
@@ -916,7 +916,8 @@ def load_hparams(hparams):
                         choices=['pipeline1', 'pipeline2', 'unified', 'gating'], default=None)
     parser.add_argument("--integrate", dest="integration",
                         help="the way history filter is combined", choices=['gate', 'harmony'], default='gate')
-    parser.add_argument("--encoder", dest="encoder", help="choose encoder", default='gating')
+    parser.add_argument("--encoder", dest="encoder", help="choose encoder", default='fim')
+    parser.add_argument("--interactor", dest="interactor", help="choose interactor", default='fim')
 
     parser.add_argument("--bert", dest="bert", help="choose bert model(encoder)",
                         choices=['bert-base-uncased', 'albert-base-v2'], default=None)
@@ -982,6 +983,8 @@ def load_hparams(hparams):
         hparams['checkpoint'] = args.checkpoint
     if args.encoder:
         hparams['encoder'] = args.encoder
+    if args.interactor:
+        hparams['interactor'] = args.interactor
     if args.bert:
         hparams['encoder'] = 'bert'
         hparams['bert'] = args.bert
@@ -1091,7 +1094,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
 
         if 'validate' in hparams and hparams['validate']:
             dataset_validate = MIND(
-                hparams=hparams, news_file=news_file_train, behaviors_file=behavior_file_train)
+                hparams=hparams, news_file=news_file_train, behaviors_file=behavior_file_train, validate=True)
             loader_validate = DataLoader(dataset_validate, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                          num_workers=16, drop_last=False, collate_fn=my_collate)
             return vocab, [loader_train, loader_dev, loader_validate]

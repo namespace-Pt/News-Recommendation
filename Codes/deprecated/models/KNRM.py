@@ -14,13 +14,13 @@ class KNRMModel(nn.Module):
         self.signal_length = hparams['title_size']
         self.his_size = hparams['his_size']
         self.embedding_dim = hparams['embedding_dim']
-        
+
         mus = torch.arange(-0.9,1.1,0.1,device=self.device)
         self.kernel_num = len(mus)
         self.mus = mus.view(1,1,1,1,1,-1)
         self.sigmas = torch.tensor([0.1]*(self.kernel_num - 1) + [0.001], device=self.device).view(1,1,1,1,1,-1)
         self.embedding =  nn.Embedding.from_pretrained(vocab.vectors,sparse=True,freeze=False)
-        
+
         self.query = nn.Parameter(torch.randn((1,self.kernel_num), requires_grad=True))
 
         self.softmax = nn.Softmax(dim=-1)
@@ -28,12 +28,12 @@ class KNRMModel(nn.Module):
 
     def _scaled_dp_attention(self,query,key,value):
         """ calculate scaled attended output of values
-        
+
         Args:
             query: tensor of [*, query_num, key_dim]
             key: tensor of [batch_size, *, key_num, key_dim]
             value: tensor of [batch_size, *, key_num, value_dim]
-        
+
         Returns:
             attn_output: tensor of [batch_size, *, query_num, value_dim]
         """
@@ -44,18 +44,18 @@ class KNRMModel(nn.Module):
 
         attn_weights = torch.matmul(query,key)/torch.sqrt(torch.tensor([self.embedding_dim],dtype=torch.float,device=self.device))
         attn_weights = self.softmax(attn_weights)
-        
+
         attn_output = torch.matmul(attn_weights,value)
 
         return attn_output.squeeze(dim=-2)
-    
+
     def _fusion(self, cdd_news_batch, his_news_batch):
         """ fuse batch of candidate news and history news into batch of |candidate|*|history| interaction matrixs, according to cosine similarity
 
         Args:
             cdd_news_batch: tensor of [batch_size, cdd_size, signal_length]
             his_news_batch: tensor of [batch_size, his_size, signal_length]
-        
+
         Returns:
             fusion_matrixs: tensor of [batch_size, cdd_size, his_size, signal_length, signal_length]
         """
@@ -72,19 +72,18 @@ class KNRMModel(nn.Module):
     def _kernel_pooling(self, matrices, mask_cdd, mask_his):
         """
             apply kernel pooling on matrix, in order to get the relatedness from many levels
-        
+
         Args:
             matrices: tensor of [batch_size, cdd_size, his_size, signal_length, signal_length, 1]
             mask_cdd: tensor of [batch_size, cdd_size, 1, signal_length, 1]
             mask_his: tensor of [batch_size, 1, his_size, 1, signal_length, 1]
-        
+
         Returns:
             pooling_vectors: tensor of [batch_size, cdd_size, his_size, kernel_num]
         """
         pooling_matrices = torch.exp(-((matrices - self.mus) ** 2) / (2 * self.sigmas ** 2)) * mask_his
         pooling_sum = torch.sum(pooling_matrices, dim=-2)
         log_pooling_sum = torch.log(torch.clamp(pooling_sum, min=1e-10)) * mask_cdd * 0.01
-        # print(log_pooling_sum)
         pooling_vectors = torch.sum(log_pooling_sum, dim=-2)
         return pooling_vectors
 
@@ -101,9 +100,9 @@ class KNRMModel(nn.Module):
 
     def _click_predictor(self, pooling_vectors):
         """ learning to rank
-        Args: 
+        Args:
             pooling_vecors: tensor of [batch_size, cdd_size, kernel_num]
-        
+
         Returns:
             score: tensor of [batch_size, cdd_size]
         """
