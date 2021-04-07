@@ -716,7 +716,7 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, writer=None, in
     return model
 
 
-def train(model, hparams, loaders, spadam=True, tb=False, interval=100):
+def train(model, hparams, loaders, tb=False, interval=100):
     """ wrap training process
 
     Args:
@@ -744,7 +744,7 @@ def train(model, hparams, loaders, spadam=True, tb=False, interval=100):
     else:
         learning_rate = 1e-3
 
-    if spadam:
+    if 'spadam' in hparams and hparams['spadam']:
         optimizer_param = optim.Adam(
             parameter(model, ['encoder.embedding.weight'], exclude=True), lr=learning_rate)
         optimizer_embedding = optim.SparseAdam(
@@ -936,7 +936,7 @@ def load_hparams(hparams):
 
     parser.add_argument("--attrs", dest="attrs",
                         help="clarified attributes of news will be yielded by dataloader, seperate with comma", type=str, default='title')
-    parser.add_argument("-v", "--validate", dest="validate",
+    parser.add_argument("--validate", dest="validate",
                         help="if clarified, evaluate the model on training set", action='store_true')
 
     # parser.add_argument("-dp","--dropout", dest="dropout", help="drop out probability", type=float, default=0.2)
@@ -958,6 +958,7 @@ def load_hparams(hparams):
     hparams['npratio'] = args.npratio
     hparams['metrics'] = args.metrics
     hparams['learning_rate'] = args.learning_rate
+    hparams['spadam'] = True
 
     hparams['his_size'] = args.his_size
     hparams['k'] = args.k
@@ -965,11 +966,6 @@ def load_hparams(hparams):
 
     hparams['attrs'] = args.attrs.split(',')
     hparams['save_step'] = [int(i) for i in args.save_step.split(',')]
-    if len(hparams['save_step']) > 1:
-        hparams['command'] = " ".join(sys.argv)
-
-    if hparams['select'] == 'unified':
-        hparams['integration'] = args.integration
 
     if args.head_num:
         hparams['head_num'] = args.head_num
@@ -985,17 +981,16 @@ def load_hparams(hparams):
         hparams['encoder'] = args.encoder
     if args.interactor:
         hparams['interactor'] = args.interactor
+    if hparams['select'] == 'unified':
+        hparams['integration'] = args.integration
+    if args.pipeline:
+        hparams['pipeline'] = args.pipeline
+        hparams['encoder'] = 'pipeline'
+        hparams['spadam'] = False
     if args.bert:
         hparams['encoder'] = 'bert'
         hparams['bert'] = args.bert
         hparams['level'] = args.level
-
-    if args.pipeline:
-        hparams['pipeline'] = args.pipeline
-        hparams['encoder'] = 'pipeline'
-
-    # if args.level:
-    #     hparams['level'] = args.level
 
     if len(hparams['save_step']) > 1:
         hparams['command'] = "python " + " ".join(sys.argv)
