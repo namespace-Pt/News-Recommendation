@@ -317,7 +317,7 @@ def save(model, hparams, epoch, step, optimizers=[]):
 
     if re.search('pipeline', hparams['name']):
         state_dict = {k: v for k, v in state_dict.items() if k not in [
-            'news_repr.weight', 'news_embedding.weight']}
+            'encoder.news_repr.weight', 'encoder.news_embedding.weight']}
 
     save_dict = {}
     save_dict['model'] = state_dict
