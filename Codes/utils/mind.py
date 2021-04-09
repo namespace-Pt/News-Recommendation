@@ -66,15 +66,12 @@ class MIND(Dataset):
         with open(self.news_file, "r", encoding='utf-8') as rd:
 
             for idx in rd:
-                nid, vert, subvert, title, ab, url, _, _ = idx.strip("\n").split(
-                    self.col_spliter
-                )
+                nid, vert, subvert, title, ab, url, _, _ = idx.strip("\n").split(self.col_spliter)
 
                 titles.append([title])
                 title = word_tokenize_vocab(title, self.vocab)
 
-                title_token.append(
-                    title[:self.title_size] + [1] * (self.title_size - len(title)))
+                title_token.append(title[:self.title_size] + [1] * (self.title_size - len(title)))
                 title_pad.append([max(self.title_size - len(title), 0)])
 
         self.titles = titles
