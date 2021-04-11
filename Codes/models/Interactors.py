@@ -37,11 +37,11 @@ def kernel_sigmas(n_kernels):
 
 
 class FIM_Interactor(nn.Module):
-    def __init__(self, k, level):
+    def __init__(self, k, signal_length):
         super().__init__()
         self.name = 'fim'
         self.SeqCNN3D = nn.Sequential(
-            nn.Conv3d(in_channels=level, out_channels=32,
+            nn.Conv3d(in_channels=3, out_channels=32,
                       kernel_size=[3, 3, 3], padding=1),
             nn.ReLU(),
             nn.MaxPool3d(kernel_size=[3, 3, 3], stride=[3, 3, 3]),
@@ -52,7 +52,7 @@ class FIM_Interactor(nn.Module):
         )
 
         # FIXME, elasticity
-        self.hidden_dim = int((int((k - 3)/3 + 1) - 3)/3 + 1) * 2 * 2 * 16
+        self.hidden_dim = int((int((k - 3)/3 + 1) - 3)/3 + 1) * int(int(signal_length / 3) / 3)**2 * 16
 
 
     def forward(self, cdd_news_embedding, his_activated, **kwargs):

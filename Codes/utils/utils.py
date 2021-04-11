@@ -28,26 +28,11 @@ from torch.utils.data import DataLoader, get_worker_info
 logging.basicConfig(level=logging.INFO,
                     format="[%(asctime)s] %(levelname)s (%(name)s) %(message)s")
 
-hparam_list = ['name', 'scale', 'select', 'integrate', 'his_size', 'k', 'epochs', 'save_step']
+hparam_list = ['name', 'scale', 'select', 'integrate', 'his_size', 'k', 'epochs', 'save_step', 'learning_rate']
 param_list = ['query_words', 'query_levels', 'CoAttention.weight', 'selectionProject.weight']
 
 
-def word_tokenize(sent):
-    """ Split sentence into word list using regex.
-    Args:
-        sent (str): Input sentence
-
-    Return:
-        list: word list
-    """
-    pat = re.compile(r"[\w]+|[.,!?;|]")
-    if isinstance(sent, str):
-        return pat.findall(sent.lower())
-    else:
-        return []
-
-
-def word_tokenize_vocab(sent, vocab):
+def tokenize(sent, vocab):
     """ Split sentence into wordID list using regex and vocabulary
     Args:
         sent (str): Input sentence
@@ -95,7 +80,7 @@ def news_token_generator(news_file_list, tokenizer, attrs):
         news_df_list.append(pd.read_table(f, index_col=None, names=[
                             'newsID', 'category', 'subcategory', 'title', 'abstract', 'url', 'entity_title', 'entity_abstract'], quoting=3))
 
-    news_df = pd.concat(news_df_list).drop_duplicates()
+    news_df = pd.concat(news_df_list).drop_duplicates().dropna()
     news_iterator = news_df.iterrows()
 
     for _, i in news_iterator:
@@ -311,8 +296,8 @@ def save(model, hparams, epoch, step, optimizers=[]):
         save_path = 'data/model_params/{}/{}_epoch{}_step{}_ck{}_[hs={},topk={}].model'.format(
             hparams['name'], hparams['scale'], epoch, step, hparams['checkpoint'], hparams['his_size'], hparams['k'])
     else:
-        save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
-            hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], hparams['k'])
+        save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},attrs={}].model'.format(
+            hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], hparams['k'], ','.join(hparams['attrs']))
     state_dict = model.state_dict()
 
     if re.search('pipeline', hparams['name']):
@@ -342,8 +327,8 @@ def load(model, hparams, epoch, step, optimizers=None):
     else:
         k = hparams['k']
 
-    save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model'.format(
-        hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], k)
+    save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},attrs={}].model'.format(
+        hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], k, ','.join(hparams['attrs']))
 
     state_dict = torch.load(save_path, map_location=hparams['device'])
     if re.search('pipeline',model.name):
@@ -892,6 +877,8 @@ def load_hparams(hparams):
                         help="batch size", type=int, default=100)
     parser.add_argument("-ts", "--title_size", dest="title_size",
                         help="news title size", type=int, default=20)
+    parser.add_argument("--abs_size", dest="abs_size",
+                        help="news abstract length", type=int, default=40)
     parser.add_argument("-hs", "--his_size", dest="his_size",
                         help="history size", type=int, default=50)
 
@@ -948,6 +935,9 @@ def load_hparams(hparams):
 
     hparams['scale'] = args.scale
     hparams['mode'] = args.mode
+    if hparams['mode'] == 'train':
+        # 2000 by default
+        hparams['save_step'] = 2000
     if len(args.device) > 1:
         hparams['device'] = args.device
     else:
@@ -955,6 +945,7 @@ def load_hparams(hparams):
     hparams['epochs'] = args.epochs
     hparams['batch_size'] = args.batch_size
     hparams['title_size'] = args.title_size
+    hparams['abs_size'] = args.abs_size
     hparams['npratio'] = args.npratio
     hparams['metrics'] = args.metrics
     hparams['learning_rate'] = args.learning_rate
@@ -1021,7 +1012,7 @@ def generate_hparams(hparams, config):
 
 
 def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=False, pin_memory=True):
-    from .MIND import MIND, MIND_test, MIND_news
+    from .MIND import MIND,MIND_news,MIND_whole
     """ prepare dataloader and several paths
 
     Args:
@@ -1068,10 +1059,11 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         news_file_train = path+'/MIND'+hparams['scale']+'_train/news.tsv'
         behavior_file_train = path+'/MIND' + \
             hparams['scale']+'_train/behaviors.tsv'
-        dataset_train = MIND(hparams=hparams, news_file=news_file_train,
-                             behaviors_file=behavior_file_train, shuffle_pos=True)
+
+        dataset_train = MIND_whole(hparams=hparams, news_file=news_file_train,
+                            behaviors_file=behavior_file_train)
         loader_train = DataLoader(dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                  num_workers=16, drop_last=False, shuffle=True, collate_fn=my_collate)
+                                num_workers=16, drop_last=False, shuffle=True, collate_fn=my_collate)
         vocab = dataset_train.vocab
         if 'bert' not in hparams:
             embedding = GloVe(dim=300, cache='.vector_cache')
@@ -1082,16 +1074,16 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
 
         news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
         behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
-        dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
-                           behaviors_file=behavior_file_dev)
+        dataset_dev = MIND_whole(hparams=hparams, news_file=news_file_dev,
+                        behaviors_file=behavior_file_dev)
         loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                 num_workers=16, drop_last=False, collate_fn=my_collate)
 
         if 'validate' in hparams and hparams['validate']:
-            dataset_validate = MIND(
+            dataset_validate = MIND_whole(
                 hparams=hparams, news_file=news_file_train, behaviors_file=behavior_file_train, validate=True)
             loader_validate = DataLoader(dataset_validate, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                         num_workers=16, drop_last=False, collate_fn=my_collate)
+                                        num_workers=16, drop_last=False, collate_fn=my_collate)
             return vocab, [loader_train, loader_dev, loader_validate]
         else:
             return vocab, [loader_train, loader_dev]
@@ -1099,8 +1091,8 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
     elif hparams['mode'] == 'dev':
         news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
         behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
-        dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
-                           behaviors_file=behavior_file_dev)
+        dataset_dev = MIND_whole(hparams=hparams, news_file=news_file_dev,
+                        behaviors_file=behavior_file_dev)
         loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                 num_workers=16, drop_last=False, collate_fn=my_collate)
         vocab = dataset_dev.vocab
@@ -1111,10 +1103,10 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         return vocab, [loader_dev]
 
     elif hparams['mode'] == 'test':
-        dataset_test = MIND_test(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv',
+        dataset_test = MIND_whole(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv',
                                  '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
         loader_test = DataLoader(dataset_test, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                 num_workers=16, drop_last=False, collate_fn=my_collate, worker_init_fn=worker_init_fn)
+                                 num_workers=16, drop_last=False, collate_fn=my_collate)
 
         vocab = dataset_test.vocab
         if 'bert' not in hparams:

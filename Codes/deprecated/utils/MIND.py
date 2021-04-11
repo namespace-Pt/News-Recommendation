@@ -40,7 +40,7 @@ class MIND_iter(IterableDataset):
         self.init_behaviors(shuffle=shuffle)
 
     def init_news(self):
-        """ 
+        """
             init news information given news file, such as news_title_array.
         """
 
@@ -60,7 +60,7 @@ class MIND_iter(IterableDataset):
                 )
 
                 titles.append([title])
-                title = word_tokenize_vocab(title, self.vocab)
+                title = tokenize(title, self.vocab)
 
                 title_token.append(
                     title[:self.title_size] + [0] * (self.title_size - len(title)))
@@ -78,7 +78,7 @@ class MIND_iter(IterableDataset):
         self.title_pad = np.asarray(title_pad)
 
     def init_behaviors(self, shuffle):
-        """ 
+        """
             init behavior logs given behaviors file.
         """
 
@@ -135,7 +135,7 @@ class MIND_iter(IterableDataset):
             self.uindexes = np.asarray(self.uindexes)[s].tolist()
 
     def __iter__(self):
-        """ 
+        """
             yield dict of training data, including |npratio+1| candidate news word vector, |his_size+1| clicked news word vector etc.
         """
         for impr_index in self.impr_indexes:
@@ -183,7 +183,7 @@ class MIND_iter(IterableDataset):
                     # candidate_mask = [1] * neg_pad + [0] * (self.npratio + 1 - neg_pad)
 
                     # impression_index = [self.impr_indexes[index]]
-                    
+
                     if self.bert:
                         encoded_title = self.tokenizer([self.titles[i] for i in [p] + neg_list],padding='max_length',truncation=True,max_length=self.title_size,is_split_into_words=True,return_tensors='np',return_attention_mask=True)
                         candidate_title_index = encoded_title['input_ids']
@@ -216,7 +216,7 @@ class MIND_iter(IterableDataset):
                             (self.title_size - i[0])*[1] + i[0]*[0] for i in self.title_pad[[p] + neg_list]]
                         click_title_pad = [(self.title_size - i[0])*[1] + i[0]*[0]
                                         for i in self.title_pad[self.histories[index]]]
-                        
+
                         candidate_title_index = self.news_title_array[[p] + neg_list]
                         # candidate_category_index = self.news_category_array[[p] + neg_list]
                         # candidate_subcategory_index = self.news_subcategory_array[[p] + neg_list]

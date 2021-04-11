@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     if hparams['interactor'] == 'fim':
         from models.Interactors import FIM_Interactor
-        interactor = FIM_Interactor(hparams['k'], encoder.level)
+        interactor = FIM_Interactor(hparams['k'], encoder.signal_length)
 
     elif hparams['interactor'] == 'knrm':
         from models.Interactors import KNRM_Interactor

@@ -268,6 +268,19 @@ class FIM_Encoder(nn.Module):
             nn.MaxPool3d(kernel_size=[3, 3, 3], stride=[3, 3, 3])
         )
 
+        self.device = hparams['device']
+        self.attrs = hparams['attrs']
+        self.signal_length = 0
+        if 'title' in self.attrs:
+            self.signal_length += hparams['title_size']
+        if 'vert' in self.attrs:
+            self.signal_length += 1
+        if 'subvert' in self.attrs:
+            self.signal_length += 1
+        # FIXME, multi-view learning
+        if 'abs' in self.attrs:
+            self.signal_length += hparams['abs_size']
+
     def _scaled_dp_attention(self, query, key, value):
         """ calculate scaled attended output of values
 
@@ -320,25 +333,36 @@ class FIM_Encoder(nn.Module):
 
         return news_embedding_dilations
 
-    def forward(self, news_batch, **kwargs):
+    def forward(self, x):
         """ encode set of news to news representation
 
         Args:
-            news_batch: tensor of [batch_size, *, signal_length]
+            x(dict): input data
 
         Returns:
             news_embedding: hidden vector of each token in news, of size [batch_size, *, signal_length, level, hidden_dim]
             news_repr: hidden vector of each news, of size [batch_size, *, hidden_dim]
         """
-        news_embedding = self.DropOut(
-            self.embedding(news_batch)).view(-1, news_batch.shape[2], self.embedding_dim)
-        news_embedding_dilations = self._HDC(news_embedding).view(
-            news_batch.shape + (self.level, self.hidden_dim))
-        news_embedding_attn = self._scaled_dp_attention(
-            self.query_levels, news_embedding_dilations, news_embedding_dilations).squeeze(dim=-2)
-        news_reprs = self._scaled_dp_attention(self.query_words, news_embedding_attn, news_embedding_attn).squeeze(
-            dim=-2).view(news_batch.shape[0], news_batch.shape[1], self.hidden_dim)
-        return news_embedding_dilations, news_reprs
+        cdd_news_batch = torch.cat([x['candidate_'+i].long().to(self.device) for i in self.attrs], dim=-1)
+        cdd_news_embedding = self.DropOut(
+            self.embedding(cdd_news_batch)).view(-1, cdd_news_batch.shape[2], self.embedding_dim)
+        cdd_news_embedding_dilations = self._HDC(cdd_news_embedding).view(
+            cdd_news_batch.shape + (self.level, self.hidden_dim))
+        cdd_news_embedding_attn = self._scaled_dp_attention(
+            self.query_levels, cdd_news_embedding_dilations, cdd_news_embedding_dilations).squeeze(dim=-2)
+        cdd_news_reprs = self._scaled_dp_attention(self.query_words, cdd_news_embedding_attn, cdd_news_embedding_attn).squeeze(
+            dim=-2).view(cdd_news_batch.shape[0], cdd_news_batch.shape[1], self.hidden_dim)
+
+        his_news_batch = torch.cat([x['clicked_'+i].long().to(self.device) for i in self.attrs], dim=-1)
+        his_news_embedding = self.DropOut(
+            self.embedding(his_news_batch)).view(-1, his_news_batch.shape[2], self.embedding_dim)
+        his_news_embedding_dilations = self._HDC(his_news_embedding).view(
+            his_news_batch.shape + (self.level, self.hidden_dim))
+        his_news_embedding_attn = self._scaled_dp_attention(
+            self.query_levels, his_news_embedding_dilations, his_news_embedding_dilations).squeeze(dim=-2)
+        his_news_reprs = self._scaled_dp_attention(self.query_words, his_news_embedding_attn, his_news_embedding_attn).squeeze(
+            dim=-2).view(his_news_batch.shape[0], his_news_batch.shape[1], self.hidden_dim)
+        return cdd_news_embedding_dilations, his_news_embedding_dilations, cdd_news_reprs, his_news_reprs
 
 
 class NPA_Encoder(nn.Module):
