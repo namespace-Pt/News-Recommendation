@@ -1012,7 +1012,7 @@ def generate_hparams(hparams, config):
 
 
 def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=False, pin_memory=True):
-    from .MIND import MIND,MIND_news,MIND_whole
+    from .MIND import MIND,MIND_news
     """ prepare dataloader and several paths
 
     Args:
@@ -1060,7 +1060,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         behavior_file_train = path+'/MIND' + \
             hparams['scale']+'_train/behaviors.tsv'
 
-        dataset_train = MIND_whole(hparams=hparams, news_file=news_file_train,
+        dataset_train = MIND(hparams=hparams, news_file=news_file_train,
                             behaviors_file=behavior_file_train)
         loader_train = DataLoader(dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                 num_workers=16, drop_last=False, shuffle=True, collate_fn=my_collate)
@@ -1074,13 +1074,13 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
 
         news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
         behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
-        dataset_dev = MIND_whole(hparams=hparams, news_file=news_file_dev,
+        dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
                         behaviors_file=behavior_file_dev)
         loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                 num_workers=16, drop_last=False, collate_fn=my_collate)
 
         if 'validate' in hparams and hparams['validate']:
-            dataset_validate = MIND_whole(
+            dataset_validate = MIND(
                 hparams=hparams, news_file=news_file_train, behaviors_file=behavior_file_train, validate=True)
             loader_validate = DataLoader(dataset_validate, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                         num_workers=16, drop_last=False, collate_fn=my_collate)
@@ -1091,7 +1091,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
     elif hparams['mode'] == 'dev':
         news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
         behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
-        dataset_dev = MIND_whole(hparams=hparams, news_file=news_file_dev,
+        dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
                         behaviors_file=behavior_file_dev)
         loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                 num_workers=16, drop_last=False, collate_fn=my_collate)
@@ -1103,7 +1103,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         return vocab, [loader_dev]
 
     elif hparams['mode'] == 'test':
-        dataset_test = MIND_whole(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv',
+        dataset_test = MIND(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv',
                                  '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
         loader_test = DataLoader(dataset_test, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                  num_workers=16, drop_last=False, collate_fn=my_collate)
