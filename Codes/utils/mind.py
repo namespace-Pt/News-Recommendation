@@ -195,7 +195,7 @@ class MIND(Dataset):
 
                     # tailor user's history or pad 0
                     history = history[:self.his_size] + [0] * (self.his_size - len(history))
-                    impr_news = [self.nid2index[i.split("-")[0]] for i in impr.split()]
+                    impr_news = [self.nid2index[i] for i in impr.split()]
                     # user will always in uid2index
                     uindex = self.uid2index[uid]
 
@@ -297,7 +297,7 @@ class MIND(Dataset):
             return back_dic
 
         # each time called return one sample, and no labels
-        elif self.mode == 'test':
+        elif self.mode == 'dev':
             cdd_ids = [impr_news]
 
             # true means the corresponding history news is padded
@@ -328,7 +328,7 @@ class MIND(Dataset):
             clicked_subvert_index = self.subvert_array[his_ids]
 
             back_dic = {
-                "impression_index": impr_index,
+                "impression_index": impr_index + 1,
                 "user_index": np.asarray(user_index),
                 'cdd_id': np.asarray(cdd_ids),
                 "candidate_title": np.asarray(candidate_title_index),
@@ -349,7 +349,7 @@ class MIND(Dataset):
             }
             return back_dic
 
-        elif self.mode == 'dev':
+        elif self.mode == 'test':
             cdd_ids = [impr_news]
 
             # true means the corresponding history news is padded
@@ -379,7 +379,7 @@ class MIND(Dataset):
             clicked_subvert_index = self.subvert_array[his_ids]
 
             back_dic = {
-                "impression_index": impr_index,
+                "impression_index": impr_index + 1,
                 "user_index": np.asarray(user_index),
                 'cdd_id': np.asarray(cdd_ids),
                 "candidate_title": np.asarray(candidate_title_index),

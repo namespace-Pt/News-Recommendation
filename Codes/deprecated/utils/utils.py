@@ -76,3 +76,19 @@ def tune
         #                 f.write(str(d)+'\n')
         #                 f.write(str(result) +'\n')
         #                 f.write('\n')
+def worker_init_fn(worker_id):
+    """
+        enable multi-processing in Iterable dataset
+    """
+    worker_info = get_worker_info()
+    dataset = worker_info.dataset  # the dataset copy in this worker process
+    overall_impr_indexes = dataset.impr_indexes
+
+    # configure the dataset to only process the split workload
+    per_worker = int(math.ceil(len(overall_impr_indexes) /
+                               float(worker_info.num_workers)))
+    worker_id = worker_info.id
+    start = worker_id * per_worker
+    end = (worker_id + 1) * per_worker
+
+    dataset.impr_indexes = dataset.impr_indexes[start: end]

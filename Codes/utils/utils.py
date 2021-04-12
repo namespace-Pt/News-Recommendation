@@ -2,7 +2,6 @@ import random
 import re
 import os
 import sys
-import math
 import json
 import pickle
 import torch
@@ -23,7 +22,7 @@ from sklearn.metrics import roc_auc_score, log_loss, mean_squared_error, accurac
 from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator, GloVe
 from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import DataLoader, get_worker_info
+from torch.utils.data import DataLoader
 
 logging.basicConfig(level=logging.INFO,
                     format="[%(asctime)s] %(levelname)s (%(name)s) %(message)s")
@@ -265,7 +264,10 @@ def getLoss(model):
         get loss function for model
     """
     if model.cdd_size > 1:
-        loss = nn.NLLLoss()
+        if model.contra_num:
+            loss = myLoss
+        else:
+            loss = nn.NLLLoss()
     else:
         loss = nn.BCELoss()
 
@@ -349,6 +351,23 @@ def load(model, hparams, epoch, step, optimizers=None):
     logging.info("Loading model from {}...".format(save_path))
 
 
+def _log(res, model, hparams):
+    """ wrap logging
+    """
+    logging.info("evaluation results:{}".format(res))
+    with open('performance.log', 'a+') as f:
+        d = {}
+        for k, v in hparams.items():
+            if k in hparam_list:
+                d[k] = v
+        for name, param in model.named_parameters():
+            if name in param_list:
+                d[name] = tuple(param.shape)
+
+        f.write(str(d)+'\n')
+        f.write(str(res) + '\n')
+        f.write('\n')
+
 def my_collate(data):
     excluded = ['impression_index']
     result = defaultdict(list)
@@ -362,23 +381,23 @@ def my_collate(data):
             continue
     return dict(result)
 
-
-def worker_init_fn(worker_id):
+# FIXME ugly
+def myLoss(pred, label, hidden_dim, margin=1):
     """
-        enable multi-processing in Iterable dataset
+        apply contrasive learning for selection-aware model
     """
-    worker_info = get_worker_info()
-    dataset = worker_info.dataset  # the dataset copy in this worker process
-    overall_impr_indexes = dataset.impr_indexes
+    log_prob = pred[0]
+    cdd_repr = pred[1]
+    pos_repr = pred[2]
+    neg_repr = pred[3]
 
-    # configure the dataset to only process the split workload
-    per_worker = int(math.ceil(len(overall_impr_indexes) /
-                               float(worker_info.num_workers)))
-    worker_id = worker_info.id
-    start = worker_id * per_worker
-    end = (worker_id + 1) * per_worker
+    recommend_Loss = nn.NLLLoss()
+    select_Loss = nn.TripletMarginLoss(margin=margin)
 
-    dataset.impr_indexes = dataset.impr_indexes[start: end]
+    reco_loss = recommend_Loss(log_prob, label)
+    slct_loss = select_Loss(cdd_repr.unsqueeze(dim=-2).expand(pos_repr.shape).reshape(-1, hidden_dim), pos_repr.view(-1, hidden_dim), neg_repr.view(-1, hidden_dim))
+
+    return reco_loss + slct_loss
 
 
 def parameter(model, param_list, exclude=False):
@@ -585,7 +604,7 @@ def run_eval(model, dataloader, interval):
 
 
 @torch.no_grad()
-def evaluate(model, hparams, dataloader, loading=False, interval=100):
+def evaluate(model, hparams, dataloader, loading=False, log=True, interval=100):
     """Evaluate the given file and returns some evaluation metrics.
 
     Args:
@@ -611,30 +630,19 @@ def evaluate(model, hparams, dataloader, loading=False, interval=100):
     if loading:
         load(model, hparams, hparams['epochs'], hparams['save_step'][0])
 
-    logging.info("evaluating...")
+    logging.info("\nevaluating...")
 
     imp_indexes, labels, preds = run_eval(model, dataloader, interval)
     res = cal_metric(labels, preds, hparams['metrics'].split(','))
 
-    res['epoch'] = hparams['epochs']
-    res['step'] = hparams['save_step'][0]
+    if log:
+        res['epoch'] = hparams['epochs']
+        res['step'] = hparams['save_step'][0]
 
-    logging.info("evaluation results:{}".format(res))
-    with open('performance.log', 'a+') as f:
-        d = {}
-        for k, v in hparams.items():
-            if k in hparam_list:
-                d[k] = v
-        for name, param in model.named_parameters():
-            if name in param_list:
-                d[name] = tuple(param.shape)
+        _log(res, model, hparams)
 
-        f.write(str(d)+'\n')
-        f.write(str(res) + '\n')
-        f.write('\n')
-
-        model.train()
-        model.cdd_size = cdd_size
+    model.train()
+    model.cdd_size = cdd_size
 
     return res
 
@@ -666,7 +674,11 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, writer=None, in
 
             pred = model(x)
             label = getLabel(model, x)
-            loss = loss_func(pred, label)
+
+            if model.contra_num:
+                loss = loss_func(pred, label, model.hidden_dim)
+            else:
+                loss = loss_func(pred, label)
 
             epoch_loss += loss
             total_loss += loss
@@ -756,6 +768,130 @@ def train(model, hparams, loaders, tb=False, interval=100):
     return model
 
 
+def run_tune(model, loaders, optimizers, loss_func, hparams, writer=None, interval=100, save_step=None):
+    ''' train model and print loss meanwhile
+    Args:
+        model(torch.nn.Module): the model to be trained
+        dataloader(torch.utils.data.DataLoader): provide data
+        optimizer(list of torch.nn.optim): optimizer for training
+        loss_func(torch.nn.Loss): loss function for training
+        hparams(dict): hyper parameters
+        writer(torch.utils.tensorboard.SummaryWriter): tensorboard writer
+        interval(int): within each epoch, the interval of training steps to display loss
+        save_epoch(bool): whether to save the model after every epoch
+    Returns:
+        model: trained model
+    '''
+    total_loss = 0
+    total_steps = 0
+
+    best_res = {'auc':0}
+
+    for epoch in range(hparams['epochs']):
+        epoch_loss = 0
+        tqdm_ = tqdm(enumerate(loaders[0]), smoothing=0)
+        for step, x in tqdm_:
+
+            for optimizer in optimizers:
+                optimizer.zero_grad()
+
+            pred = model(x)
+            label = getLabel(model, x)
+
+            if model.contra_num:
+                loss = loss_func(pred, label, model.hidden_dim)
+            else:
+                loss = loss_func(pred, label)
+
+            epoch_loss += loss
+            total_loss += loss
+
+            loss.backward()
+
+            for optimizer in optimizers:
+                optimizer.step()
+
+            if step % interval == 0:
+
+                tqdm_.set_description(
+                    "epoch {:d} , step {:d} , loss: {:.4f}".format(epoch+1, step, epoch_loss / step))
+                if writer:
+                    for name, param in model.named_parameters():
+                        writer.add_histogram(name, param, step)
+
+                    writer.add_scalar('data_loss',
+                                      total_loss/total_steps)
+
+            if step % save_step == 0 and step > 0:
+                result = evaluate(model, hparams, loaders[1], log=False)
+                if result['auc'] > best_res['auc']:
+                    result['epoch'] = epoch
+                    result['step'] = step
+                    best_res = result
+                    logging.info("best result till now is {}".format(best_res))
+                    save(model, hparams, epoch+1, step, optimizers)
+
+            total_steps += 1
+
+        if writer:
+            writer.add_scalar('epoch_loss', epoch_loss, epoch)
+
+    return model, best_res
+
+
+def tune(model, hparams, loaders, tb=False, interval=100):
+    """ train and evaluate sequentially
+
+    Args:
+        model(torch.nn.Module): the model to be trained
+        loaders(list): list of torch.utils.data.DataLoader
+        hparams(dict): hyper paramaters
+        en: shell parameter
+    """
+
+    model.train()
+    writer = None
+
+    if tb:
+        writer = SummaryWriter('data/tb/{}-{}/{}/{}/'.format(
+            hparams['name'], hparams['select'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
+
+    # in case the folder does not exists, create one
+    save_derectory = 'data/model_params/{}'.format(hparams['name'])
+    if not os.path.exists(save_derectory):
+        os.mkdir(save_derectory)
+
+    logging.info("training...")
+    loss_func = getLoss(model)
+    if 'learning_rate' in hparams:
+        learning_rate = hparams['learning_rate']
+    else:
+        learning_rate = 1e-3
+
+    if 'spadam' in hparams and hparams['spadam']:
+        optimizer_param = optim.Adam(
+            parameter(model, ['encoder.embedding.weight'], exclude=True), lr=learning_rate)
+        optimizer_embedding = optim.SparseAdam(
+            list(model.encoder.embedding.parameters()), lr=learning_rate)
+        optimizers = [optimizer_param, optimizer_embedding]
+    else:
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        optimizers = [optimizer]
+
+    if 'checkpoint' in hparams:
+        logging.info("loading checkpoint...")
+        ck = hparams['checkpoint'].split(',')
+        # modify the epoch so the model can be properly saved
+        load(model, hparams, ck[0], ck[1], optimizers)
+
+
+    model, res = run_tune(model, loaders, optimizers, loss_func, hparams,
+                      writer=writer, interval=interval, save_step=int(len(loaders[0])/4))
+
+    _log(res, model, hparams)
+    return model
+
+
 @torch.no_grad()
 def test(model, hparams, loader_test):
     """ test the model on test dataset of MINDlarge
@@ -810,56 +946,6 @@ def test(model, hparams, loader_test):
         f.write('\n')
 
 
-def tune(model, hparams, loaders, best_auc=0):
-    """ tune hyper parameters
-
-    Args:
-        step_list(list): the step of training model
-    """
-    logging.info("current hyper parameter settings are:{}".format(hparams))
-
-    loader_train = loaders[0]
-    # loader_dev = loaders[1]
-
-    loss_func = getLoss(model)
-
-    if 'learning_rate' in hparams:
-        learning_rate = hparams['learning_rate']
-    else:
-        learning_rate = 1e-3
-
-    optimizer_param = optim.Adam(
-        parameter(model, ['encoder.embedding.weight'], exclude=True), lr=learning_rate)
-    optimizer_embedding = optim.SparseAdam(
-        list(model.encoder.embedding.parameters()), lr=learning_rate)
-    optimizers = [optimizer_param, optimizer_embedding]
-
-    for epoch in range(hparams['epochs']):
-        epoch_loss = 0
-        tqdm_ = tqdm(enumerate(loader_train), smoothing=0)
-        for step, x in tqdm_:
-            for optimizer in optimizers:
-                optimizer.zero_grad()
-
-            pred = model(x)
-            label = getLabel(model, x)
-            loss = loss_func(pred, label)
-
-            tqdm_.set_description("epoch {:d} , step {:d} , loss: {:.4f}".format(
-                epoch+1, step, epoch_loss / (step+1)))
-
-            epoch_loss += loss
-
-            loss.backward()
-
-            for optimizer in optimizers:
-                optimizer.step()
-
-            if step > 19999 and step % 2000 == 0:
-                save(model, hparams, epoch+1, step, optimizers)
-
-    return best_auc
-
 
 def load_hparams(hparams):
     """
@@ -892,19 +978,22 @@ def load_hparams(hparams):
     parser.add_argument("-lr", "--learning_rate", dest="learning_rate",
                         help="learning rate when training", type=float, default=1e-3)
 
-    parser.add_argument("-np", "--npratio", dest="npratio",
+    parser.add_argument("--npratio", dest="npratio",
                         help="the number of unclicked news to sample when training", type=int, default=4)
     parser.add_argument("-mc", "--metrics", dest="metrics",
                         help="metrics for evaluating the model, if multiple metrics are needed, seperate with ','", type=str, default="auc,mean_mrr,ndcg@5,ndcg@10")
 
     parser.add_argument(
-        "--topk", dest="k", help="intend for topk baseline, if clarified, top k history are involved in interaction calculation", type=int, default=0)
+        "--topk", dest="k", help="intend for sfi model, if clarified, top k history are involved in interaction calculation", type=int, default=0)
+    parser.add_argument(
+        "--contra_num", dest="contra_num", help="sample number for contrasive selection aware network", type=int, default=0)
     parser.add_argument("--select", dest="select", help="choose model for selecting",
                         choices=['pipeline1', 'pipeline2', 'unified', 'gating'], default=None)
     parser.add_argument("--integrate", dest="integration",
                         help="the way history filter is combined", choices=['gate', 'harmony'], default='gate')
     parser.add_argument("--encoder", dest="encoder", help="choose encoder", default='fim')
     parser.add_argument("--interactor", dest="interactor", help="choose interactor", default='fim')
+    parser.add_argument("--dynamic", dest="dynamic", help="if clarified, SFI will dynamically mask attention weights rather than impose k biggest", action='store_true')
 
     parser.add_argument("--bert", dest="bert", help="choose bert model(encoder)",
                         choices=['bert-base-uncased', 'albert-base-v2'], default=None)
@@ -950,6 +1039,7 @@ def load_hparams(hparams):
     hparams['metrics'] = args.metrics
     hparams['learning_rate'] = args.learning_rate
     hparams['spadam'] = True
+    hparams['contra_num'] = args.contra_num
 
     hparams['his_size'] = args.his_size
     hparams['k'] = args.k
@@ -972,6 +1062,9 @@ def load_hparams(hparams):
         hparams['encoder'] = args.encoder
     if args.interactor:
         hparams['interactor'] = args.interactor
+    if args.dynamic:
+        hparams['dynamic'] = args.dynamic
+
     if hparams['select'] == 'unified':
         hparams['integration'] = args.integration
     if args.pipeline:
@@ -1034,11 +1127,11 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
 
         dataset_train = MIND_news(hparams, news_file_train)
         loader_news_train = DataLoader(
-            dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=16, drop_last=False, collate_fn=my_collate)
+            dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=8, drop_last=False, collate_fn=my_collate)
 
         dataset_dev = MIND_news(hparams, news_file_dev)
         loader_news_dev = DataLoader(
-            dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=16, drop_last=False, collate_fn=my_collate)
+            dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=8, drop_last=False, collate_fn=my_collate)
 
         vocab = dataset_train.vocab
         embedding = GloVe(dim=300, cache='.vector_cache')
@@ -1049,7 +1142,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
                 '/MIND{}_test/news.tsv'.format(hparams['scale'])
             dataset_test = MIND_news(hparams, news_file_test)
             loader_news_test = DataLoader(
-                dataset_test, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=16, drop_last=False, collate_fn=my_collate)
+                dataset_test, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=8, drop_last=False, collate_fn=my_collate)
 
             return vocab, [loader_news_train, loader_news_dev, loader_news_test]
 
@@ -1063,7 +1156,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         dataset_train = MIND(hparams=hparams, news_file=news_file_train,
                             behaviors_file=behavior_file_train)
         loader_train = DataLoader(dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                num_workers=16, drop_last=False, shuffle=True, collate_fn=my_collate)
+                                num_workers=8, drop_last=False, shuffle=shuffle, collate_fn=my_collate)
         vocab = dataset_train.vocab
         if 'bert' not in hparams:
             embedding = GloVe(dim=300, cache='.vector_cache')
@@ -1077,13 +1170,13 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
                         behaviors_file=behavior_file_dev)
         loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                num_workers=16, drop_last=False, collate_fn=my_collate)
+                                num_workers=8, drop_last=False, collate_fn=my_collate)
 
         if 'validate' in hparams and hparams['validate']:
             dataset_validate = MIND(
                 hparams=hparams, news_file=news_file_train, behaviors_file=behavior_file_train, validate=True)
             loader_validate = DataLoader(dataset_validate, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                        num_workers=16, drop_last=False, collate_fn=my_collate)
+                                        num_workers=8, drop_last=False, collate_fn=my_collate)
             return vocab, [loader_train, loader_dev, loader_validate]
         else:
             return vocab, [loader_train, loader_dev]
@@ -1094,7 +1187,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
                         behaviors_file=behavior_file_dev)
         loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                num_workers=16, drop_last=False, collate_fn=my_collate)
+                                num_workers=8, drop_last=False, collate_fn=my_collate)
         vocab = dataset_dev.vocab
         if 'bert' not in hparams:
             embedding = GloVe(dim=300, cache='.vector_cache')
@@ -1106,7 +1199,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         dataset_test = MIND(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv',
                                  '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
         loader_test = DataLoader(dataset_test, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                 num_workers=16, drop_last=False, collate_fn=my_collate)
+                                 num_workers=8, drop_last=False, collate_fn=my_collate)
 
         vocab = dataset_test.vocab
         if 'bert' not in hparams:

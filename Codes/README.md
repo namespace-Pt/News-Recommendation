@@ -131,5 +131,6 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 - [x] pipeline performance comparison
 - [ ] reproduce Hi-Fi Ark
 - [x] sfi frame
-- [ ] upgrade MIND iterable dataset to MIND map dataset
+- [x] upgrade MIND iterable dataset to MIND map dataset
 - [ ] subspace disentanglement
+- [ ] abstract out the model properties and hyper parameter settings

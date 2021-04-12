@@ -52,7 +52,7 @@ class FIM_Interactor(nn.Module):
         )
 
         # FIXME, elasticity
-        self.hidden_dim = int((int((k - 3)/3 + 1) - 3)/3 + 1) * int(int(signal_length / 3) / 3)**2 * 16
+        self.hidden_dim = int(int(k / 3) /3) * int(int(signal_length / 3) / 3)**2 * 16
 
 
     def forward(self, cdd_news_embedding, his_activated, **kwargs):

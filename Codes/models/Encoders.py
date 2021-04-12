@@ -630,7 +630,7 @@ class MHA_Encoder(nn.Module):
         key = news_embedding_pretrained.view(-1,news_batch.shape[2],self.embedding_dim).transpose(0,1)
         value = key
 
-        news_embedding,_ = self.MHA(query, key, value)
+        news_embedding, _ = self.MHA(query, key, value)
         news_embedding = news_embedding.transpose(0,1).view(news_batch.shape + (self.hidden_dim,))
 
         multi_head_self_attn_key = torch.tanh(self.keyProject(news_embedding))
