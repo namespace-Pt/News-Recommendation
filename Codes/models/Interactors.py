@@ -40,16 +40,17 @@ class FIM_Interactor(nn.Module):
     def __init__(self, k, signal_length):
         super().__init__()
         self.name = 'fim'
+
         self.SeqCNN3D = nn.Sequential(
-            nn.Conv3d(in_channels=3, out_channels=32,
-                      kernel_size=[3, 3, 3], padding=1),
+            nn.Conv3d(in_channels=3, out_channels=32, kernel_size=[3, 3, 3], padding=1),
             nn.ReLU(),
             nn.MaxPool3d(kernel_size=[3, 3, 3], stride=[3, 3, 3]),
-            nn.Conv3d(in_channels=32, out_channels=16,
-                      kernel_size=[3, 3, 3], padding=1),
+            nn.Conv3d(in_channels=32, out_channels=16, kernel_size=[3, 3, 3], padding=1),
             nn.ReLU(),
             nn.MaxPool3d(kernel_size=[3, 3, 3], stride=[3, 3, 3])
         )
+        nn.init.xavier_normal_(self.SeqCNN3D[0].weight)
+        nn.init.xavier_normal_(self.SeqCNN3D[3].weight)
 
         # FIXME, elasticity
         self.hidden_dim = int(int(k / 3) /3) * int(int(signal_length / 3) / 3)**2 * 16

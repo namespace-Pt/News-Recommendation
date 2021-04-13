@@ -630,7 +630,7 @@ def evaluate(model, hparams, dataloader, loading=False, log=True, interval=100):
     if loading:
         load(model, hparams, hparams['epochs'], hparams['save_step'][0])
 
-    logging.info("\nevaluating...")
+    logging.info("evaluating...")
 
     imp_indexes, labels, preds = run_eval(model, dataloader, interval)
     res = cal_metric(labels, preds, hparams['metrics'].split(','))
@@ -823,9 +823,10 @@ def run_tune(model, loaders, optimizers, loss_func, hparams, writer=None, interv
                                       total_loss/total_steps)
 
             if step % save_step == 0 and step > 0:
+                print('\n')
                 result = evaluate(model, hparams, loaders[1], log=False)
                 if result['auc'] > best_res['auc']:
-                    result['epoch'] = epoch
+                    result['epoch'] = epoch+1
                     result['step'] = step
                     best_res = result
                     logging.info("best result till now is {}".format(best_res))
@@ -1064,6 +1065,7 @@ def load_hparams(hparams):
         hparams['interactor'] = args.interactor
     if args.dynamic:
         hparams['dynamic'] = args.dynamic
+        hparams['k'] = hparams['his_size']
 
     if hparams['select'] == 'unified':
         hparams['integration'] = args.integration

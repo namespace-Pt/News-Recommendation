@@ -257,17 +257,6 @@ class FIM_Encoder(nn.Module):
         self.CNN_d3 = nn.Conv1d(in_channels=self.embedding_dim, out_channels=self.hidden_dim,
                                 kernel_size=self.kernel_size, dilation=3, padding=3)
 
-        self.SeqCNN3D = nn.Sequential(
-            nn.Conv3d(in_channels=self.level, out_channels=32,
-                      kernel_size=[3, 3, 3], padding=1),
-            nn.ReLU(),
-            nn.MaxPool3d(kernel_size=[3, 3, 3], stride=[3, 3, 3]),
-            nn.Conv3d(in_channels=32, out_channels=16,
-                      kernel_size=[3, 3, 3], padding=1),
-            nn.ReLU(),
-            nn.MaxPool3d(kernel_size=[3, 3, 3], stride=[3, 3, 3])
-        )
-
         self.device = hparams['device']
         self.attrs = hparams['attrs']
         self.signal_length = 0
@@ -277,9 +266,18 @@ class FIM_Encoder(nn.Module):
             self.signal_length += 1
         if 'subvert' in self.attrs:
             self.signal_length += 1
+
         # FIXME, multi-view learning
         if 'abs' in self.attrs:
             self.signal_length += hparams['abs_size']
+
+        # nn.init.xavier_normal_(self.LayerNorm.weight)
+        nn.init.xavier_normal_(self.CNN_d1.weight)
+        nn.init.xavier_normal_(self.CNN_d2.weight)
+        nn.init.xavier_normal_(self.CNN_d3.weight)
+        # nn.init.xavier_normal_(self.query_words)
+        # nn.init.xavier_normal_(self.query_levels)
+
 
     def _scaled_dp_attention(self, query, key, value):
         """ calculate scaled attended output of values
