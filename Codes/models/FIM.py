@@ -1,7 +1,6 @@
 import torch
 import math
 import torch.nn as nn
-from .Encoders import FIM_Encoder
 
 class FIMModel(nn.Module):
     def __init__(self,hparams,encoder):

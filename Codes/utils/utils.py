@@ -23,6 +23,7 @@ from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator, GloVe
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
+from transformers import get_linear_schedule_with_warmup
 
 logging.basicConfig(level=logging.INFO,
                     format="[%(asctime)s] %(levelname)s (%(name)s) %(message)s")
@@ -272,6 +273,48 @@ def getLoss(model):
         loss = nn.BCELoss()
 
     return loss
+
+
+def getOptim(model, hparams, loader_train):
+    """
+        get optimizer/scheduler
+    """
+    if 'learning_rate' in hparams:
+        learning_rate = hparams['learning_rate']
+    else:
+        learning_rate = 1e-3
+
+    if 'spadam' in hparams and hparams['spadam']:
+        optimizer_param = optim.Adam(
+            parameter(model, ['encoder.embedding.weight'], exclude=True), lr=learning_rate)
+        optimizer_embedding = optim.SparseAdam(
+            list(model.encoder.embedding.parameters()), lr=learning_rate)
+
+        optimizers = (optimizer_param, optimizer_embedding)
+
+        if 'schedule' in hparams and hparams['schedule'] == 'linear':
+            scheduler_param =get_linear_schedule_with_warmup(optimizer_param, num_warmup_steps=0, num_training_steps=len(loader_train) * hparams['epochs'])
+            scheduler_embedding =get_linear_schedule_with_warmup(optimizer_embedding, num_warmup_steps=0, num_training_steps=len(loader_train) * hparams['epochs'])
+            schedulers = (scheduler_param, scheduler_embedding)
+        else:
+            schedulers = None
+
+    else:
+        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+        optimizers = (optimizer,)
+        if 'schedule' in hparams and hparams['schedule'] == 'linear':
+            scheduler =get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=len(loader_train) * hparams['epochs'])
+            schedulers = (scheduler,)
+        else:
+            schedulers = None
+
+    if 'checkpoint' in hparams:
+        logging.info("loading checkpoint...")
+        ck = hparams['checkpoint'].split(',')
+        # modify the epoch so the model can be properly saved
+        load(model, hparams, ck[0], ck[1], optimizers)
+
+    return optimizers, schedulers
 
 
 def getLabel(model, x):
@@ -647,7 +690,7 @@ def evaluate(model, hparams, dataloader, loading=False, log=True, interval=100):
     return res
 
 
-def run_train(model, dataloader, optimizers, loss_func, hparams, writer=None, interval=100, save_step=None):
+def run_train(model, dataloader, optimizers, loss_func, hparams, schedulers=None, writer=None, interval=100, save_step=None):
     ''' train model and print loss meanwhile
     Args:
         model(torch.nn.Module): the model to be trained
@@ -687,6 +730,10 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, writer=None, in
 
             for optimizer in optimizers:
                 optimizer.step()
+
+            if schedulers:
+                for scheduler in schedulers:
+                    scheduler.step()
 
             if step % interval == 0:
 
@@ -736,28 +783,9 @@ def train(model, hparams, loaders, tb=False, interval=100):
 
     logging.info("training...")
     loss_func = getLoss(model)
-    if 'learning_rate' in hparams:
-        learning_rate = hparams['learning_rate']
-    else:
-        learning_rate = 1e-3
+    optimizers, schedulers = getOptim(model, hparams, loaders[0])
 
-    if 'spadam' in hparams and hparams['spadam']:
-        optimizer_param = optim.Adam(
-            parameter(model, ['encoder.embedding.weight'], exclude=True), lr=learning_rate)
-        optimizer_embedding = optim.SparseAdam(
-            list(model.encoder.embedding.parameters()), lr=learning_rate)
-        optimizers = [optimizer_param, optimizer_embedding]
-    else:
-        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-        optimizers = [optimizer]
-
-    if 'checkpoint' in hparams:
-        logging.info("loading checkpoint...")
-        ck = hparams['checkpoint'].split(',')
-        # modify the epoch so the model can be properly saved
-        load(model, hparams, ck[0], ck[1], optimizers)
-
-    model = run_train(model, loaders[0], optimizers, loss_func, hparams,
+    model = run_train(model, loaders[0], optimizers, loss_func, hparams, schedulers=schedulers,
                       writer=writer, interval=interval, save_step=hparams['save_step'][0])
 
     # loader_train, loader_dev, loader_validate
@@ -768,7 +796,7 @@ def train(model, hparams, loaders, tb=False, interval=100):
     return model
 
 
-def run_tune(model, loaders, optimizers, loss_func, hparams, writer=None, interval=100, save_step=None):
+def run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=None, writer=None, interval=100, save_step=None):
     ''' train model and print loss meanwhile
     Args:
         model(torch.nn.Module): the model to be trained
@@ -810,6 +838,10 @@ def run_tune(model, loaders, optimizers, loss_func, hparams, writer=None, interv
 
             for optimizer in optimizers:
                 optimizer.step()
+
+            if schedulers:
+                for scheduler in schedulers:
+                    scheduler.step()
 
             if step % interval == 0:
 
@@ -864,30 +896,10 @@ def tune(model, hparams, loaders, tb=False, interval=100):
 
     logging.info("training...")
     loss_func = getLoss(model)
-    if 'learning_rate' in hparams:
-        learning_rate = hparams['learning_rate']
-    else:
-        learning_rate = 1e-3
+    optimizers, schedulers = getOptim(model, hparams, loaders[0])
 
-    if 'spadam' in hparams and hparams['spadam']:
-        optimizer_param = optim.Adam(
-            parameter(model, ['encoder.embedding.weight'], exclude=True), lr=learning_rate)
-        optimizer_embedding = optim.SparseAdam(
-            list(model.encoder.embedding.parameters()), lr=learning_rate)
-        optimizers = [optimizer_param, optimizer_embedding]
-    else:
-        optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-        optimizers = [optimizer]
-
-    if 'checkpoint' in hparams:
-        logging.info("loading checkpoint...")
-        ck = hparams['checkpoint'].split(',')
-        # modify the epoch so the model can be properly saved
-        load(model, hparams, ck[0], ck[1], optimizers)
-
-
-    model, res = run_tune(model, loaders, optimizers, loss_func, hparams,
-                      writer=writer, interval=interval, save_step=int(len(loaders[0])/4))
+    model, res = run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=schedulers,
+                      writer=writer, interval=interval, save_step=int(len(loaders[0])/hparams['val_freq']))
 
     _log(res, model, hparams)
     return model
@@ -974,10 +986,14 @@ def load_hparams(hparams):
     # parser.add_argument("--save_each_epoch", dest="save_each_epoch", help="if clarified, save model of each epoch", default=True)
     parser.add_argument("--save_step", dest="save_step",
                         help="if clarified, save model at the interval of given steps", type=str, default='0')
+    parser.add_argument("--val_freq", dest="val_freq", help="the frequency to validate during training in one epoch", type=int, default=4)
+
     parser.add_argument("-ck", "--checkpoint", dest="checkpoint",
                         help="the checkpoint model to load", type=str)
     parser.add_argument("-lr", "--learning_rate", dest="learning_rate",
                         help="learning rate when training", type=float, default=1e-3)
+    parser.add_argument("--schedule", dest="schedule", help="choose schedule scheme for optimizer", default='linear')
+
 
     parser.add_argument("--npratio", dest="npratio",
                         help="the number of unclicked news to sample when training", type=int, default=4)
@@ -1038,7 +1054,9 @@ def load_hparams(hparams):
     hparams['abs_size'] = args.abs_size
     hparams['npratio'] = args.npratio
     hparams['metrics'] = args.metrics
+    hparams['val_freq'] = args.val_freq
     hparams['learning_rate'] = args.learning_rate
+    hparams['schedule'] = args.schedule
     hparams['spadam'] = True
     hparams['contra_num'] = args.contra_num
 
@@ -1048,6 +1066,7 @@ def load_hparams(hparams):
 
     hparams['attrs'] = args.attrs.split(',')
     hparams['save_step'] = [int(i) for i in args.save_step.split(',')]
+
 
     if args.head_num:
         hparams['head_num'] = args.head_num
