@@ -93,13 +93,8 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 - `MIND.py`
   - MIND
     - map style dataset for MIND
-    - for each behavior log, either returning positive click behaviors only (training) or returning every behavior (validating)
+    - for each behavior log, either returning positive click behaviors only (training) or returning every behavior (validating/testing)
 
-  - MIND_iter
-    - iterable dataset for MIND
-    - for each behavior log, either yielding positive click behaviors only (training) or yielding every behavior (validating)
-  - MIND_test
-    - `MINDlarge_test` contain no labels, so is picking out, the function is the same as MIND
   - MIND_news
     - map style dataset for MIND/news
     - sequentially returning each news token for learning news embedding/representation in pipelines
@@ -116,13 +111,9 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 |NPA|$0.6705$|$0.3147$|$0.3492$|$0.4118$|`epoch=5`|
 |FIM|$0.678$|$0.3292$|$0.3655$|$0.4266$|`step=10000`|
 |NRMS|$0.6618$|$0.3179$|$0.3444$|$0.4108$|`epoch=6`|
-|ITR-CNN-CNN|$0.647$|$0.3022$|$0.3289$|$0.3957$|`epoch=1`|
-|ITR-MHA-MHA|$0.6201$|||
 |SFI-pipeline||
 |SFI-unified|$0.6782$|$0.3237$|$0.3598$|$0.4237$|
 |SFI-gating|$\mathbf{0.6853}$|$\mathbf{0.3303}$|$\mathbf{0.3663}$|$\mathbf{0.4294}$|`epoch=1, step=18000`|
-|baseline-MHA-CNN|$0.6239$|$0.2796$|$0.3067$|$0.3698$|`epoch=8` run on `MINDsmall`|
-|baseline-MHA-MHA|$0.6395$|$0.2934$|$0.3203$|$0.385$|`epoch=8` run on `MINDsmall`|
 
 ## TODO
 - [x] BERT

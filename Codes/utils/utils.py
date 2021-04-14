@@ -28,7 +28,7 @@ from transformers import get_linear_schedule_with_warmup
 logging.basicConfig(level=logging.INFO,
                     format="[%(asctime)s] %(levelname)s (%(name)s) %(message)s")
 
-hparam_list = ['name', 'scale', 'select', 'integrate', 'his_size', 'k', 'epochs', 'save_step', 'learning_rate']
+hparam_list = ['name', 'scale', 'select', 'integrate', 'his_size', 'k', 'contra_num', 'checkpoint', 'epochs', 'save_step', 'learning_rate']
 param_list = ['query_words', 'query_levels', 'CoAttention.weight', 'selectionProject.weight']
 
 
@@ -338,11 +338,12 @@ def save(model, hparams, epoch, step, optimizers=[]):
     """
     # parse checkpoint
     if 'checkpoint' in hparams:
-        save_path = 'data/model_params/{}/{}_epoch{}_step{}_ck{}_[hs={},topk={}].model'.format(
-            hparams['name'], hparams['scale'], epoch, step, hparams['checkpoint'], hparams['his_size'], hparams['k'])
+        save_path = 'data/model_params/{}/{}_epoch{}_step{}_ck{}_[hs={},topk={},contra={},attrs={}].model'.format(
+            hparams['name'], hparams['scale'], epoch, step, hparams['checkpoint'], hparams['his_size'], hparams['k'], hparams['contra_num'], ','.join(hparams['attrs']))
     else:
-        save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},attrs={}].model'.format(
-            hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], hparams['k'], ','.join(hparams['attrs']))
+        save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},contra={},attrs={}].model'.format(
+            hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], hparams['k'], hparams['contra_num'],','.join(hparams['attrs']))
+
     state_dict = model.state_dict()
 
     if re.search('pipeline', hparams['name']):
@@ -372,8 +373,12 @@ def load(model, hparams, epoch, step, optimizers=None):
     else:
         k = hparams['k']
 
-    save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},attrs={}].model'.format(
-        hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], k, ','.join(hparams['attrs']))
+    if 'checkpoint' in hparams:
+        save_path = 'data/model_params/{}/{}_epoch{}_step{}_ck{}_[hs={},topk={},contra={},attrs={}].model'.format(
+            hparams['name'], hparams['scale'], epoch, step, hparams['checkpoint'], hparams['his_size'], k, hparams['contra_num'], ','.join(hparams['attrs']))
+    else:
+        save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},contra={},attrs={}].model'.format(
+            hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], k, hparams['contra_num'],','.join(hparams['attrs']))
 
     state_dict = torch.load(save_path, map_location=hparams['device'])
     if re.search('pipeline',model.name):
