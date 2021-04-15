@@ -31,6 +31,33 @@ logging.basicConfig(level=logging.INFO,
 hparam_list = ['name', 'scale', 'select', 'integrate', 'his_size', 'k', 'contra_num', 'checkpoint', 'epochs', 'save_step', 'learning_rate']
 param_list = ['query_words', 'query_levels', 'CoAttention.weight', 'selectionProject.weight']
 
+class TripletMarginLoss():
+    """
+        triplet margin loss based on dot product
+    """
+    def __init__(self, margin=1):
+        self.margin = margin
+
+    def __call__(self, anchor, pos, neg):
+        """ calculate loss
+
+        Args:
+            anchor: the anchor for positive and negtive samples, tensor of [N,E]
+            pos: positive samples, tensor of [N,K,E]
+            neg: negative samples, tensor of [N,K,E]
+        """
+
+        anchor = anchor.unsqueeze(dim=1)
+        pos_relevance = anchor.matmul(pos.transpose(-2,-1)).squeeze(dim=1)
+        neg_relevance = anchor.matmul(neg.transpose(-2,-1)).squeeze(dim=1)
+
+        max_relevance = torch.max(torch.cat([pos_relevance,neg_relevance],dim=0).view(-1))
+        pos_dist = max_relevance - pos_relevance
+        neg_dist = max_relevance - neg_relevance
+
+        margin_dist = torch.clamp(self.margin + pos_dist - neg_dist, min=0)
+        loss = torch.mean(margin_dist)
+        return loss
 
 def tokenize(sent, vocab):
     """ Split sentence into wordID list using regex and vocabulary
@@ -440,12 +467,18 @@ def myLoss(pred, label, hidden_dim, margin=1):
     neg_repr = pred[3]
 
     recommend_Loss = nn.NLLLoss()
-    select_Loss = nn.TripletMarginLoss(margin=margin)
+    select_Loss = TripletMarginLoss(margin=margin)
 
     reco_loss = recommend_Loss(log_prob, label)
     slct_loss = select_Loss(cdd_repr.unsqueeze(dim=-2).expand(pos_repr.shape).reshape(-1, hidden_dim), pos_repr.view(-1, hidden_dim), neg_repr.view(-1, hidden_dim))
 
     return reco_loss + slct_loss
+
+
+def _distance_func(repr1, repr2):
+    """
+        calculate distance between two representation, used in TripletMarginWithDistanceLoss
+    """
 
 
 def parameter(model, param_list, exclude=False):
@@ -862,12 +895,18 @@ def run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=None, wr
             if step % save_step == 0 and step > 0:
                 print('\n')
                 result = evaluate(model, hparams, loaders[1], log=False)
+                result['epoch'] = epoch+1
+                result['step'] = step
+
+
                 if result['auc'] > best_res['auc']:
-                    result['epoch'] = epoch+1
-                    result['step'] = step
                     best_res = result
                     logging.info("best result till now is {}".format(best_res))
                     save(model, hparams, epoch+1, step, optimizers)
+
+                elif result['auc'] - best_res['auc'] < -1:
+                    logging.info("model is overfitting, the result is {}, force shutdown".format(result))
+                    return model, best_res
 
             total_steps += 1
 

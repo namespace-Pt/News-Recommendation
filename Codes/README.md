@@ -36,9 +36,12 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 
 - you can alse run **python scripts** in terminal, type in `--help/-h` to get detail explanation of arguments
   ```shell
-  usage: [script_name].py [-h] -s {demo,small,large} [-m {train,dev,test,tune}] [-e EPOCHS] [-bs BATCH_SIZE] [-ts TITLE_SIZE] [-hs HIS_SIZE] [-c {0,1}] [-se SAVE_EACH_EPOCH] [-ss SAVE_STEP]
-                [-te TRAIN_EMBEDDING] [-lr LEARNING_RATE] [-np NPRATIO] [-mc METRICS] [-k K] [--select {pipeline1,pipeline2,unified,gating}] [--integrate {gate,harmony}]
-                [-hn HEAD_NUM] [-vd VALUE_DIM] [-qd QUERY_DIM] [-at ATTRS] [-v] [-nid]
+  usage: [model].py [-h] -s {demo,small,large,whole} [-m {train,dev,test,tune,encode}] [-e EPOCHS] [-bs BATCH_SIZE] [-ts TITLE_SIZE] [--abs_size ABS_SIZE]
+              [-hs HIS_SIZE] [--device {0,1,cpu}] [--save_step SAVE_STEP] [--val_freq VAL_FREQ] [-ck CHECKPOINT] [-lr LEARNING_RATE]
+              [--schedule SCHEDULE] [--npratio NPRATIO] [-mc METRICS] [--topk K] [--contra_num CONTRA_NUM]
+              [--select {pipeline1,pipeline2,unified,gating}] [--integrate {gate,harmony}] [--encoder ENCODER] [--interactor INTERACTOR] [--dynamic]
+              [--bert {bert-base-uncased,albert-base-v2}] [--level LEVEL] [--pipeline PIPELINE] [-hn HEAD_NUM] [-vd VALUE_DIM] [-qd QUERY_DIM]
+              [--attrs ATTRS] [--validate]
   ```
   - **e.g. train FIM model on MINDlarge for 2 epochs. At the end of each step, save the model, meanwhile, save model every 2000 steps**
     ```shell

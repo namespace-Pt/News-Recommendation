@@ -111,36 +111,26 @@ class FIM_Encoder(nn.Module):
 
         return news_embedding_dilations
 
-    def forward(self, x):
+    def forward(self, news_batch, **kwargs):
         """ encode set of news to news representation
 
         Args:
-            x(dict): input data
+            news_batch: batch of news tokens, of size [batch_size, *, signal_length]
 
         Returns:
             news_embedding: hidden vector of each token in news, of size [batch_size, *, signal_length, level, hidden_dim]
             news_repr: hidden vector of each news, of size [batch_size, *, hidden_dim]
         """
-        cdd_news_batch = torch.cat([x['candidate_'+i].long().to(self.device) for i in self.attrs], dim=-1)
-        cdd_news_embedding = self.DropOut(
-            self.embedding(cdd_news_batch)).view(-1, cdd_news_batch.shape[2], self.embedding_dim)
-        cdd_news_embedding_dilations = self._HDC(cdd_news_embedding).view(
-            cdd_news_batch.shape + (self.level, self.hidden_dim))
-        cdd_news_embedding_attn = self._scaled_dp_attention(
-            self.query_levels, cdd_news_embedding_dilations, cdd_news_embedding_dilations).squeeze(dim=-2)
-        cdd_news_reprs = self._scaled_dp_attention(self.query_words, cdd_news_embedding_attn, cdd_news_embedding_attn).squeeze(
-            dim=-2).view(cdd_news_batch.shape[0], cdd_news_batch.shape[1], self.hidden_dim)
+        news_embedding = self.DropOut(
+            self.embedding(news_batch)).view(-1, news_batch.shape[2], self.embedding_dim)
+        news_embedding = self._HDC(news_embedding).view(
+            news_batch.shape + (self.level, self.hidden_dim))
+        news_embedding_attn = self._scaled_dp_attention(
+            self.query_levels, news_embedding, news_embedding).squeeze(dim=-2)
+        news_repr = self._scaled_dp_attention(self.query_words, news_embedding_attn, news_embedding_attn).squeeze(
+            dim=-2).view(news_batch.shape[0], news_batch.shape[1], self.hidden_dim)
 
-        his_news_batch = torch.cat([x['clicked_'+i].long().to(self.device) for i in self.attrs], dim=-1)
-        his_news_embedding = self.DropOut(
-            self.embedding(his_news_batch)).view(-1, his_news_batch.shape[2], self.embedding_dim)
-        his_news_embedding_dilations = self._HDC(his_news_embedding).view(
-            his_news_batch.shape + (self.level, self.hidden_dim))
-        his_news_embedding_attn = self._scaled_dp_attention(
-            self.query_levels, his_news_embedding_dilations, his_news_embedding_dilations).squeeze(dim=-2)
-        his_news_reprs = self._scaled_dp_attention(self.query_words, his_news_embedding_attn, his_news_embedding_attn).squeeze(
-            dim=-2).view(his_news_batch.shape[0], his_news_batch.shape[1], self.hidden_dim)
-        return cdd_news_embedding_dilations, his_news_embedding_dilations, cdd_news_reprs, his_news_reprs
+        return news_embedding, news_repr
 
 
 class NRMS_Encoder(nn.Module):
@@ -325,81 +315,6 @@ class NPA_Encoder(nn.Module):
         return news_embedding.view(news_batch.shape + (self.level, self.hidden_dim)), news_repr
 
 
-class CNN_Encoder(nn.Module):
-    def __init__(self, hparams, vocab):
-        super().__init__()
-        self.name = 'cnn-encoder'
-
-        self.dropout_p = hparams['dropout_p']
-
-        self.level = 1
-        self.hidden_dim = hparams['filter_num']
-        self.embedding_dim = hparams['embedding_dim']
-
-        # pretrained embedding
-        self.embedding = nn.Embedding.from_pretrained(vocab.vectors,sparse=True,freeze=False)
-        # elements in the slice along dim will sum up to 1
-        self.softmax = nn.Softmax(dim=-1)
-
-        # project preference query to vector of hidden_dim
-        self.wordQueryProject = nn.Linear(self.hidden_dim, self.hidden_dim)
-
-        # input tensor shape is [batch_size,in_channels,signal_length]
-        # in_channels is the length of embedding, out_channels indicates the number of filters, signal_length is the length of title
-        # set paddings=1 to get the same length of title, referring M in the paper
-        self.CNN = nn.Conv1d(in_channels=self.embedding_dim,
-                             out_channels=self.hidden_dim, kernel_size=3, padding=1)
-        self.LayerNorm = nn.LayerNorm(self.hidden_dim)
-
-        self.query_words = nn.Parameter(torch.randn(
-            (1, self.hidden_dim), requires_grad=True))
-
-        self.RELU = nn.ReLU()
-        self.Tanh = nn.Tanh()
-        self.DropOut = nn.Dropout(p=hparams['dropout_p'])
-
-    def _scaled_dp_attention(self, query, key, value):
-        """ calculate scaled attended output of values
-
-        Args:
-            query: tensor of [batch_size, *, query_num, key_dim]
-            key: tensor of [batch_size, *, key_num, key_dim]
-            value: tensor of [batch_size, *, key_num, value_dim]
-
-        Returns:
-            attn_output: tensor of [batch_size, *, query_num, value_dim]
-        """
-
-        # make sure dimension matches
-        assert query.shape[-1] == key.shape[-1]
-        key = key.transpose(-2, -1)
-
-        attn_weights = torch.matmul(query, key)/math.sqrt(query.shape[-1])
-        # print(attn_weights.shape)
-        attn_weights = self.softmax(attn_weights)
-
-        attn_output = torch.matmul(attn_weights, value)
-        return attn_output
-
-    def forward(self, news_batch, **kwargs):
-        """ encode news through 1-d CNN and combine embeddings with personalized attention
-
-        Args:
-            news_batch: tensor of [batch_size, *, signal_length]
-
-        Returns:
-            news_embedding: hidden vector of each token in news, of size [batch_size, *, signal_length, hidden_dim]
-            news_repr: hidden vector of each news, of size [batch_size, *, hidden_dim]
-        """
-        news_embedding_pretrained = self.DropOut(self.embedding(
-            news_batch)).view(-1, news_batch.shape[-1], self.embedding_dim).transpose(-2, -1)
-        news_embedding = self.RELU(self.LayerNorm(self.CNN(
-            news_embedding_pretrained).transpose(-2, -1))).view(news_batch.shape + (self.hidden_dim,))
-
-        news_repr = self._scaled_dp_attention(self.query_words, self.Tanh(self.wordQueryProject(news_embedding)), news_embedding).squeeze(dim=-2)
-        return news_embedding.view(news_batch.shape + (self.level, self.hidden_dim)), news_repr
-
-
 class Pipeline_Encoder(nn.Module):
     def __init__(self, hparams):
         super().__init__()
@@ -516,38 +431,79 @@ class MHA_Encoder(nn.Module):
 
         return news_embedding.view(news_batch.shape + (self.level, self.hidden_dim)), news_repr
 
-class Bert_Encoder(nn.Module):
-    def __init__(self, hparams):
+
+class CNN_Encoder(nn.Module):
+    def __init__(self, hparams, vocab):
         super().__init__()
-        self.name = 'bert-encoder'
+        self.name = 'cnn-encoder'
 
-        self.level = hparams['level']
+        self.dropout_p = hparams['dropout_p']
 
-        # dimension for the final output embedding/representation
-        self.hidden_dim = 768
+        self.level = 1
+        self.hidden_dim = hparams['filter_num']
+        self.embedding_dim = hparams['embedding_dim']
 
-        self.bert = AutoModel.from_pretrained(
-            hparams['bert'],
-            # output hidden embedding of each transformer layer
-            output_hidden_states=True
-        )
+        # pretrained embedding
+        self.embedding = nn.Embedding.from_pretrained(vocab.vectors,sparse=True,freeze=False)
+        # elements in the slice along dim will sum up to 1
+        self.softmax = nn.Softmax(dim=-1)
 
-    def forward(self, news_batch, **kwargs):
-        """ encode news with bert
+        # project preference query to vector of hidden_dim
+        self.wordQueryProject = nn.Linear(self.hidden_dim, self.hidden_dim)
+
+        # input tensor shape is [batch_size,in_channels,signal_length]
+        # in_channels is the length of embedding, out_channels indicates the number of filters, signal_length is the length of title
+        # set paddings=1 to get the same length of title, referring M in the paper
+        self.CNN = nn.Conv1d(in_channels=self.embedding_dim,
+                             out_channels=self.hidden_dim, kernel_size=3, padding=1)
+        self.LayerNorm = nn.LayerNorm(self.hidden_dim)
+
+        self.query_words = nn.Parameter(torch.randn(
+            (1, self.hidden_dim), requires_grad=True))
+
+        self.RELU = nn.ReLU()
+        self.Tanh = nn.Tanh()
+        self.DropOut = nn.Dropout(p=hparams['dropout_p'])
+
+    def _scaled_dp_attention(self, query, key, value):
+        """ calculate scaled attended output of values
 
         Args:
-            news_batch: batch of news tokens, of size [batch_size, *, signal_length]
+            query: tensor of [batch_size, *, query_num, key_dim]
+            key: tensor of [batch_size, *, key_num, key_dim]
+            value: tensor of [batch_size, *, key_num, value_dim]
 
         Returns:
-            news_embedding: hidden vector of each token in news, of size [batch_size, *, signal_length, level, hidden_dim]
+            attn_output: tensor of [batch_size, *, query_num, value_dim]
+        """
+
+        # make sure dimension matches
+        assert query.shape[-1] == key.shape[-1]
+        key = key.transpose(-2, -1)
+
+        attn_weights = torch.matmul(query, key)/math.sqrt(query.shape[-1])
+        # print(attn_weights.shape)
+        attn_weights = self.softmax(attn_weights)
+
+        attn_output = torch.matmul(attn_weights, value)
+        return attn_output
+
+    def forward(self, news_batch, **kwargs):
+        """ encode news through 1-d CNN and combine embeddings with personalized attention
+
+        Args:
+            news_batch: tensor of [batch_size, *, signal_length]
+
+        Returns:
+            news_embedding: hidden vector of each token in news, of size [batch_size, *, signal_length, hidden_dim]
             news_repr: hidden vector of each news, of size [batch_size, *, hidden_dim]
         """
-        output = self.bert(news_batch.view(-1, news_batch.shape[2]), attention_mask=kwargs['attn_mask'].view(-1, news_batch.shape[2]))
-        # stack the last level dimensions to form multi-level embedding
-        news_embedding = torch.stack(output['hidden_states'][-self.level:],dim=-2)
-        # use the hidden state of the last layer of [CLS] as news representation
-        news_repr = news_embedding[:,0,-1,:].view(news_batch.shape[0], news_batch.shape[1], self.hidden_dim)
+        news_embedding_pretrained = self.DropOut(self.embedding(
+            news_batch)).view(-1, news_batch.shape[-1], self.embedding_dim).transpose(-2, -1)
+        news_embedding = self.RELU(self.LayerNorm(self.CNN(
+            news_embedding_pretrained).transpose(-2, -1))).view(news_batch.shape + (self.hidden_dim,))
 
+        news_repr = self._scaled_dp_attention(self.query_words, self.Tanh(self.wordQueryProject(news_embedding)), news_embedding).squeeze(dim=-2)
         return news_embedding.view(news_batch.shape + (self.level, self.hidden_dim)), news_repr
 
 
@@ -581,6 +537,41 @@ class RNN_Encoder(nn.Module):
         news_embedding_pretrained = self.embedding(news_batch).view(-1, news_batch.shape[-1], self.embedding_dim)
         news_embedding,output = self.lstm(news_embedding_pretrained)
         news_repr = torch.mean(output[0],dim=0).view(news_batch.shape[0],news_batch.shape[1],self.hidden_dim)
+
+        return news_embedding.view(news_batch.shape + (self.level, self.hidden_dim)), news_repr
+
+
+class Bert_Encoder(nn.Module):
+    def __init__(self, hparams):
+        super().__init__()
+        self.name = 'bert-encoder'
+
+        self.level = hparams['level']
+
+        # dimension for the final output embedding/representation
+        self.hidden_dim = 768
+
+        self.bert = AutoModel.from_pretrained(
+            hparams['bert'],
+            # output hidden embedding of each transformer layer
+            output_hidden_states=True
+        )
+
+    def forward(self, news_batch, **kwargs):
+        """ encode news with bert
+
+        Args:
+            news_batch: batch of news tokens, of size [batch_size, *, signal_length]
+
+        Returns:
+            news_embedding: hidden vector of each token in news, of size [batch_size, *, signal_length, level, hidden_dim]
+            news_repr: hidden vector of each news, of size [batch_size, *, hidden_dim]
+        """
+        output = self.bert(news_batch.view(-1, news_batch.shape[2]), attention_mask=kwargs['attn_mask'].view(-1, news_batch.shape[2]))
+        # stack the last level dimensions to form multi-level embedding
+        news_embedding = torch.stack(output['hidden_states'][-self.level:],dim=-2)
+        # use the hidden state of the last layer of [CLS] as news representation
+        news_repr = news_embedding[:,0,-1,:].view(news_batch.shape[0], news_batch.shape[1], self.hidden_dim)
 
         return news_embedding.view(news_batch.shape + (self.level, self.hidden_dim)), news_repr
 
