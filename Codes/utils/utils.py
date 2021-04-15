@@ -685,7 +685,7 @@ def run_eval(model, dataloader, interval):
 
 
 @torch.no_grad()
-def evaluate(model, hparams, dataloader, loading=False, log=True, interval=100):
+def evaluate(model, hparams, dataloader, loading=False, log=True):
     """Evaluate the given file and returns some evaluation metrics.
 
     Args:
@@ -713,7 +713,7 @@ def evaluate(model, hparams, dataloader, loading=False, log=True, interval=100):
 
     logging.info("evaluating...")
 
-    imp_indexes, labels, preds = run_eval(model, dataloader, interval)
+    imp_indexes, labels, preds = run_eval(model, dataloader, hparams['interval'])
     res = cal_metric(labels, preds, hparams['metrics'].split(','))
 
     if log:
@@ -798,7 +798,7 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, schedulers=None
     return model
 
 
-def train(model, hparams, loaders, tb=False, interval=100):
+def train(model, hparams, loaders, tb=False):
     """ wrap training process
 
     Args:
@@ -824,7 +824,7 @@ def train(model, hparams, loaders, tb=False, interval=100):
     optimizers, schedulers = getOptim(model, hparams, loaders[0])
 
     model = run_train(model, loaders[0], optimizers, loss_func, hparams, schedulers=schedulers,
-                      writer=writer, interval=interval, save_step=hparams['save_step'][0])
+                      writer=writer, interval=hparams['interval'], save_step=hparams['save_step'][0])
 
     # loader_train, loader_dev, loader_validate
     if len(loaders) > 1:
@@ -916,7 +916,7 @@ def run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=None, wr
     return model, best_res
 
 
-def tune(model, hparams, loaders, tb=False, interval=100):
+def tune(model, hparams, loaders, tb=False):
     """ train and evaluate sequentially
 
     Args:
@@ -943,7 +943,7 @@ def tune(model, hparams, loaders, tb=False, interval=100):
     optimizers, schedulers = getOptim(model, hparams, loaders[0])
 
     model, res = run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=schedulers,
-                      writer=writer, interval=interval, save_step=int(len(loaders[0])/hparams['val_freq']))
+                      writer=writer, interval=hparams['interval'], save_step=int(len(loaders[0])/hparams['val_freq'] - 1))
 
     _log(res, model, hparams)
     return model
@@ -1027,7 +1027,7 @@ def load_hparams(hparams):
 
     parser.add_argument("--device", dest="device",
                         help="device to run on", choices=['0', '1', 'cpu'], default='0')
-    # parser.add_argument("--save_each_epoch", dest="save_each_epoch", help="if clarified, save model of each epoch", default=True)
+    parser.add_argument("--interval", dest="interval", help="the step interval to update processing bar", default=100, type=int)
     parser.add_argument("--save_step", dest="save_step",
                         help="if clarified, save model at the interval of given steps", type=str, default='0')
     parser.add_argument("--val_freq", dest="val_freq", help="the frequency to validate during training in one epoch", type=int, default=4)
@@ -1037,7 +1037,6 @@ def load_hparams(hparams):
     parser.add_argument("-lr", "--learning_rate", dest="learning_rate",
                         help="learning rate when training", type=float, default=1e-3)
     parser.add_argument("--schedule", dest="schedule", help="choose schedule scheme for optimizer", default='linear')
-
 
     parser.add_argument("--npratio", dest="npratio",
                         help="the number of unclicked news to sample when training", type=int, default=4)
@@ -1055,6 +1054,7 @@ def load_hparams(hparams):
     parser.add_argument("--encoder", dest="encoder", help="choose encoder", default='fim')
     parser.add_argument("--interactor", dest="interactor", help="choose interactor", default='fim')
     parser.add_argument("--dynamic", dest="dynamic", help="if clarified, SFI will dynamically mask attention weights rather than impose k biggest", action='store_true')
+    parser.add_argument("--multiview", dest="multiview", help="if clarified, SFI-MultiView will be called", action='store_true')
 
     parser.add_argument("--bert", dest="bert", help="choose bert model(encoder)",
                         choices=['bert-base-uncased', 'albert-base-v2'], default=None)
@@ -1094,6 +1094,7 @@ def load_hparams(hparams):
         hparams['device'] = 'cuda:' + args.device
     hparams['epochs'] = args.epochs
     hparams['batch_size'] = args.batch_size
+    hparams['interval'] = args.interval
     hparams['title_size'] = args.title_size
     hparams['abs_size'] = args.abs_size
     hparams['npratio'] = args.npratio
@@ -1128,7 +1129,11 @@ def load_hparams(hparams):
         hparams['interactor'] = args.interactor
     if args.dynamic:
         hparams['dynamic'] = args.dynamic
-        hparams['k'] = hparams['his_size']
+        if hparams['k'] != hparams['his_size']:
+            logging.info("adjust k:{} to his_size:{} automatically".format(args.k, args.his_size))
+            hparams['k'] = hparams['his_size']
+    if args.multiview:
+        hparams['multiview'] = args.multiview
 
     if hparams['select'] == 'unified':
         hparams['integration'] = args.integration

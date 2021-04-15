@@ -37,7 +37,7 @@ def kernel_sigmas(n_kernels):
 
 
 class FIM_Interactor(nn.Module):
-    def __init__(self, k, signal_length):
+    def __init__(self, k, signal_length, signal_length2=0):
         super().__init__()
         self.name = 'fim'
 

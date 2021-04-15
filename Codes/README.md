@@ -97,6 +97,27 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
   - MIND
     - map style dataset for MIND
     - for each behavior log, either returning positive click behaviors only (training) or returning every behavior (validating/testing)
+    ```python
+    {
+        "impression_index": ,
+        "user_index": ,
+        'cdd_id': ,
+        "candidate_title": ,
+        "candidate_title_pad": ,
+        "candidate_abs": ,
+        "candidate_abs_pad": ,
+        "candidate_vert": ,
+        "candidate_subvert": ,
+        'his_id': ,
+        "clicked_title": ,
+        "clicked_title_pad": ,
+        "clicked_abs": ,
+        "clicked_abs_pad": ,
+        "clicked_vert": ,
+        "clicked_subvert": ,
+        "his_mask": 
+    }
+    ```
 
   - MIND_news
     - map style dataset for MIND/news
