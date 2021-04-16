@@ -115,7 +115,7 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
         "clicked_abs_pad": ,
         "clicked_vert": ,
         "clicked_subvert": ,
-        "his_mask": 
+        "his_mask":
     }
     ```
 
@@ -149,3 +149,7 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 - [x] upgrade MIND iterable dataset to MIND map dataset
 - [ ] subspace disentanglement
 - [ ] abstract out the model properties and hyper parameter settings
+
+
+## Mem
+- SFI-dynamic threshold=0.5 abandon

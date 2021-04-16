@@ -42,17 +42,6 @@ class FIM_Encoder(nn.Module):
 
         self.device = hparams['device']
         self.attrs = hparams['attrs']
-        self.signal_length = 0
-        if 'title' in self.attrs:
-            self.signal_length += hparams['title_size']
-        if 'vert' in self.attrs:
-            self.signal_length += 1
-        if 'subvert' in self.attrs:
-            self.signal_length += 1
-
-        # FIXME, multi-view learning
-        if 'abs' in self.attrs:
-            self.signal_length += hparams['abs_size']
 
         nn.init.xavier_normal_(self.CNN_d1.weight)
         nn.init.xavier_normal_(self.CNN_d2.weight)

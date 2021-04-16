@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     if hparams['interactor'] == 'fim':
         from models.Interactors import FIM_Interactor
-        interactor = FIM_Interactor(hparams['k'], encoder.signal_length)
+        interactor = FIM_Interactor()
 
     elif hparams['interactor'] == 'knrm':
         from models.Interactors import KNRM_Interactor
@@ -80,7 +80,7 @@ if __name__ == "__main__":
         if hparams['select'] == 'unified':
             hparams['name'] = '-'.join([hparams['name'], hparams['encoder'], hparams['interactor'], hparams['select']])
             from models.SFI import SFI_unified_MultiView
-            sfiModel = SFI_unified(hparams, encoder, interactor).to(hparams['device'])
+            sfiModel = SFI_unified_MultiView(hparams, encoder, interactor).to(hparams['device'])
 
         elif hparams['select'] == 'gating':
             hparams['name'] = '-'.join([hparams['name'], hparams['encoder'], hparams['interactor'], hparams['select']])

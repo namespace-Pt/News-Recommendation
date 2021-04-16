@@ -37,7 +37,7 @@ def kernel_sigmas(n_kernels):
 
 
 class FIM_Interactor(nn.Module):
-    def __init__(self, k, signal_length, signal_length2=0):
+    def __init__(self):
         super().__init__()
         self.name = 'fim'
 
@@ -51,9 +51,6 @@ class FIM_Interactor(nn.Module):
         )
         nn.init.xavier_normal_(self.SeqCNN3D[0].weight)
         nn.init.xavier_normal_(self.SeqCNN3D[3].weight)
-
-        # FIXME, elasticity
-        self.hidden_dim = int(int(k / 3) /3) * int(int(signal_length / 3) / 3)**2 * 16
 
 
     def forward(self, cdd_news_embedding, his_activated, **kwargs):

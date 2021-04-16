@@ -1053,7 +1053,7 @@ def load_hparams(hparams):
                         help="the way history filter is combined", choices=['gate', 'harmony'], default='gate')
     parser.add_argument("--encoder", dest="encoder", help="choose encoder", default='fim')
     parser.add_argument("--interactor", dest="interactor", help="choose interactor", default='fim')
-    parser.add_argument("--dynamic", dest="dynamic", help="if clarified, SFI will dynamically mask attention weights rather than impose k biggest", action='store_true')
+    parser.add_argument("--threshold", dest="threshold", help="if clarified, SFI will dynamically mask attention weights smaller than threshold with 0", default=0, type=float)
     parser.add_argument("--multiview", dest="multiview", help="if clarified, SFI-MultiView will be called", action='store_true')
 
     parser.add_argument("--bert", dest="bert", help="choose bert model(encoder)",
@@ -1127,13 +1127,14 @@ def load_hparams(hparams):
         hparams['encoder'] = args.encoder
     if args.interactor:
         hparams['interactor'] = args.interactor
-    if args.dynamic:
-        hparams['dynamic'] = args.dynamic
+    if args.threshold:
+        hparams['threshold'] = args.threshold
         if hparams['k'] != hparams['his_size']:
             logging.info("adjust k:{} to his_size:{} automatically".format(args.k, args.his_size))
             hparams['k'] = hparams['his_size']
     if args.multiview:
         hparams['multiview'] = args.multiview
+        hparams['attrs'] = 'title,vert,subvert,abs'.split(',')
 
     if hparams['select'] == 'unified':
         hparams['integration'] = args.integration
