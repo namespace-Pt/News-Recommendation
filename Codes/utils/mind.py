@@ -3,6 +3,7 @@ import re
 from torch.utils.data import Dataset
 from utils.utils import newsample, getId2idx, tokenize, getVocab
 
+
 class MIND(Dataset):
     """ Map Style Dataset for MIND, return positive samples with negative sampling when training, or return each sample when developing.
 
@@ -26,6 +27,8 @@ class MIND(Dataset):
         self.abs_size = hparams['abs_size']
         self.his_size = hparams['his_size']
 
+        self.onehot = hparams['onehot']
+
         if 'k' in hparams:
             self.k = hparams['k']
 
@@ -39,6 +42,12 @@ class MIND(Dataset):
             'data/dictionaries/nid2idx_{}_{}.json'.format(hparams['scale'], self.mode))
         self.uid2index = getId2idx(
             'data/dictionaries/uid2idx_{}.json'.format(hparams['scale']))
+        self.vert2onehot = getId2idx(
+            'data/dictionaries/vert2onehot.json'
+        )
+        self.subvert2onehot = getId2idx(
+            'data/dictionaries/subvert2onehot.json'
+        )
 
         if validate:
             self.mode = 'dev'
@@ -77,7 +86,7 @@ class MIND(Dataset):
                 abs_pad.append([max(self.abs_size - len(abs_token), 0)])
 
                 categories.append(tokenize(vert, self.vocab))
-                subcategories.append(tokenize(vert, self.vocab))
+                subcategories.append(tokenize(subvert, self.vocab))
 
         # self.titles = titles
         self.news_title_array = np.asarray(titles)
@@ -226,6 +235,7 @@ class MIND(Dataset):
         impr_index = impr[0]
         impr_news = impr[1]
 
+
         user_index = [self.uindexes[impr_index]]
 
         # each time called to return positive one sample and its negative samples
@@ -262,7 +272,6 @@ class MIND(Dataset):
             candidate_abs_pad = [(self.abs_size - i[0])*[1] + i[0]*[0] for i in self.abs_pad[cdd_ids]]
             clicked_abs_pad = [(self.abs_size - i[0])*[1] + i[0]*[0] for i in self.abs_pad[his_ids]]
 
-
             candidate_title_index = self.news_title_array[cdd_ids]
             clicked_title_index = self.news_title_array[his_ids]
             candidate_abs_index = self.abs_array[cdd_ids]
@@ -271,7 +280,6 @@ class MIND(Dataset):
             clicked_vert_index = self.vert_array[his_ids]
             candidate_subvert_index = self.subvert_array[cdd_ids]
             clicked_subvert_index = self.subvert_array[his_ids]
-
 
             back_dic = {
                 "user_index": np.asarray(user_index),
@@ -293,6 +301,20 @@ class MIND(Dataset):
                 "his_mask": his_mask,
                 "labels": label
             }
+
+            if self.onehot:
+                candidate_vert_onehot = [self.vert2onehot[str(i[0])] for i in candidate_vert_index]
+                clicked_vert_onehot = [self.vert2onehot[str(i[0])] for i in clicked_vert_index]
+                try:
+                    candidate_subvert_onehot = [self.subvert2onehot[str(i[0])] for i in candidate_subvert_index]
+                except:
+                    print(cdd_ids, candidate_subvert_index, index)
+                clicked_subvert_onehot = [self.subvert2onehot[str(i[0])] for i in clicked_subvert_index]
+
+                back_dic['candidate_vert_onehot'] = np.asarray(candidate_vert_onehot)
+                back_dic['clicked_vert_onehot'] = np.asarray(clicked_vert_onehot)
+                back_dic['candidate_subvert_onehot'] = np.asarray(candidate_subvert_onehot)
+                back_dic['clicked_subvert_onehot'] = np.asarray(clicked_subvert_onehot)
 
             return back_dic
 
@@ -347,6 +369,19 @@ class MIND(Dataset):
                 "his_mask": his_mask,
                 "labels": np.asarray([label])
             }
+
+            if self.onehot:
+                candidate_vert_onehot = [self.vert2onehot[str(i[0])] for i in candidate_vert_index]
+                clicked_vert_onehot = [self.vert2onehot[str(i[0])] for i in clicked_vert_index]
+
+                candidate_subvert_onehot = [self.subvert2onehot[str(i[0])] for i in candidate_subvert_index]
+                clicked_subvert_onehot = [self.subvert2onehot[str(i[0])] for i in clicked_subvert_index]
+
+                back_dic['candidate_vert_onehot'] = np.asarray(candidate_vert_onehot)
+                back_dic['clicked_vert_onehot'] = np.asarray(clicked_vert_onehot)
+                back_dic['candidate_subvert_onehot'] = np.asarray(candidate_subvert_onehot)
+                back_dic['clicked_subvert_onehot'] = np.asarray(clicked_subvert_onehot)
+
             return back_dic
 
         elif self.mode == 'test':
@@ -397,6 +432,18 @@ class MIND(Dataset):
                 "clicked_subvert": clicked_subvert_index,
                 "his_mask": his_mask
             }
+
+            if self.onehot:
+                candidate_vert_onehot = [self.vert2onehot[str(i[0])] for i in candidate_vert_index]
+                clicked_vert_onehot = [self.vert2onehot[str(i[0])] for i in clicked_vert_index]
+
+                candidate_subvert_onehot = [self.subvert2onehot[str(i[0])] for i in candidate_subvert_index]
+                clicked_subvert_onehot = [self.subvert2onehot[str(i[0])] for i in clicked_subvert_index]
+
+                back_dic['candidate_vert_onehot'] = np.asarray(candidate_vert_onehot)
+                back_dic['clicked_vert_onehot'] = np.asarray(clicked_vert_onehot)
+                back_dic['candidate_subvert_onehot'] = np.asarray(candidate_subvert_onehot)
+                back_dic['clicked_subvert_onehot'] = np.asarray(clicked_subvert_onehot)
             return back_dic
 
         else:

@@ -68,7 +68,7 @@ def tokenize(sent, vocab):
     Return:
         list: word list
     """
-    pat = re.compile(r"[\w]+|[.,!?;|]")
+    pat = re.compile(r"[-\w_]+|[.,!?;|]")
     if isinstance(sent, str):
         return [vocab[x] for x in pat.findall(sent.lower())]
     else:
@@ -181,9 +181,9 @@ def constructBasicDict(attrs=['title'], path='/home/peitian_zhang/Data/MIND'):
     """
         construct basic dictionary
     """
-    news_file_list2 = [path + '/MINDlarge_train/news.tsv', path +
+    news_file_list = [path + '/MINDlarge_train/news.tsv', path +
                        '/MINDlarge_dev/news.tsv', path + '/MINDlarge_test/news.tsv']
-    constructVocab(news_file_list2, attrs)
+    constructVocab(news_file_list, attrs)
 
     for scale in ['demo', 'small', 'large']:
         news_file_list = [path + '/MIND{}_train/news.tsv'.format(
@@ -214,6 +214,21 @@ def constructBasicDict(attrs=['title'], path='/home/peitian_zhang/Data/MIND'):
             behavior_file_list = behavior_file_list[0:2]
             constructUid2idx(behavior_file_list, scale)
 
+
+def constructVertOnehot():
+    vert2onehot = {}
+    for k,v in vert2idx.items():
+        a = np.zeros((len(vert2idx)))
+        index = np.asarray([v])
+        a[index] = 1
+        vert2onehot[int(k)] = a.tolist()
+
+    subvert2onehot = {}
+    for k,v in subvert2idx.items():
+        a = np.zeros((len(subvert2idx)))
+        index = np.asarray([v])
+        a[index] = 1
+        subvert2onehot[int(k)] = a.tolist()
 
 def tailorData(tsvFile, num):
     ''' tailor num rows of tsvFile to create demo data file
@@ -292,7 +307,7 @@ def getLoss(model):
         get loss function for model
     """
     if model.cdd_size > 1:
-        if model.contra_num:
+        if hasattr(model,'contra_num') and model.contra_num:
             loss = myLoss
         else:
             loss = nn.NLLLoss()
@@ -365,11 +380,11 @@ def save(model, hparams, epoch, step, optimizers=[]):
     """
     # parse checkpoint
     if 'checkpoint' in hparams:
-        save_path = 'data/model_params/{}/{}_epoch{}_step{}_ck{}_[hs={},topk={},contra={},attrs={}].model'.format(
-            hparams['name'], hparams['scale'], epoch, step, hparams['checkpoint'], hparams['his_size'], hparams['k'], hparams['contra_num'], ','.join(hparams['attrs']))
+        save_path = 'data/model_params/{}/{}_epoch{}_step{}_ck{}_[hs={},topk={},attrs={}].model'.format(
+            hparams['name'], hparams['scale'], epoch, step, hparams['checkpoint'], hparams['his_size'], hparams['k'], ','.join(hparams['attrs']))
     else:
-        save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},contra={},attrs={}].model'.format(
-            hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], hparams['k'], hparams['contra_num'],','.join(hparams['attrs']))
+        save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},attrs={}].model'.format(
+            hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], hparams['k'], ','.join(hparams['attrs']))
 
     state_dict = model.state_dict()
 
@@ -401,11 +416,11 @@ def load(model, hparams, epoch, step, optimizers=None):
         k = hparams['k']
 
     if 'checkpoint' in hparams:
-        save_path = 'data/model_params/{}/{}_epoch{}_step{}_ck{}_[hs={},topk={},contra={},attrs={}].model'.format(
-            hparams['name'], hparams['scale'], epoch, step, hparams['checkpoint'], hparams['his_size'], k, hparams['contra_num'], ','.join(hparams['attrs']))
+        save_path = 'data/model_params/{}/{}_epoch{}_step{}_ck{}_[hs={},topk={},attrs={}].model'.format(
+            hparams['name'], hparams['scale'], epoch, step, hparams['checkpoint'], hparams['his_size'], k, ','.join(hparams['attrs']))
     else:
-        save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},contra={},attrs={}].model'.format(
-            hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], k, hparams['contra_num'],','.join(hparams['attrs']))
+        save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},attrs={}].model'.format(
+            hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], k, ','.join(hparams['attrs']))
 
     state_dict = torch.load(save_path, map_location=hparams['device'])
     if re.search('pipeline',model.name):
@@ -756,7 +771,7 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, schedulers=None
             pred = model(x)
             label = getLabel(model, x)
 
-            if model.contra_num:
+            if hasattr(model, 'contra_num') and model.contra_num:
                 loss = loss_func(pred, label, model.hidden_dim)
             else:
                 loss = loss_func(pred, label)
@@ -864,7 +879,7 @@ def run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=None, wr
             pred = model(x)
             label = getLabel(model, x)
 
-            if model.contra_num:
+            if hasattr(model, 'contra_num') and model.contra_num:
                 loss = loss_func(pred, label, model.hidden_dim)
             else:
                 loss = loss_func(pred, label)
@@ -898,13 +913,13 @@ def run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=None, wr
                 result['epoch'] = epoch+1
                 result['step'] = step
 
-
+                logging.info("current result is {}".format(result))
                 if result['auc'] > best_res['auc']:
                     best_res = result
                     logging.info("best result till now is {}".format(best_res))
                     save(model, hparams, epoch+1, step, optimizers)
 
-                elif result['auc'] - best_res['auc'] < -1:
+                elif result['auc'] - best_res['auc'] < -0.1:
                     logging.info("model is overfitting, the result is {}, force shutdown".format(result))
                     return model, best_res
 

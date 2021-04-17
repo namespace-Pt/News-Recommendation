@@ -4,7 +4,7 @@ os.chdir('/home/peitian_zhang/Codes/News-Recommendation')
 sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
 import torch
-from utils.utils import evaluate,train,prepare,load_hparams,test
+from utils.utils import evaluate,train,prepare,load_hparams,test,tune
 from models.NRMS import NRMSModel
 
 if __name__ == "__main__":
@@ -29,6 +29,9 @@ if __name__ == "__main__":
 
     elif hparams['mode'] == 'train':
         train(nrmsModel, hparams, loaders)
-    
+
     elif hparams['mode'] == 'test':
         test(nrmsModel, hparams, loaders[0])
+
+    elif hparams['mode'] == 'tune':
+        tune(nrmsModel, hparams, loaders)

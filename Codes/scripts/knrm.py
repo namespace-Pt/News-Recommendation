@@ -4,10 +4,10 @@ os.chdir('/home/peitian_zhang/Codes/News-Recommendation')
 sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
 import torch
-from utils.utils import evaluate,train,prepare,load_hparams,test
+from utils.utils import evaluate,train,prepare,load_hparams,test,tune
 from models.KNRM import KNRMModel
 
-if __name__ == "__main__":    
+if __name__ == "__main__":
     hparams = {
         'name':'knrm',
         'embedding_dim':300,
@@ -25,6 +25,6 @@ if __name__ == "__main__":
 
     elif hparams['mode'] == 'train':
         train(knrmModel, hparams, loaders)
-    
+
     elif hparams['mode'] == 'test':
         test(knrmModel, hparams, loaders[0])

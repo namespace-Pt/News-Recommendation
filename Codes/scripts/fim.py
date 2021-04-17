@@ -4,7 +4,7 @@ os.chdir('/home/peitian_zhang/Codes/News-Recommendation')
 sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
 import torch
-from utils.utils import evaluate,train,prepare,load_hparams,test,load,pipeline_encode
+from utils.utils import evaluate,train,prepare,load_hparams,test,tune,load,pipeline_encode
 from models.FIM import FIMModel
 
 if __name__ == "__main__":
