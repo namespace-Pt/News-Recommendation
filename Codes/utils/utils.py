@@ -216,12 +216,32 @@ def constructBasicDict(attrs=['title'], path='/home/peitian_zhang/Data/MIND'):
 
 
 def constructVertOnehot():
+    import pandas as pd
+    path = '/home/peitian_zhang/Data/MIND'
+    news_file_list = [path + '/MINDlarge_train/news.tsv', path +
+                        '/MINDlarge_dev/news.tsv', path + '/MINDlarge_test/news.tsv']
+    news_df_list = []
+    for f in news_file_list:
+        news_df_list.append(pd.read_table(f, index_col=None, names=['newsID', 'category', 'subcategory', 'title', 'abstract', 'url', 'entity_title', 'entity_abstract'], quoting=3))
+
+    news_df = pd.concat(news_df_list).drop_duplicates()
+
+    vert = news_df['category'].unique()
+    subvert = news_df['subcategory'].unique()
+    vocab = getVocab('data/dictionaries/vocab_whole.pkl')
+    vert2idx = {
+        vocab[v]:i for i,v in enumerate(vert)
+    }
+    subvert2idx = {
+        vocab[v]:i for i,v in enumerate(subvert)
+    }
     vert2onehot = {}
     for k,v in vert2idx.items():
         a = np.zeros((len(vert2idx)))
         index = np.asarray([v])
         a[index] = 1
         vert2onehot[int(k)] = a.tolist()
+    vert2onehot[1] = [0]*len(next(iter(vert2onehot.values())))
 
     subvert2onehot = {}
     for k,v in subvert2idx.items():
@@ -229,6 +249,10 @@ def constructVertOnehot():
         index = np.asarray([v])
         a[index] = 1
         subvert2onehot[int(k)] = a.tolist()
+    subvert2onehot[1] = [0]*len(next(iter(subvert2onehot.values())))
+
+    json.dump(vert2onehot, open('data/dictionaries/vert2onehot.json','w'),ensure_ascii=False)
+    json.dump(subvert2onehot, open('data/dictionaries/subvert2onehot.json','w'),ensure_ascii=False)
 
 def tailorData(tsvFile, num):
     ''' tailor num rows of tsvFile to create demo data file
@@ -1090,6 +1114,7 @@ def load_hparams(hparams):
                         help="clarified attributes of news will be yielded by dataloader, seperate with comma", type=str, default='title')
     parser.add_argument("--validate", dest="validate",
                         help="if clarified, evaluate the model on training set", action='store_true')
+    parser.add_argument("--onehot", dest="onehot", help="if clarified, one hot encode of category/subcategory will be returned by dataloader", action='store_true')
 
     # parser.add_argument("-dp","--dropout", dest="dropout", help="drop out probability", type=float, default=0.2)
     # parser.add_argument("-ed","--embedding_dim", dest="embedding_dim", help="dimension of word embedding", type=int, default=300)
@@ -1136,6 +1161,8 @@ def load_hparams(hparams):
         hparams['query_dim'] = args.query_dim
     if args.validate:
         hparams['validate'] = args.validate
+    if args.onehot:
+        hparams['onehot'] = args.onehot
     if args.checkpoint:
         hparams['checkpoint'] = args.checkpoint
     if args.encoder:
@@ -1150,6 +1177,7 @@ def load_hparams(hparams):
     if args.multiview:
         hparams['multiview'] = args.multiview
         hparams['attrs'] = 'title,vert,subvert,abs'.split(',')
+        hparams['onehot'] = True
 
     if hparams['select'] == 'unified':
         hparams['integration'] = args.integration

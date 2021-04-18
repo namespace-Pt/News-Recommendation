@@ -27,7 +27,8 @@ class MIND(Dataset):
         self.abs_size = hparams['abs_size']
         self.his_size = hparams['his_size']
 
-        self.onehot = hparams['onehot']
+        if 'onehot' in hparams and hparams['onehot']:
+            self.onehot = hparams['onehot']
 
         if 'k' in hparams:
             self.k = hparams['k']

@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import Attention.Attention as Attention
+from .Attention import Attention
 from .Encoders.MHA import MHA_Encoder, MHA_User_Encoder
 
 class NRMSModel(nn.Module):
