@@ -3,9 +3,11 @@ import torch.nn as nn
 from .Attention import Attention
 from .Encoders.MHA import MHA_Encoder, MHA_User_Encoder
 
-class NRMSModel(nn.Module):
+class NRMS(nn.Module):
     def __init__(self, hparams, vocab):
         super().__init__()
+
+        self.name = 'nrms'
 
         self.cdd_size = (hparams['npratio'] +
                          1) if hparams['npratio'] > 0 else 1
@@ -55,7 +57,7 @@ class NRMSModel(nn.Module):
         return score
 
 
-class NRMSModel_MultiView(nn.Module):
+class NRMS_MultiView(nn.Module):
     def __init__(self, hparams, vocab):
         super().__init__()
 
@@ -87,14 +89,9 @@ class NRMSModel_MultiView(nn.Module):
             score: tensor of [batch_size, cdd_size], which is normalized click probabilty
         """
         score = torch.matmul(cdd_repr,user_repr.unsqueeze(dim=-1)).squeeze(dim=-1)
-
-        if self.cdd_size > 1:
-            score = nn.functional.log_softmax(score, dim=1)
-        else:
-            score = torch.sigmoid(score)
         return score
 
-    def forward(self, x):
+    def forward_(self, x):
         if x['candidate_title'].shape[0] != self.batch_size:
             self.batch_size = x['candidate_title'].shape[0]
 
@@ -106,7 +103,7 @@ class NRMSModel_MultiView(nn.Module):
 
         cdd_vert = x['candidate_vert_onehot'].float().to(self.device)
         cdd_vert_repr = self.vertProject(cdd_vert)
-        cdd_subvert = x['candidate_subvert'].float().to(self.device)
+        cdd_subvert = x['candidate_subvert_onehot'].float().to(self.device)
         cdd_subvert_repr = self.subvertProject(cdd_subvert)
 
         cdd_repr = torch.stack([cdd_title_repr, cdd_abs_repr, cdd_vert_repr, cdd_subvert_repr], dim=-2)
@@ -118,15 +115,21 @@ class NRMSModel_MultiView(nn.Module):
         his_abs = x['clicked_abs'].long().to(self.device)
         _, his_abs_repr = self.encoder(his_abs)
 
-        his_vert = x['clicked_vert'].float().to(self.device)
+        his_vert = x['clicked_vert_onehot'].float().to(self.device)
         his_vert_repr = self.vertProject(his_vert)
-        his_subvert = x['clicked_subvert'].float().to(self.device)
-        his_subvert_repr = self.vertProject(his_subvert)
+        his_subvert = x['clicked_subvert_onehot'].float().to(self.device)
+        his_subvert_repr = self.subvertProject(his_subvert)
 
         his_repr = torch.stack([his_title_repr, his_abs_repr, his_vert_repr, his_subvert_repr], dim=-2)
         his_repr = Attention.ScaledDpAttention(self.viewQuery, his_repr, his_repr).squeeze(dim=-2)
 
         user_repr = self.user_encoder(his_repr)
-        score = self._click_predictor(cdd_title_repr, user_repr)
+        return self._click_predictor(cdd_title_repr, user_repr)
 
+    def forward(self, x):
+        score = self.forward_(x)
+        if self.cdd_size > 1:
+            score = nn.functional.log_softmax(score, dim=1)
+        else:
+            score = torch.sigmoid(score)
         return score

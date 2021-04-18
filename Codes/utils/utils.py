@@ -28,7 +28,7 @@ from transformers import get_linear_schedule_with_warmup
 logging.basicConfig(level=logging.INFO,
                     format="[%(asctime)s] %(levelname)s (%(name)s) %(message)s")
 
-hparam_list = ['name', 'scale', 'select', 'integrate', 'his_size', 'k', 'contra_num', 'checkpoint', 'epochs', 'save_step', 'learning_rate']
+hparam_list = ['name', 'scale', 'select', 'integrate', 'his_size', 'k', 'contra_num', 'threshold', 'checkpoint', 'epochs', 'save_step', 'learning_rate']
 param_list = ['query_words', 'query_levels', 'CoAttention.weight', 'selectionProject.weight']
 
 class TripletMarginLoss():
@@ -697,7 +697,7 @@ def run_eval(model, dataloader, interval):
     labels = []
     imp_indexes = []
 
-    for i, batch_data_input in tqdm(enumerate(dataloader), smoothing=0):
+    for batch_data_input in tqdm(dataloader, smoothing=0):
         pred = model.forward(batch_data_input).squeeze(dim=-1).tolist()
         preds.extend(pred)
         label = batch_data_input['labels'].squeeze(dim=-1).tolist()
@@ -743,9 +743,12 @@ def evaluate(model, hparams, dataloader, loading=False, log=True):
                 step), hparams['command'])
             subprocess.Popen(command, shell=True)
 
-    model.eval()
-    cdd_size = model.cdd_size
-    model.cdd_size = 1
+    try:
+        model.cdd_size = 1
+        model.eval()
+        cdd_size = model.cdd_size
+    except:
+        logging.info("this model is not inherited from nn.Module")
 
     if loading:
         load(model, hparams, hparams['epochs'], hparams['save_step'][0])
@@ -786,8 +789,8 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, schedulers=None
 
     for epoch in range(hparams['epochs']):
         epoch_loss = 0
-        tqdm_ = tqdm(enumerate(dataloader), smoothing=0)
-        for step, x in tqdm_:
+        tqdm_ = tqdm(dataloader, smoothing=0)
+        for step, x in enumerate(tqdm_):
 
             for optimizer in optimizers:
                 optimizer.zero_grad()
@@ -894,8 +897,8 @@ def run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=None, wr
 
     for epoch in range(hparams['epochs']):
         epoch_loss = 0
-        tqdm_ = tqdm(enumerate(loaders[0]), smoothing=0)
-        for step, x in tqdm_:
+        tqdm_ = tqdm(loaders[0], smoothing=0)
+        for step, x in enumerate(tqdm_):
 
             for optimizer in optimizers:
                 optimizer.zero_grad()
@@ -1000,15 +1003,18 @@ def test(model, hparams, loader_test):
     load(model, hparams, hparams['epochs'], hparams['save_step'][0])
 
     logging.info("testing...")
-    model.cdd_size = 1
-    model.eval()
+    try:
+        model.cdd_size = 1
+        model.eval()
+    except:
+        logging.info("this model is not inherited from nn.Module")
 
     save_path = 'data/results/prediction={}_{}_epoch{}_step{}_[hs={},topk={}].txt'.format(
         hparams['name'], hparams['scale'], hparams['epochs'], hparams['save_step'][0], hparams['his_size'], hparams['k'])
     with open(save_path, 'w') as f:
         preds = []
         imp_indexes = []
-        for i, x in tqdm(enumerate(loader_test), smoothing=0):
+        for x in tqdm(loader_test, smoothing=0):
             preds.extend(model.forward(x).tolist())
             imp_indexes.extend(x['impression_index'])
 
@@ -1163,6 +1169,8 @@ def load_hparams(hparams):
         hparams['validate'] = args.validate
     if args.onehot:
         hparams['onehot'] = args.onehot
+        hparams['vert_num'] = 18
+        hparams['subvert_num'] = 293
     if args.checkpoint:
         hparams['checkpoint'] = args.checkpoint
     if args.encoder:
@@ -1177,7 +1185,10 @@ def load_hparams(hparams):
     if args.multiview:
         hparams['multiview'] = args.multiview
         hparams['attrs'] = 'title,vert,subvert,abs'.split(',')
+        logging.info("automatically set True for onehot encoding of (sub)categories")
         hparams['onehot'] = True
+        hparams['vert_num'] = 18
+        hparams['subvert_num'] = 293
 
     if hparams['select'] == 'unified':
         hparams['integration'] = args.integration

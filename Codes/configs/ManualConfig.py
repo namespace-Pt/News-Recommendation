@@ -5,6 +5,8 @@ hparams = {
     'title_size':20,
     'abs_size':40,
     'his_size':50,
+    'vert_num':18,
+    'subvert_num':293,
     'npratio':4,
     'dropout_p':0.2,
     'query_dim':200,

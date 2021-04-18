@@ -3,9 +3,8 @@ import sys
 os.chdir('/home/peitian_zhang/Codes/News-Recommendation')
 sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
-import torch
 from utils.utils import evaluate,train,prepare,load_hparams,test,tune
-from models.NRMS import NRMSModel
+from models.NRMS import NRMS,NRMS_MultiView
 
 if __name__ == "__main__":
 
@@ -19,19 +18,21 @@ if __name__ == "__main__":
       }
 
     hparams = load_hparams(hparams)
-    device = torch.device(hparams['device'])
 
     vocab, loaders = prepare(hparams)
-    nrmsModel = NRMSModel(vocab=vocab,hparams=hparams).to(device)
+    if 'multiview' in hparams:
+        nrms = NRMS_MultiView(hparams, vocab).to(hparams['device'])
+    else:
+        nrms = NRMS(vocab=vocab,hparams=hparams).to(hparams['device'])
 
     if hparams['mode'] == 'dev':
-        evaluate(nrmsModel,hparams,loaders[0],load=True)
+        evaluate(nrms,hparams,loaders[0],load=True)
 
     elif hparams['mode'] == 'train':
-        train(nrmsModel, hparams, loaders)
+        train(nrms, hparams, loaders)
 
     elif hparams['mode'] == 'test':
-        test(nrmsModel, hparams, loaders[0])
+        test(nrms, hparams, loaders[0])
 
     elif hparams['mode'] == 'tune':
-        tune(nrmsModel, hparams, loaders)
+        tune(nrms, hparams, loaders)
