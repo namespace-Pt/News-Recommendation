@@ -474,9 +474,10 @@ def _log(res, model, hparams):
         for k, v in hparams.items():
             if k in hparam_list:
                 d[k] = v
-        for name, param in model.named_parameters():
-            if name in param_list:
-                d[name] = tuple(param.shape)
+        if isinstance(model, nn.Module):
+            for name, param in model.named_parameters():
+                if name in param_list:
+                    d[name] = tuple(param.shape)
 
         f.write(str(d)+'\n')
         f.write(str(res) + '\n')
@@ -1113,11 +1114,11 @@ def load_hparams(hparams):
     parser.add_argument("--pipeline", dest="pipeline", help="choose pipeline-encoder", default=None)
 
     parser.add_argument("-hn", "--head_num", dest="head_num",
-                        help="number of multi-heads", type=int)
+                        help="number of multi-heads", type=int, default=16)
     parser.add_argument("-vd", "--value_dim", dest="value_dim",
-                        help="dimension of projected value", type=int)
+                        help="dimension of projected value", type=int, default=16)
     parser.add_argument("-qd", "--query_dim", dest="query_dim",
-                        help="dimension of projected query", type=int)
+                        help="dimension of projected query", type=int, default=200)
 
     parser.add_argument("--attrs", dest="attrs",
                         help="clarified attributes of news will be yielded by dataloader, seperate with comma", type=str, default='title')
@@ -1153,6 +1154,10 @@ def load_hparams(hparams):
     hparams['schedule'] = args.schedule
     hparams['spadam'] = True
     hparams['contra_num'] = args.contra_num
+    hparams['head_num'] = args.head_num
+    hparams['value_dim'] = args.value_dim
+    hparams['query_dim'] = args.query_dim
+
 
     hparams['his_size'] = args.his_size
     hparams['k'] = args.k
@@ -1160,14 +1165,6 @@ def load_hparams(hparams):
 
     hparams['attrs'] = args.attrs.split(',')
     hparams['save_step'] = [int(i) for i in args.save_step.split(',')]
-
-
-    if args.head_num:
-        hparams['head_num'] = args.head_num
-    if args.value_dim:
-        hparams['value_dim'] = args.value_dim
-    if args.query_dim:
-        hparams['query_dim'] = args.query_dim
     if args.validate:
         hparams['validate'] = args.validate
     if args.onehot:
@@ -1290,9 +1287,6 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         if 'bert' not in hparams:
             embedding = GloVe(dim=300, cache='.vector_cache')
             vocab.load_vectors(embedding)
-
-        if hparams['scale'] == 'whole':
-            return vocab, [loader_train]
 
         news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
         behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'

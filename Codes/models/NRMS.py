@@ -78,6 +78,8 @@ class NRMS_MultiView(nn.Module):
 
         self.device = hparams['device']
 
+        self.name = 'nrms-multiview'
+
     def _click_predictor(self, cdd_repr, user_repr):
         """ calculate batch of click probabolity
 
@@ -106,7 +108,7 @@ class NRMS_MultiView(nn.Module):
         cdd_subvert = x['candidate_subvert_onehot'].float().to(self.device)
         cdd_subvert_repr = self.subvertProject(cdd_subvert)
 
-        cdd_repr = torch.stack([cdd_title_repr, cdd_abs_repr, cdd_vert_repr, cdd_subvert_repr], dim=-2)
+        cdd_repr = torch.tanh(torch.stack([cdd_title_repr, cdd_abs_repr, cdd_vert_repr, cdd_subvert_repr], dim=-2))
         cdd_repr = Attention.ScaledDpAttention(self.viewQuery, cdd_repr, cdd_repr).squeeze(dim=-2)
 
         his_title = x['clicked_title'].long().to(self.device)
@@ -120,7 +122,7 @@ class NRMS_MultiView(nn.Module):
         his_subvert = x['clicked_subvert_onehot'].float().to(self.device)
         his_subvert_repr = self.subvertProject(his_subvert)
 
-        his_repr = torch.stack([his_title_repr, his_abs_repr, his_vert_repr, his_subvert_repr], dim=-2)
+        his_repr = torch.tanh(torch.stack([his_title_repr, his_abs_repr, his_vert_repr, his_subvert_repr], dim=-2))
         his_repr = Attention.ScaledDpAttention(self.viewQuery, his_repr, his_repr).squeeze(dim=-2)
 
         user_repr = self.user_encoder(his_repr)
