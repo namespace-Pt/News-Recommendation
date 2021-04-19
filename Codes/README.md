@@ -128,17 +128,6 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
     - construct dictionary
     - wrap training and testing/evaluating
 
-## Experiment
-**the model is run on `MINDlarge` if not specified**
-|model|AUC|MRR|NDCG@5|NDCG@10|benchmark-achieve-at|
-|:-:|:-:|:-:|:-:|:-:|:-:|
-|NPA|$0.6705$|$0.3147$|$0.3492$|$0.4118$|`epoch=5`|
-|FIM|$0.678$|$0.3292$|$0.3655$|$0.4266$|`step=10000`|
-|NRMS|$0.6618$|$0.3179$|$0.3444$|$0.4108$|`epoch=6`|
-|SFI-pipeline||
-|SFI-unified|$0.6782$|$0.3237$|$0.3598$|$0.4237$|
-|SFI-gating|$\mathbf{0.6853}$|$\mathbf{0.3303}$|$\mathbf{0.3663}$|$\mathbf{0.4294}$|`epoch=1, step=18000`|
-
 ## TODO
 - [x] BERT
 - [ ] t-test
@@ -149,7 +138,7 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 - [x] upgrade MIND iterable dataset to MIND map dataset
 - [ ] subspace disentanglement
 - [ ] abstract out the model properties and hyper parameter settings
-
+- [ ] check original SFI's attention weight
 
 ## Mem
-- SFI-dynamic threshold=0.5 abandon
+- SFI-dynamic threshold=0.5 bad

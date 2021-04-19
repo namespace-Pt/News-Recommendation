@@ -699,7 +699,7 @@ def run_eval(model, dataloader, interval):
     imp_indexes = []
 
     for batch_data_input in tqdm(dataloader, smoothing=0):
-        pred = model.forward(batch_data_input).squeeze(dim=-1).tolist()
+        pred = model(batch_data_input).squeeze(dim=-1).tolist()
         preds.extend(pred)
         label = batch_data_input['labels'].squeeze(dim=-1).tolist()
         labels.extend(label)
@@ -744,12 +744,10 @@ def evaluate(model, hparams, dataloader, loading=False, log=True):
                 step), hparams['command'])
             subprocess.Popen(command, shell=True)
 
-    try:
+    if isinstance(model, nn.Module):
         model.cdd_size = 1
         model.eval()
         cdd_size = model.cdd_size
-    except:
-        logging.info("this model is not inherited from nn.Module")
 
     if loading:
         load(model, hparams, hparams['epochs'], hparams['save_step'][0])
@@ -765,8 +763,9 @@ def evaluate(model, hparams, dataloader, loading=False, log=True):
 
         _log(res, model, hparams)
 
-    model.train()
-    model.cdd_size = cdd_size
+    if isinstance(model, nn.Module):
+        model.train()
+        model.cdd_size = cdd_size
 
     return res
 
