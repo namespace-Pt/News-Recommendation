@@ -945,6 +945,7 @@ def run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=None, wr
                     best_res = result
                     logging.info("best result till now is {}".format(best_res))
                     save(model, hparams, epoch+1, step, optimizers)
+                    _log(result, model, hparams)
 
                 elif result['auc'] - best_res['auc'] < -0.1:
                     logging.info("model is overfitting, the result is {}, force shutdown".format(result))
@@ -1093,13 +1094,15 @@ def load_hparams(hparams):
     parser.add_argument(
         "--contra_num", dest="contra_num", help="sample number for contrasive selection aware network", type=int, default=0)
     parser.add_argument("--select", dest="select", help="choose model for selecting",
-                        choices=['pipeline1', 'pipeline2', 'unified', 'gating'], default=None)
+                        choices=['unified', 'gating'], default=None)
     parser.add_argument("--integrate", dest="integration",
                         help="the way history filter is combined", choices=['gate', 'harmony'], default='gate')
     parser.add_argument("--encoder", dest="encoder", help="choose encoder", default='fim')
     parser.add_argument("--interactor", dest="interactor", help="choose interactor", default='fim')
     parser.add_argument("--threshold", dest="threshold", help="if clarified, SFI will dynamically mask attention weights smaller than threshold with 0", default=0, type=float)
     parser.add_argument("--multiview", dest="multiview", help="if clarified, SFI-MultiView will be called", action='store_true')
+    parser.add_argument("--ensemble", dest="ensemble", help="choose ensemble strategy for SFI-ensemble", type=str, default=None)
+
 
     parser.add_argument("--bert", dest="bert", help="choose bert model(encoder)",
                         choices=['bert-base-uncased', 'albert-base-v2'], default=None)
@@ -1189,7 +1192,8 @@ def load_hparams(hparams):
         hparams['onehot'] = True
         hparams['vert_num'] = 18
         hparams['subvert_num'] = 293
-
+    if args.ensemble:
+        hparams['ensemble'] = args.ensemble
     if hparams['select'] == 'unified':
         hparams['integration'] = args.integration
     if args.pipeline:
