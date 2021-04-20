@@ -25,5 +25,7 @@ hparams = {
     'validate':False,
     'interval':10,
     'spadam':True,
-    'onehot':False
+    'onehot':False,
+    'val_freq':1,
+    'scheduler':None
 }

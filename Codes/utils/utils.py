@@ -350,7 +350,7 @@ def getOptim(model, hparams, loader_train):
     else:
         learning_rate = 1e-3
 
-    if 'spadam' in hparams and hparams['spadam']:
+    if hparams['spadam']:
         optimizer_param = optim.Adam(
             parameter(model, ['encoder.embedding.weight'], exclude=True), lr=learning_rate)
         optimizer_embedding = optim.SparseAdam(
@@ -358,21 +358,21 @@ def getOptim(model, hparams, loader_train):
 
         optimizers = (optimizer_param, optimizer_embedding)
 
-        if 'schedule' in hparams and hparams['schedule'] == 'linear':
+        if hparams['schedule'] == 'linear':
             scheduler_param =get_linear_schedule_with_warmup(optimizer_param, num_warmup_steps=0, num_training_steps=len(loader_train) * hparams['epochs'])
             scheduler_embedding =get_linear_schedule_with_warmup(optimizer_embedding, num_warmup_steps=0, num_training_steps=len(loader_train) * hparams['epochs'])
             schedulers = (scheduler_param, scheduler_embedding)
         else:
-            schedulers = None
+            schedulers = []
 
     else:
         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         optimizers = (optimizer,)
-        if 'schedule' in hparams and hparams['schedule'] == 'linear':
+        if hparams['schedule'] == 'linear':
             scheduler =get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=len(loader_train) * hparams['epochs'])
             schedulers = (scheduler,)
         else:
-            schedulers = None
+            schedulers = []
 
     if 'checkpoint' in hparams:
         logging.info("loading checkpoint...")
@@ -887,7 +887,7 @@ def train(model, hparams, loaders, tb=False):
     return model
 
 
-def run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=None, writer=None, interval=100, save_step=None):
+def run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=[], writer=None, interval=100, save_step=None):
     ''' train model and print loss meanwhile
     Args:
         model(torch.nn.Module): the model to be trained
@@ -997,7 +997,7 @@ def tune(model, hparams, loaders, tb=False):
     optimizers, schedulers = getOptim(model, hparams, loaders[0])
 
     model, res = run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=schedulers,
-                      writer=writer, interval=hparams['interval'], save_step=int(len(loaders[0])/hparams['val_freq'] - 1))
+                      writer=writer, interval=hparams['interval'], save_step=int(len(loaders[0])/hparams['val_freq'])-1)
 
     _log(res, model, hparams)
     return model
@@ -1109,7 +1109,7 @@ def load_hparams(hparams):
     parser.add_argument("--integrate", dest="integration",
                         help="the way history filter is combined", choices=['gate', 'harmony'], default='gate')
     parser.add_argument("--encoder", dest="encoder", help="choose encoder", default='fim')
-    parser.add_argument("--interactor", dest="interactor", help="choose interactor", default='fim')
+    parser.add_argument("--interactor", dest="interactor", help="choose interactor", default=None)
     parser.add_argument("--threshold", dest="threshold", help="if clarified, SFI will dynamically mask attention weights smaller than threshold with 0", default=0, type=float)
     parser.add_argument("--multiview", dest="multiview", help="if clarified, SFI-MultiView will be called", action='store_true')
     parser.add_argument("--ensemble", dest="ensemble", help="choose ensemble strategy for SFI-ensemble", type=str, default=None)
@@ -1167,7 +1167,7 @@ def load_hparams(hparams):
     hparams['head_num'] = args.head_num
     hparams['value_dim'] = args.value_dim
     hparams['query_dim'] = args.query_dim
-
+    hparams['interactor'] = args.interactor
 
     hparams['his_size'] = args.his_size
     hparams['k'] = args.k
@@ -1187,8 +1187,6 @@ def load_hparams(hparams):
         hparams['checkpoint'] = args.checkpoint
     if args.encoder:
         hparams['encoder'] = args.encoder
-    if args.interactor:
-        hparams['interactor'] = args.interactor
     if args.threshold:
         hparams['threshold'] = args.threshold
         if hparams['k'] != hparams['his_size']:
@@ -1242,7 +1240,7 @@ def generate_hparams(hparams, config):
         yield hparams
 
 
-def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=False, pin_memory=True):
+def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=False, pin_memory=True, num_workers=8):
     from .MIND import MIND,MIND_news
     """ prepare dataloader and several paths
 
@@ -1265,11 +1263,11 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
 
         dataset_train = MIND_news(hparams, news_file_train)
         loader_news_train = DataLoader(
-            dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=8, drop_last=False, collate_fn=my_collate)
+            dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=num_workers, drop_last=False, collate_fn=my_collate)
 
         dataset_dev = MIND_news(hparams, news_file_dev)
         loader_news_dev = DataLoader(
-            dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=8, drop_last=False, collate_fn=my_collate)
+            dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=num_workers, drop_last=False, collate_fn=my_collate)
 
         vocab = dataset_train.vocab
         embedding = GloVe(dim=300, cache='.vector_cache')
@@ -1280,7 +1278,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
                 '/MIND{}_test/news.tsv'.format(hparams['scale'])
             dataset_test = MIND_news(hparams, news_file_test)
             loader_news_test = DataLoader(
-                dataset_test, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=8, drop_last=False, collate_fn=my_collate)
+                dataset_test, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=num_workers, drop_last=False, collate_fn=my_collate)
 
             return vocab, [loader_news_train, loader_news_dev, loader_news_test]
 
@@ -1294,7 +1292,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         dataset_train = MIND(hparams=hparams, news_file=news_file_train,
                             behaviors_file=behavior_file_train)
         loader_train = DataLoader(dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                num_workers=8, drop_last=False, shuffle=shuffle, collate_fn=my_collate)
+                                num_workers=num_workers, drop_last=False, shuffle=shuffle, collate_fn=my_collate)
         vocab = dataset_train.vocab
         if 'bert' not in hparams:
             embedding = GloVe(dim=300, cache='.vector_cache')
@@ -1305,13 +1303,13 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
                         behaviors_file=behavior_file_dev)
         loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                num_workers=8, drop_last=False, collate_fn=my_collate)
+                                num_workers=num_workers, drop_last=False, collate_fn=my_collate)
 
         if 'validate' in hparams and hparams['validate']:
             dataset_validate = MIND(
                 hparams=hparams, news_file=news_file_train, behaviors_file=behavior_file_train, validate=True)
             loader_validate = DataLoader(dataset_validate, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                        num_workers=8, drop_last=False, collate_fn=my_collate)
+                                        num_workers=num_workers, drop_last=False, collate_fn=my_collate)
             return vocab, [loader_train, loader_dev, loader_validate]
         else:
             return vocab, [loader_train, loader_dev]
@@ -1322,7 +1320,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
                         behaviors_file=behavior_file_dev)
         loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                num_workers=8, drop_last=False, collate_fn=my_collate)
+                                num_workers=num_workers, drop_last=False, collate_fn=my_collate)
         vocab = dataset_dev.vocab
         if 'bert' not in hparams:
             embedding = GloVe(dim=300, cache='.vector_cache')
@@ -1334,7 +1332,7 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         dataset_test = MIND(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv',
                                  '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
         loader_test = DataLoader(dataset_test, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                 num_workers=8, drop_last=False, collate_fn=my_collate)
+                                 num_workers=num_workers, drop_last=False, collate_fn=my_collate)
 
         vocab = dataset_test.vocab
         if 'bert' not in hparams:

@@ -37,12 +37,12 @@ def kernel_sigmas(n_kernels):
 
 
 class FIM_Interactor(nn.Module):
-    def __init__(self):
+    def __init__(self, level):
         super().__init__()
         self.name = 'fim'
 
         self.SeqCNN3D = nn.Sequential(
-            nn.Conv3d(in_channels=3, out_channels=32, kernel_size=[3, 3, 3], padding=1),
+            nn.Conv3d(in_channels=level, out_channels=32, kernel_size=[3, 3, 3], padding=1),
             nn.ReLU(),
             nn.MaxPool3d(kernel_size=[3, 3, 3], stride=[3, 3, 3]),
             nn.Conv3d(in_channels=32, out_channels=16, kernel_size=[3, 3, 3], padding=1),

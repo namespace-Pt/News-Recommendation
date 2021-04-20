@@ -64,9 +64,9 @@ if __name__ == "__main__":
     else:
         raise ValueError("Undefined Encoder:{}".format(hparams['encoder']))
 
-    if hparams['interactor'] == 'fim':
-        from models.Interactors import FIM_Interactor
-        interactor = FIM_Interactor()
+    if hparams['interactor'] == None:
+        interactor = None
+        hparams['interactor'] = 'fim'
 
     elif hparams['interactor'] == 'knrm':
         from models.Interactors import KNRM_Interactor

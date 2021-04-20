@@ -139,6 +139,12 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 - [ ] subspace disentanglement
 - [ ] abstract out the model properties and hyper parameter settings
 - [ ] check original SFI's attention weight
+- [ ] contrasive learning optimization
+- [ ] lstm on embedding before/after dilated cnn
+- [ ] position embedding
+- [ ] FIM comparison for topk effectiveness
+- [ ] different threshold
+- [ ] delicate selection project
 
 ## Mem
 - SFI-dynamic threshold=0.5 bad

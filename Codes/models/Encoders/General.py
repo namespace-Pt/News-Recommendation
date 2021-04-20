@@ -109,7 +109,7 @@ class RNN_Encoder(nn.Module):
         # dimension for the final output embedding/representation
         self.hidden_dim = hparams['hidden_dim']
 
-        self.lstm = nn.LSTM(self.embedding_dim, self.hidden_dim, batch_first=True,dropout=hparams['dropout_p'],bidirectional=True)
+        self.lstm = nn.LSTM(self.embedding_dim, self.hidden_dim, batch_first=True,bidirectional=True)
 
     def forward(self, news_batch, **kwargs):
         """ encode news with bert
