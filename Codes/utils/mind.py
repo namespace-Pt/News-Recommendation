@@ -27,11 +27,8 @@ class MIND(Dataset):
         self.abs_size = hparams['abs_size']
         self.his_size = hparams['his_size']
 
-        if 'onehot' in hparams and hparams['onehot']:
-            self.onehot = hparams['onehot']
-
-        if 'k' in hparams:
-            self.k = hparams['k']
+        self.onehot = hparams['onehot']
+        self.k = hparams['k']
 
         self.mode = re.search(
             '{}_(.*)/'.format(hparams['scale']), news_file).group(1)

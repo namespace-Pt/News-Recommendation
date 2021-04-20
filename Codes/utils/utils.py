@@ -378,7 +378,7 @@ def getOptim(model, hparams, loader_train):
         logging.info("loading checkpoint...")
         ck = hparams['checkpoint'].split(',')
         # modify the epoch so the model can be properly saved
-        load(model, hparams, ck[0], ck[1], optimizers)
+        load(model, hparams, ck[0], ck[1], optimizers, schedulers)
 
     return optimizers, schedulers
 
@@ -398,7 +398,7 @@ def getLabel(model, x):
     return label
 
 
-def save(model, hparams, epoch, step, optimizers=[]):
+def save(model, hparams, epoch, step, optimizers=[], schedulers=[]):
     """
         shortcut for saving the model and optimizer
     """
@@ -425,12 +425,18 @@ def save(model, hparams, epoch, step, optimizers=[]):
     else:
         save_dict['optimizer'] = optimizers[0].state_dict()
 
+    if len(schedulers) > 1:
+        save_dict['scheduler'] = schedulers[0].state_dict()
+        save_dict['scheduler_embedding'] = schedulers[1].state_dict()
+    else:
+        save_dict['scheduler'] = schedulers[0].state_dict()
+
     torch.save(save_dict, save_path)
     logging.info("saved model of step {}, epoch {} at {}".format(
         step, epoch, save_path))
 
 
-def load(model, hparams, epoch, step, optimizers=None):
+def load(model, hparams, epoch, step, optimizers=None, schedulers=None):
     """
         shortcut for loading model and optimizer parameters
     """
@@ -461,6 +467,11 @@ def load(model, hparams, epoch, step, optimizers=None):
         optimizers[0].load_state_dict(state_dict['optimizer'])
         if len(optimizers) > 1:
             optimizers[1].load_state_dict(state_dict['optimizer_embedding'])
+
+    if schedulers:
+        schedulers[0].load_state_dict(state_dict['scheduler'])
+        if len(schedulers) > 1:
+            schedulers[1].load_state_dict(state_dict['scheduler_embedding'])
 
     logging.info("Loading model from {}...".format(save_path))
 
@@ -745,9 +756,9 @@ def evaluate(model, hparams, dataloader, loading=False, log=True):
             subprocess.Popen(command, shell=True)
 
     if isinstance(model, nn.Module):
+        cdd_size = model.cdd_size
         model.cdd_size = 1
         model.eval()
-        cdd_size = model.cdd_size
 
     if loading:
         load(model, hparams, hparams['epochs'], hparams['save_step'][0])
@@ -828,14 +839,14 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, schedulers=None
 
             if save_step:
                 if step % save_step == 0 and step > 0:
-                    save(model, hparams, epoch+1, step, optimizers)
+                    save(model, hparams, epoch+1, step, optimizers, schedulers)
 
             total_steps += 1
 
         if writer:
             writer.add_scalar('epoch_loss', epoch_loss, epoch)
 
-        save(model, hparams, epoch+1, 0, optimizers)
+        save(model, hparams, epoch+1, 0, optimizers, schedulers)
 
     return model
 
@@ -944,7 +955,7 @@ def run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=None, wr
                 if result['auc'] > best_res['auc']:
                     best_res = result
                     logging.info("best result till now is {}".format(best_res))
-                    save(model, hparams, epoch+1, step, optimizers)
+                    save(model, hparams, epoch+1, step, optimizers, schedulers)
                     _log(result, model, hparams)
 
                 elif result['auc'] - best_res['auc'] < -0.1:
@@ -1170,6 +1181,8 @@ def load_hparams(hparams):
         hparams['onehot'] = args.onehot
         hparams['vert_num'] = 18
         hparams['subvert_num'] = 293
+    else:
+        hparams['onehot'] = False
     if args.checkpoint:
         hparams['checkpoint'] = args.checkpoint
     if args.encoder:

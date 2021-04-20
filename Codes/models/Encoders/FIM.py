@@ -5,7 +5,7 @@ from ..Attention import Attention
 class FIM_Encoder(nn.Module):
     def __init__(self, hparams, vocab):
         super().__init__()
-        self.name = 'fim-encoder'
+        self.name = 'fim'
 
         self.kernel_size = 3
         self.level = 3

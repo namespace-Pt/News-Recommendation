@@ -4,7 +4,7 @@ hparams = {
     'batch_size':10,
     'title_size':20,
     'abs_size':40,
-    'his_size':50,
+    'his_size':30,
     'vert_num':18,
     'subvert_num':293,
     'npratio':4,
@@ -24,5 +24,6 @@ hparams = {
     'news_id':False,
     'validate':False,
     'interval':10,
-    'spadam':True
+    'spadam':True,
+    'onehot':False
 }
