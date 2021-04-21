@@ -241,8 +241,8 @@ class MIND(Dataset):
             negs = self.negtives[impr_index]
             neg_list, neg_pad = newsample(negs, self.npratio)
 
-            cdd_ids = np.asarray([impr_news] + neg_list)
-            label = np.asarray([1] + [0] * self.npratio)
+            cdd_ids = [impr_news] + neg_list
+            label = [1] + [0] * self.npratio
 
             if self.shuffle_pos:
                 s = np.arange(0, len(label), 1)
@@ -281,7 +281,7 @@ class MIND(Dataset):
             back_dic = {
                 "user_index": np.asarray(user_index),
                 # "cdd_mask": np.asarray(neg_pad),
-                'cdd_id': cdd_ids,
+                'cdd_id': np.asarray(cdd_ids),
                 "candidate_title": candidate_title_index,
                 "candidate_title_pad": np.asarray(candidate_title_pad),
                 "candidate_abs": candidate_abs_index,
@@ -302,10 +302,7 @@ class MIND(Dataset):
             if self.onehot:
                 candidate_vert_onehot = [self.vert2onehot[str(i[0])] for i in candidate_vert_index]
                 clicked_vert_onehot = [self.vert2onehot[str(i[0])] for i in clicked_vert_index]
-                try:
-                    candidate_subvert_onehot = [self.subvert2onehot[str(i[0])] for i in candidate_subvert_index]
-                except:
-                    print(cdd_ids, candidate_subvert_index, index)
+                candidate_subvert_onehot = [self.subvert2onehot[str(i[0])] for i in candidate_subvert_index]
                 clicked_subvert_onehot = [self.subvert2onehot[str(i[0])] for i in clicked_subvert_index]
 
                 back_dic['candidate_vert_onehot'] = np.asarray(candidate_vert_onehot)
@@ -332,9 +329,9 @@ class MIND(Dataset):
             else:
                 his_mask[-self.his_pad[impr_index]:] = [True]
 
-            candidate_title_pad = [(self.title_size - self.title_pad[impr_news][0])*[1] + self.title_pad[impr_news][0]*[0]]
+            candidate_title_pad = [(self.title_size - i[0])*[1] + i[0]*[0] for i in self.title_pad[cdd_ids]]
             clicked_title_pad = [(self.title_size - i[0])*[1] + i[0]*[0] for i in self.title_pad[his_ids]]
-            candidate_abs_pad = [(self.abs_size - self.abs_pad[impr_news][0])*[1] + self.abs_pad[impr_news][0]*[0]]
+            candidate_abs_pad = [(self.abs_size - i[0])*[1] + i[0]*[0] for i in self.abs_pad[cdd_ids]]
             clicked_abs_pad = [(self.abs_size - i[0])*[1] + i[0]*[0] for i in self.abs_pad[his_ids]]
 
             candidate_title_index = [self.news_title_array[impr_news]]
@@ -396,9 +393,9 @@ class MIND(Dataset):
             else:
                 his_mask[-self.his_pad[impr_index]:] = [True]
 
-            candidate_title_pad = [(self.title_size - self.title_pad[impr_news][0])*[1] + self.title_pad[impr_news][0]*[0]]
+            candidate_title_pad = [(self.title_size - i[0])*[1] + i[0]*[0] for i in self.title_pad[cdd_ids]]
             clicked_title_pad = [(self.title_size - i[0])*[1] + i[0]*[0] for i in self.title_pad[his_ids]]
-            candidate_abs_pad = [(self.abs_size - self.abs_pad[impr_news][0])*[1] + self.abs_pad[impr_news][0]*[0]]
+            candidate_abs_pad = [(self.abs_size - i[0])*[1] + i[0]*[0] for i in self.abs_pad[cdd_ids]]
             clicked_abs_pad = [(self.abs_size - i[0])*[1] + i[0]*[0] for i in self.abs_pad[his_ids]]
 
             candidate_title_index = [self.news_title_array[impr_news]]

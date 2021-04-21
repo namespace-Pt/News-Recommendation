@@ -425,11 +425,12 @@ def save(model, hparams, epoch, step, optimizers=[], schedulers=[]):
     else:
         save_dict['optimizer'] = optimizers[0].state_dict()
 
-    if len(schedulers) > 1:
-        save_dict['scheduler'] = schedulers[0].state_dict()
-        save_dict['scheduler_embedding'] = schedulers[1].state_dict()
-    else:
-        save_dict['scheduler'] = schedulers[0].state_dict()
+    if schedulers:
+        if len(schedulers) > 1:
+            save_dict['scheduler'] = schedulers[0].state_dict()
+            save_dict['scheduler_embedding'] = schedulers[1].state_dict()
+        else:
+            save_dict['scheduler'] = schedulers[0].state_dict()
 
     torch.save(save_dict, save_path)
     logging.info("saved model of step {}, epoch {} at {}".format(
@@ -440,17 +441,13 @@ def load(model, hparams, epoch, step, optimizers=None, schedulers=None):
     """
         shortcut for loading model and optimizer parameters
     """
-    if 'k' not in hparams:
-        k = 0
-    else:
-        k = hparams['k']
 
     if 'checkpoint' in hparams:
         save_path = 'data/model_params/{}/{}_epoch{}_step{}_ck{}_[hs={},topk={},attrs={}].model'.format(
-            hparams['name'], hparams['scale'], epoch, step, hparams['checkpoint'], hparams['his_size'], k, ','.join(hparams['attrs']))
+            hparams['name'], hparams['scale'], epoch, step, hparams['checkpoint'], hparams['his_size'], hparams['k'], ','.join(hparams['attrs']))
     else:
         save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},attrs={}].model'.format(
-            hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], k, ','.join(hparams['attrs']))
+            hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], hparams['k'], ','.join(hparams['attrs']))
 
     state_dict = torch.load(save_path, map_location=hparams['device'])
     if re.search('pipeline',model.name):

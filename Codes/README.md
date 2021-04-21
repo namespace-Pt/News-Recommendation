@@ -144,7 +144,7 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 - [ ] position embedding
 - [ ] FIM comparison for topk effectiveness
 - [ ] different threshold
-- [ ] delicate selection project
+- [ ] delicate selection project compared with raw attention weight
 
 ## Mem
 - SFI-dynamic threshold=0.5 bad

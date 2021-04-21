@@ -27,5 +27,5 @@ hparams = {
     'spadam':True,
     'onehot':False,
     'val_freq':1,
-    'scheduler':None
+    'schedule':None
 }
