@@ -138,13 +138,17 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 - [x] upgrade MIND iterable dataset to MIND map dataset
 - [ ] subspace disentanglement
 - [ ] abstract out the model properties and hyper parameter settings
-- [ ] check original SFI's attention weight
-- [ ] contrasive learning optimization
+- [x] check original SFI's attention weight
+  - note that selection project's weight will not be updated
+- [x] contrasive learning optimization
+  - forgget about it
 - [ ] lstm on embedding before/after dilated cnn
+  - no effect
 - [ ] position embedding
 - [ ] FIM comparison for topk effectiveness
 - [ ] different threshold
 - [ ] delicate selection project compared with raw attention weight
+  - no effect
 - [ ] base_encoder
 
 ## Mem
