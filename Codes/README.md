@@ -145,6 +145,8 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 - [ ] FIM comparison for topk effectiveness
 - [ ] different threshold
 - [ ] delicate selection project compared with raw attention weight
+- [ ] base_encoder
 
 ## Mem
 - SFI-dynamic threshold=0.5 bad
+- not sufficient enhancement with LSTM applied in encoder

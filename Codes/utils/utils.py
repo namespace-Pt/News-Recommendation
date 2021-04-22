@@ -877,9 +877,9 @@ def train(model, hparams, loaders, tb=False):
                       writer=writer, interval=hparams['interval'], save_step=hparams['save_step'][0])
 
     # loader_train, loader_dev, loader_validate
-    if len(loaders) > 1:
-        for loader in loaders[1:]:
-            evaluate(model, hparams, loader)
+    # if len(loaders) > 1:
+    #     for loader in loaders[1:]:
+    #         evaluate(model, hparams, loader)
 
     return model
 
@@ -1041,7 +1041,7 @@ def test(model, hparams, loader_test):
                                              for i in rank_list]) + ']' + '\n'
             f.write(line)
 
-    logging.info("written to prediction!")
+    logging.info("written to prediction at {}!".format(save_path))
 
     with open('performance.log', 'a+') as f:
         d = {}
@@ -1088,8 +1088,8 @@ def load_hparams(hparams):
 
     parser.add_argument("-ck", "--checkpoint", dest="checkpoint",
                         help="the checkpoint model to load", type=str)
-    parser.add_argument("-lr", "--learning_rate", dest="learning_rate",
-                        help="learning rate when training", type=float, default=1e-3)
+    parser.add_argument("--learning_rate", dest="learning_rate",
+                        help="learning rate when training", type=float, default=0)
     parser.add_argument("--schedule", dest="schedule", help="choose schedule scheme for optimizer", default='linear')
 
     parser.add_argument("--npratio", dest="npratio",
@@ -1157,7 +1157,6 @@ def load_hparams(hparams):
     hparams['npratio'] = args.npratio
     hparams['metrics'] = args.metrics
     hparams['val_freq'] = args.val_freq
-    hparams['learning_rate'] = args.learning_rate
     hparams['schedule'] = args.schedule
     hparams['spadam'] = True
     hparams['contra_num'] = args.contra_num
@@ -1172,6 +1171,14 @@ def load_hparams(hparams):
 
     hparams['attrs'] = args.attrs.split(',')
     hparams['save_step'] = [int(i) for i in args.save_step.split(',')]
+
+    if not args.learning_rate:
+        if hparams['scale'] == 'demo':
+            hparams['learning_rate'] = 1e-3
+        else:
+            hparams['learning_rate'] = 1e-4
+    else:
+        hparams['learning_rate'] = args.learning_rate
     if args.validate:
         hparams['validate'] = args.validate
     if args.onehot:
