@@ -142,14 +142,15 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
   - note that selection project's weight will not be updated
 - [x] contrasive learning optimization
   - forgget about it
-- [ ] lstm on embedding before/after dilated cnn
+- [x] lstm on embedding before/after dilated cnn
   - no effect
 - [ ] position embedding
 - [ ] FIM comparison for topk effectiveness
 - [ ] different threshold
-- [ ] delicate selection project compared with raw attention weight
+- [x] delicate selection project compared with raw attention weight
   - no effect
 - [ ] base_encoder
+- [ ] his_size=30, topk=10, achieve result of FIM
 
 ## Mem
 - SFI-dynamic threshold=0.5 bad
