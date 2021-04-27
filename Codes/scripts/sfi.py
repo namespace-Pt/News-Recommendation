@@ -1,10 +1,4 @@
-import os
-import sys
-os.chdir('/home/peitian_zhang/Codes/News-Recommendation')
-sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
-
-import torch
-from utils.utils import evaluate,train,prepare,load_hparams,test,tune,load,pipeline_encode
+from utils.utils import evaluate,train,prepare,load_hparams,test,tune,load,pipeline_encode,encode
 
 if __name__ == "__main__":
 
@@ -15,7 +9,6 @@ if __name__ == "__main__":
         'filter_num':150,
     }
     hparams = load_hparams(hparams)
-    torch.cuda.set_device(hparams['device'])
 
     if hparams['mode'] == 'encode':
         vocab, loaders = prepare(hparams, news=True)
@@ -52,7 +45,6 @@ if __name__ == "__main__":
         encoder = CNN_Encoder(hparams, vocab)
 
     elif hparams['encoder'] == 'pipeline':
-        hparams['encoder'] = hparams['encoder'] + '-[{}]'.format(hparams['pipeline'])
         from models.Encoders.General import Pipeline_Encoder
         encoder = Pipeline_Encoder(hparams)
 
@@ -116,9 +108,8 @@ if __name__ == "__main__":
         test(sfiModel, hparams, loaders[0])
 
     elif hparams['mode'] == 'encode':
-        from models.Encoders import Encoder_Wrapper
+        from models.Encoders.General import Encoder_Wrapper
         encoder_wrapper = Encoder_Wrapper(hparams, encoder).to(hparams['device'])
-        hparams['name'] = '-'.join([hparams['name'], hparams['encoder'], hparams['select']])
 
-        load(Encoder_Wrapper, hparams, hparams['epochs'], hparams['save_step'], pipeline=True)
-        pipeline_encode(Encoder_Wrapper, hparams, loaders)
+        load(encoder_wrapper, hparams, hparams['epochs'], hparams['save_step'][0])
+        pipeline_encode(encoder_wrapper, hparams, loaders)

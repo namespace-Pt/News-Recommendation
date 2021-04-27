@@ -1365,7 +1365,7 @@ def pipeline_encode(model, hparams, loaders):
             'test': 120961
         }
     }
-    news_num = news_num_dict[hparams['scale']][hparams['mode']]
+    news_num = news_num_dict[hparams['scale']]['train']
 
     news_reprs = torch.zeros((news_num + 1, model.hidden_dim))
     news_embeddings = torch.zeros(
@@ -1377,48 +1377,102 @@ def pipeline_encode(model, hparams, loaders):
             news_reprs[x['news_id'][i]] = repr[i]
             news_embeddings[x['news_id'][i]] = embedding[i]
 
+    torch.save(news_reprs, 'data/tensors/news_repr_{}_train-[{}].tensor'.format(
+        hparams['scale'], hparams['name']))
+    torch.save(news_embeddings, 'data/tensors/news_embedding_{}_train-[{}].tensor'.format(
+        hparams['scale'], hparams['name']))
+    del news_reprs
+    del news_embeddings
+
+    news_num_dev = news_num_dict[hparams['scale']]['dev']
+
+    news_reprs = torch.zeros((news_num_dev + 1, model.hidden_dim))
+    news_embeddings = torch.zeros(
+        (news_num_dev + 1, model.signal_length, model.level, model.hidden_dim))
+
+    for x in tqdm(loaders[1]):
+        embedding, repr = model(x)
+        for i in range(embedding.shape[0]):
+            news_reprs[x['news_id'][i]] = repr[i]
+            news_embeddings[x['news_id'][i]] = embedding[i]
+
+    torch.save(news_reprs, 'data/tensors/news_repr_{}_dev-[{}].tensor'.format(
+        hparams['scale'], hparams['name']))
+    torch.save(news_embeddings, 'data/tensors/news_embedding_{}_dev-[{}].tensor'.format(
+        hparams['scale'], hparams['name']))
+    del news_reprs
+    del news_embeddings
+
+
+    if hparams['scale'] == 'large':
+        news_num_test = news_num_dict[hparams['scale']]['test']
+
+        news_reprs = torch.zeros((news_num_test + 1, model.hidden_dim))
+        news_embeddings = torch.zeros(
+            (news_num_test + 1, model.signal_length, model.level, model.hidden_dim))
+
+        for x in tqdm(loaders[2]):
+            embedding, repr = model(x)
+            for i in range(embedding.shape[0]):
+                news_reprs[x['news_id'][i]] = repr[i]
+                news_embeddings[x['news_id'][i]] = embedding[i]
+
+        torch.save(news_reprs, 'data/tensors/news_repr_{}_test-[{}].tensor'.format(
+            hparams['scale'], hparams['name']))
+        torch.save(news_embeddings, 'data/tensors/news_embedding_{}_test-[{}].tensor'.format(
+            hparams['scale'], hparams['name']))
+        del news_reprs
+        del news_embeddings
+
+    logging.info('successfully encoded news!')
+
+
+def encode(model, hparams):
+    """
+        Encode news of hparams['scale'] in each mode
+    """
+    from .MIND import MIND_news
+    path = '/home/peitian_zhang/Data/MIND'
+    news_file = path + '/MIND{}_{}/news.tsv'.format(hparams['scale'],hparams['mode'])
+
+    dataset = MIND_news(hparams, news_file)
+    loader_news = DataLoader(
+        dataset, batch_size=hparams['batch_size'], pin_memory=False, num_workers=8, drop_last=False, collate_fn=my_collate)
+
+    news_num_dict = {
+        'demo': {
+            'train': 51282,
+            'dev': 42416
+        },
+        'small': {
+            'train': 51282,
+            'dev': 42416
+        },
+        'large': {
+            'train': 101527,
+            'dev': 72023,
+            'test': 120961
+        }
+    }
+    news_num = news_num_dict[hparams['scale']][hparams['mode']]
+
+    news_reprs = torch.zeros((news_num + 1, model.hidden_dim))
+    news_embeddings = torch.zeros(
+        (news_num + 1, model.signal_length, model.level, model.hidden_dim))
+
+    for x in tqdm(loader_news):
+        embedding, repr = model(x)
+        for i in range(embedding.shape[0]):
+            news_reprs[x['news_id'][i]] = repr[i]
+            news_embeddings[x['news_id'][i]] = embedding[i]
+
     torch.save(news_reprs, 'data/tensors/news_repr_{}_{}-[{}].tensor'.format(
         hparams['scale'], hparams['mode'], hparams['name']))
     torch.save(news_embeddings, 'data/tensors/news_embedding_{}_{}-[{}].tensor'.format(
         hparams['scale'], hparams['mode'], hparams['name']))
-
-    # news_num_dev = news_num_dict[hparams['scale']]['dev']
-
-    # news_reprs = torch.zeros((news_num_dev + 1, model.hidden_dim))
-    # news_embeddings = torch.zeros(
-    #     (news_num_dev + 1, model.signal_length, model.level, model.hidden_dim))
-
-    # for x in tqdm(loaders[1]):
-    #     embedding, repr = model(x)
-    #     for i in range(embedding.shape[0]):
-    #         news_reprs[x['news_id'][i]] = repr[i]
-    #         news_embeddings[x['news_id'][i]] = embedding[i]
-
-    # torch.save(news_reprs, 'data/tensors/news_repr_{}_dev-[{}].tensor'.format(
-    #     hparams['scale'], hparams['name']))
-    # torch.save(news_embeddings, 'data/tensors/news_embedding_{}_dev-[{}].tensor'.format(
-    #     hparams['scale'], hparams['name']))
-
-    # if hparams['scale'] == 'large':
-    #     news_num_test = news_num_dict[hparams['scale']]['test']
-
-    #     news_reprs = torch.zeros((news_num_test + 1, model.hidden_dim))
-    #     news_embeddings = torch.zeros(
-    #         (news_num_test + 1, model.signal_length, model.level, model.hidden_dim))
-
-    #     for x in tqdm(loaders[2]):
-    #         embedding, repr = model(x)
-    #         for i in range(embedding.shape[0]):
-    #             news_reprs[x['news_id'][i]] = repr[i]
-    #             news_embeddings[x['news_id'][i]] = embedding[i]
-
-    #     torch.save(news_reprs, 'data/tensors/news_repr_{}_test-[{}].tensor'.format(
-    #         hparams['scale'], hparams['name']))
-    #     torch.save(news_embeddings, 'data/tensors/news_embedding_{}_test-[{}].tensor'.format(
-    #         hparams['scale'], hparams['name']))
-
-    logging.info('successfully encoded news!')
-
+    del news_reprs
+    del news_embeddings
+    logging.info('successfully encoded news of {}-{}'.format(hparams['scale'], hparams['mode']))
 
 def analyse(hparams, path='/home/peitian_zhang/Data/MIND'):
     """

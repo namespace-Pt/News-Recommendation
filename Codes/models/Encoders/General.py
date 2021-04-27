@@ -2,7 +2,7 @@ import os
 import logging
 import torch
 import torch.nn as nn
-from .Attention import Attention
+from ..Attention import Attention
 from transformers import AutoModel
 
 class Pipeline_Encoder(nn.Module):
@@ -141,17 +141,16 @@ class Encoder_Wrapper(nn.Module):
         self.batch_size = hparams['batch_size']
         self.signal_length = hparams['title_size']
 
-        self.device = hparams['device']
 
     def forward(self,x):
         if x['candidate_title'].shape[0] != self.batch_size:
             self.batch_size = x['candidate_title'].shape[0]
 
-        news = x['candidate_title'].long().to(self.device)
+        news = x['candidate_title'].long()
         news_embedding, news_repr = self.encoder(
             news,
-            news_id=x['news_id'].long().to(self.device),
-            attn_mask=x['candidate_title_pad'].to(self.device))
+            news_id=x['news_id'].long(),
+            attn_mask=x['candidate_title_pad'])
 
         return news_embedding, news_repr
 

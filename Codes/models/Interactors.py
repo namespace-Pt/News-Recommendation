@@ -120,3 +120,4 @@ class KNRM_Interactor(nn.Module):
         fusion_tensor = torch.sum(torch.sum(pooling_vectors, dim=-2), dim=-2)
 
         return fusion_tensor
+

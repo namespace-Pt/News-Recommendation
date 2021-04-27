@@ -342,7 +342,6 @@ class FIM_Encoder(nn.Module):
         self.CNN_d3 = nn.Conv1d(in_channels=self.embedding_dim, out_channels=self.hidden_dim,
                                 kernel_size=self.kernel_size, dilation=3, padding=3)
 
-        self.device = hparams['device']
         self.attrs = hparams['attrs']
 
         nn.init.xavier_normal_(self.CNN_d1.weight)

@@ -150,7 +150,9 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 - [x] delicate selection project compared with raw attention weight
   - no effect
 - [ ] base_encoder
-- [ ] his_size=30, topk=10, achieve result of FIM
+- [x] his_size=30, topk=10, achieve result of FIM
+- [ ] check sfi-dynamic with threshold=0.5
+- [ ] check out probability density of reinforcement learning
 
 ## Mem
 - SFI-dynamic threshold=0.5 bad
