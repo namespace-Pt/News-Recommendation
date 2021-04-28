@@ -146,14 +146,76 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
   - no effect
 - [ ] position embedding
 - [ ] FIM comparison for topk effectiveness
-- [ ] different threshold
+- [x] different threshold
 - [x] delicate selection project compared with raw attention weight
   - no effect
 - [ ] base_encoder
 - [x] his_size=30, topk=10, achieve result of FIM
-- [ ] check sfi-dynamic with threshold=0.5
+- [x] check sfi-dynamic with threshold=0.5
 - [ ] check out probability density of reinforcement learning
 
 ## Mem
 - SFI-dynamic threshold=0.5 bad
 - not sufficient enhancement with LSTM applied in encoder
+
+## Exp
+|his_size|topk|result|
+|:-:|:-:|:-:|
+|50|10|{'auc': 0.6516, 'mean_mrr': 0.3006, 'ndcg@5': 0.3304, 'ndcg@10': 0.3949, 'epoch': 3, 'step': 2362}|
+|50|15||
+|50|20|{'auc': 0.6493, 'mean_mrr': 0.3005, 'ndcg@5': 0.3324, 'ndcg@10': 0.3957, 'epoch': 4, 'step': 590}|
+|50|25||
+|50|30||
+|50|35||
+|50|40||
+|50|45||
+|50|50||
+|30|30|{'auc': 0.6498, 'mean_mrr': 0.2995, 'ndcg@5': 0.328, 'ndcg@10': 0.3942, 'epoch': 5, 'step': 2362}|
+|40|30||
+|50|30||
+|60|30||
+|70|30||
+|80|30||
+|90|30||
+|100|30||
+
+|Encoder|Interactor|selection|result|
+|:-:|:-:|:-:|:-:|
+|NPA|3DCNN|hard||
+|NPA|KNRM|hard||
+|NPA|2DCNN|hard||
+|NPA|3DCNN|soft||
+|NPA|KNRM|soft||
+|NPA|2DCNN|soft||
+|NRMS|3DCNN|hard||
+|NRMS|KNRM|hard||
+|NRMS|2DCNN|hard||
+|NRMS|3DCNN|soft||
+|NRMS|KNRM|soft||
+|NRMS|2DCNN|soft||
+|FIM|3DCNN|hard||
+|FIM|KNRM|hard||
+|FIM|2DCNN|hard||
+|FIM|3DCNN|soft||
+|FIM|KNRM|soft||
+|FIM|2DCNN|soft||
+|CNN|3DCNN|hard||
+|CNN|KNRM|hard||
+|CNN|2DCNN|hard||
+|CNN|3DCNN|soft||
+|CNN|KNRM|soft||
+|CNN|2DCNN|soft||
+
+|pre-training|result|
+|:-:|:-:|
+|FIM||
+|NPA||
+|NRMS||
+
+|threshold|result|
+|:-:|:-:|
+|0.1||
+|0.2||
+|0.3|{'auc': 0.6937, 'mean_mrr': 0.3372, 'ndcg@5': 0.3727, 'ndcg@10': 0.4385, 'epoch': 5, 'step': 16916}|
+|0.4|{'auc': 0.6859, 'mean_mrr': 0.3306, 'ndcg@5': 0.3656, 'ndcg@10': 0.4302, 'epoch': 3, 'step': 25374}|
+|0.5|{'auc': 0.6759, 'mean_mrr': 0.3245, 'ndcg@5': 0.3575, 'ndcg@10': 0.4199, 'epoch': 4, 'step': 25374}|
