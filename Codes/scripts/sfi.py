@@ -121,6 +121,7 @@ if __name__ == "__main__":
         encode(encoder_wrapper, hparams)
 
         hparams['device'] = device
+        hparams['pipeline'] = 'sfi-fim-fim-gating'
         encoder = Pipeline_Encoder(hparams)
         sfiModel = SFI_gating(hparams, encoder).to(hparams['device'])
         test(sfiModel, hparams, loaders[0])
