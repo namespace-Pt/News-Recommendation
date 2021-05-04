@@ -154,9 +154,6 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 - [x] check sfi-dynamic with threshold=0.5
 - [ ] check out probability density of reinforcement learning
 
-## Mem
-- SFI-dynamic threshold=0.5 bad
-- not sufficient enhancement with LSTM applied in encoder
 
 ## Exp
 |his_size|topk|result|
@@ -173,10 +170,19 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 |30|30|{'auc': 0.6498, 'mean_mrr': 0.2995, 'ndcg@5': 0.328, 'ndcg@10': 0.3942, 'epoch': 5, 'step': 2362}|
 |40|30|{'auc': 0.6526, 'mean_mrr': 0.3018, 'ndcg@5': 0.3312, 'ndcg@10': 0.3972, 'epoch': 5, 'step': 2362}|
 |60|30|{'auc': 0.652, 'mean_mrr': 0.3058, 'ndcg@5': 0.3348, 'ndcg@10': 0.3997, 'epoch': 4, 'step': 2362}|
-|70|30||
-|80|30||
-|90|30||
-|100|30||
+|70|30|{'auc': 0.6539, 'mean_mrr': 0.3048, 'ndcg@5': 0.3372, 'ndcg@10': 0.4007, 'epoch': 5, 'step': 2362}|
+|80|30|{'auc': 0.6597, 'mean_mrr': 0.3058, 'ndcg@5': 0.34, 'ndcg@10': 0.4024, 'epoch': 5, 'step': 2362}|
+|90|30|{'auc': 0.6495, 'mean_mrr': 0.2947, 'ndcg@5': 0.3244, 'ndcg@10': 0.3891, 'epoch': 3, 'step': 1181}|
+|100|30|{'auc': 0.6544, 'mean_mrr': 0.3044, 'ndcg@5': 0.3367, 'ndcg@10': 0.4006, 'epoch': 5, 'step': 1181}|
+
+|threshold|result|
+|:-:|:-:|
+|0.1||
+|0.2|{'auc': 0.6915, 'mean_mrr': 0.3318, 'ndcg@5': 0.3672, 'ndcg@10': 0.4333, 'epoch': 5, 'step': 8458}|
+|0.3|{'auc': 0.6937, 'mean_mrr': 0.3372, 'ndcg@5': 0.3727, 'ndcg@10': 0.4385, 'epoch': 5, 'step': 16916}|
+|0.4|{'auc': 0.6859, 'mean_mrr': 0.3306, 'ndcg@5': 0.3656, 'ndcg@10': 0.4302, 'epoch': 3, 'step': 25374}|
+|0.5|{'auc': 0.6759, 'mean_mrr': 0.3245, 'ndcg@5': 0.3575, 'ndcg@10': 0.4199, 'epoch': 4, 'step': 25374}|
+|0.7|{'auc': 0.6208, 'mean_mrr': 0.3046, 'ndcg@5': 0.3327, 'ndcg@10': 0.3938, 'epoch': 1, 'step': 8458}|
 
 |Encoder|Interactor|selection|result|
 |:-:|:-:|:-:|:-:|
@@ -210,12 +216,3 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 |FIM||
 |NPA||
 |NRMS||
-
-|threshold|result|
-|:-:|:-:|
-|0.1||
-|0.2|{'auc': 0.6915, 'mean_mrr': 0.3318, 'ndcg@5': 0.3672, 'ndcg@10': 0.4333, 'epoch': 5, 'step': 8458}|
-|0.3|{'auc': 0.6937, 'mean_mrr': 0.3372, 'ndcg@5': 0.3727, 'ndcg@10': 0.4385, 'epoch': 5, 'step': 16916}|
-|0.4|{'auc': 0.6859, 'mean_mrr': 0.3306, 'ndcg@5': 0.3656, 'ndcg@10': 0.4302, 'epoch': 3, 'step': 25374}|
-|0.5|{'auc': 0.6759, 'mean_mrr': 0.3245, 'ndcg@5': 0.3575, 'ndcg@10': 0.4199, 'epoch': 4, 'step': 25374}|
-|0.7|{'auc': 0.6208, 'mean_mrr': 0.3046, 'ndcg@5': 0.3327, 'ndcg@10': 0.3938, 'epoch': 1, 'step': 8458}|
