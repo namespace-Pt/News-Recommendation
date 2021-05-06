@@ -117,21 +117,21 @@ if __name__ == "__main__":
         tune(sfiModel, hparams, loaders)
 
     elif hparams['mode'] == 'test':
-        from models.Encoders.General import Encoder_Wrapper,Pipeline_Encoder
+        # from models.Encoders.General import Encoder_Wrapper,Pipeline_Encoder
 
         device = hparams['device']
 
-        if not 'multiview' in hparams:
-            hparams['device'] = 'cpu'
-            encoder_wrapper = Encoder_Wrapper(hparams, encoder.to('cpu'))
-            load(encoder_wrapper, hparams, hparams['epochs'], hparams['save_step'][0])
-            encode(encoder_wrapper, hparams)
+        # if not 'multiview' in hparams:
+        #     hparams['device'] = 'cpu'
+        #     encoder_wrapper = Encoder_Wrapper(hparams, encoder.to('cpu'))
+        #     load(encoder_wrapper, hparams, hparams['epochs'], hparams['save_step'][0])
+        #     encode(encoder_wrapper, hparams)
 
-            hparams['device'] = device
-            hparams['pipeline'] = 'sfi-fim-fim-gating'
-            encoder = Pipeline_Encoder(hparams)
-            sfiModel = SFI_gating(hparams, encoder).to(hparams['device'])
-            test(sfiModel, hparams, loaders[0])
+        #     hparams['device'] = device
+        #     hparams['pipeline'] = 'sfi-fim-fim-gating'
+        #     encoder = Pipeline_Encoder(hparams)
+        #     sfiModel = SFI_gating(hparams, encoder).to(hparams['device'])
+        #     test(sfiModel, hparams, loaders[0])
 
-        else:
-            test(sfiModel, hparams, loaders[0])
+        # else:
+        test(sfiModel, hparams, loaders[0])

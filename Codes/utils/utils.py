@@ -378,7 +378,7 @@ def getOptim(model, hparams, loader_train):
         logging.info("loading checkpoint...")
         ck = hparams['checkpoint'].split(',')
         # modify the epoch so the model can be properly saved
-        load(model, hparams, ck[0], ck[1], optimizers, schedulers)
+        load(model, hparams, ck[0], ck[1], optimizers)
 
     return optimizers, schedulers
 
@@ -398,7 +398,7 @@ def getLabel(model, x):
     return label
 
 
-def save(model, hparams, epoch, step, optimizers=[], schedulers=[]):
+def save(model, hparams, epoch, step, optimizers=[]):
     """
         shortcut for saving the model and optimizer
     """
@@ -425,19 +425,19 @@ def save(model, hparams, epoch, step, optimizers=[], schedulers=[]):
     else:
         save_dict['optimizer'] = optimizers[0].state_dict()
 
-    if schedulers:
-        if len(schedulers) > 1:
-            save_dict['scheduler'] = schedulers[0].state_dict()
-            save_dict['scheduler_embedding'] = schedulers[1].state_dict()
-        else:
-            save_dict['scheduler'] = schedulers[0].state_dict()
+    # if schedulers:
+    #     if len(schedulers) > 1:
+    #         save_dict['scheduler'] = schedulers[0].state_dict()
+    #         save_dict['scheduler_embedding'] = schedulers[1].state_dict()
+    #     else:
+    #         save_dict['scheduler'] = schedulers[0].state_dict()
 
     torch.save(save_dict, save_path)
     logging.info("saved model of step {}, epoch {} at {}".format(
         step, epoch, save_path))
 
 
-def load(model, hparams, epoch, step, optimizers=None, schedulers=None):
+def load(model, hparams, epoch, step, optimizers=None):
     """
         shortcut for loading model and optimizer parameters
     """
@@ -451,24 +451,20 @@ def load(model, hparams, epoch, step, optimizers=None, schedulers=None):
 
     state_dict = torch.load(save_path, map_location=hparams['device'])
     if re.search('pipeline',model.name):
+        logging.info("loading in pipeline")
         model.load_state_dict(state_dict['model'], strict=False)
     else:
-        try:
-            model.load_state_dict(state_dict['model'])
-        except KeyError:
-            logging.warning(
-                "saving model without optimizer is going to be deprecated, please use save()!")
-            model.load_state_dict(state_dict)
+        model.load_state_dict(state_dict['model'])
 
     if optimizers:
         optimizers[0].load_state_dict(state_dict['optimizer'])
         if len(optimizers) > 1:
             optimizers[1].load_state_dict(state_dict['optimizer_embedding'])
 
-    if schedulers:
-        schedulers[0].load_state_dict(state_dict['scheduler'])
-        if len(schedulers) > 1:
-            schedulers[1].load_state_dict(state_dict['scheduler_embedding'])
+    # if schedulers:
+    #     schedulers[0].load_state_dict(state_dict['scheduler'])
+    #     if len(schedulers) > 1:
+    #         schedulers[1].load_state_dict(state_dict['scheduler_embedding'])
 
     logging.info("Loading model from {}...".format(save_path))
 
@@ -836,14 +832,14 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, schedulers=None
 
             if save_step:
                 if step % save_step == 0 and step > 0:
-                    save(model, hparams, epoch+1, step, optimizers, schedulers)
+                    save(model, hparams, epoch+1, step, optimizers)
 
             total_steps += 1
 
         if writer:
             writer.add_scalar('epoch_loss', epoch_loss, epoch)
 
-        save(model, hparams, epoch+1, 0, optimizers, schedulers)
+        save(model, hparams, epoch+1, 0, optimizers)
 
     return model
 
@@ -952,7 +948,7 @@ def run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=[], writ
                 if result['auc'] > best_res['auc']:
                     best_res = result
                     logging.info("best result till now is {}".format(best_res))
-                    save(model, hparams, epoch+1, step, optimizers, schedulers)
+                    save(model, hparams, epoch+1, step, optimizers)
                     _log(result, model, hparams)
 
                 elif result['auc'] - best_res['auc'] < -0.1:
@@ -1193,9 +1189,9 @@ def load_hparams(hparams):
         hparams['encoder'] = args.encoder
     if args.threshold:
         hparams['threshold'] = args.threshold
-        if hparams['k'] != hparams['his_size']:
-            logging.info("adjust k:{} to his_size:{} automatically".format(args.k, args.his_size))
-            hparams['k'] = hparams['his_size']
+        # if hparams['k'] != hparams['his_size']:
+            # logging.info("adjust k:{} to his_size:{} automatically".format(args.k, args.his_size))
+            # hparams['k'] = hparams['his_size']
     if args.multiview:
         hparams['multiview'] = args.multiview
         hparams['attrs'] = 'title,vert,subvert,abs'.split(',')
