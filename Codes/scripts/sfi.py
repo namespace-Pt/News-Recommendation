@@ -119,7 +119,7 @@ if __name__ == "__main__":
     elif hparams['mode'] == 'test':
         # from models.Encoders.General import Encoder_Wrapper,Pipeline_Encoder
 
-        device = hparams['device']
+        # device = hparams['device']
 
         # if not 'multiview' in hparams:
         #     hparams['device'] = 'cpu'

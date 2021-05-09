@@ -1,7 +1,7 @@
 :smile:
 [TOC]
 ## 结构
-- Codes：复现的代码    
+- Codes：复现的代码
 - Notes：论文笔记
 - Papers：论文
 - Resources：论文截图
@@ -16,7 +16,7 @@
 **在[45]之后黄色代表不认识的单词，绿色代表需要看的点**
 
 ## 结果
-[LeaderBoard](https://msnews.github.io/#leaderboard), 用户名**Pt**
+[LeaderBoard](https://msnews.github.io/#leaderboard), 用户名**namespace-Pt**
 
 # 新闻推荐
 ## Notation
@@ -67,7 +67,7 @@
       - PLSI[1]
       - 假设用户和新闻的分布，用隐变量来模拟用户和新闻之间的联系，将用户和新闻聚类在多个高斯分布上，本质上我认为还是将用户和新闻映射到一个隐空间中
       - 推荐时直接计算$p(v|u) = \sum_z p(v|z) * p(z|u)$
-      
+
     - Factorization Machine：
       - 将*user-item*矩阵转化为*transaction-attribute*矩阵，一行为一条交互记录，列为不同的属性，将用户id和新闻id都作为属性（独热、*多热*表达），每一条交互记录都对应一个用户最终的评分（点击概率）![](Resources/factorization%20machine%20graph.png)
       - 得到一个$V\in R^{n*k}$，每一行对应一个属性，即将每一个属性嵌入到$R^k$中，得到属性的feature
@@ -95,7 +95,7 @@
     - n-gram配合全连接神经网络+tanh[13]
   - entity-based
     - 利用title中的实体作为complement[4,24,33]
-    
+
   - embedding-based
     - denoising auto-encoder[8]
     - attention
@@ -235,55 +235,55 @@
 ## 我觉得很好的文章
 [13,26,48]
 ## 文献索引
-[1] Google News Personalization Scalable Online Collaborative Filtering  
-[2] A contextual-bandit approach to personalized news article recommendation  
-[3] Content-Based News Recommendation  
-[4] Personalized News Recommendation A Review and an Experimental Investigation  
-[5] Personalized news recommendation based on click behavior  
-[6] SCENE A Scalable Two-Stage Personalized News Recommendation System  
-[7] Content-based Collaborative Filtering for News Topic Recommendation    
-[8] Embedding-based news recommendation for millions of users  
-[9] Matrix factorization techniques for recommender systems  
-[10] Factorization Machines  
-[11] Wide & Deep Learning for Recommender Systems  
-[12] Maximum Likelihood, Logistic Regression, and Stochastic Gradient Training  
-[13] Learning deep structured semantic models for web search using clickthrough data  
-[14] Combining Content-Based and Collaborative Filtering in an Online Newspaper  
-[15] Neural Networks: Tricks of the Trade (Second edition)  
-[16] Deepfm afactorizationmachine based neural network for ctr prediction  
-[17] News session based recommendations using deep neural networks  
-[18] Towards better representation learning for personalized news recommendation a multi-channel deep fusion approach  
-[19] Session-based recommendations with recurrent neural networks  
-[20] Neural News Recommendation with Attentive Multi-View Learning  
-[21] Neural News Recommendation with Long- and Short-term User Representation  
-[22] Neural News Recommendation with Multi-Head Self-Attention  
-[23] Npa Neural news recommendation with personalized attention  
-[24] DKN Deep Knowledge-Aware Network  
-[25] DRN A Deep Reinforcement Learning Framework for News Recommendation  
-[26] Adaptive User Modeling with Long and Short-Term Preference for Personalized Recommendation  
-[27] Co-Attentive Multi-Task Learning for Explainable Recommendation  
-[28] Explainable Recommendation through Attentive Multi-View Learning  
-[29] Fine-grained Interest Matching for Neural News Recommendation  
-[30] Geography-Aware Sequential Location Recommendation  
-[31] Hi-Fi Ark Deep User Representation via High-Fidelity Archive Network  
-[32] Knowledge Graph Convolutional Networks for Recommender Systems  
-[33] Multi-Task Feature Learning for Knowledge Graph Enhanced Recommendation  
-[34] Neural News Recommendation with Heterogeneous User Behavior  
-[35] Neural News Recommendation with Topic-Aware News Representation  
-[36] Personalized Multimedia Item and Key Frame Recommendation  
-[37] Reviews Meet Graphs Enhancing User and Item Representations for Recommendation with Hierarchical Attentive Graph Neural Network  
-[38] Session-Based Recommendation with Graph Neural Networks  
-[39] Graph Neural News Recommendation with Unsupervised Preference Disentanglement  
-[40] LightRec A Memory and Search-Efficient Recommender System  
-[41] Towards Explainable Conversational Recommendation  
-[42] Knowledge-Aware Document Representation for News Recommendations  
-[43] Combining Collaborative Filtering and Search Engine into Hybrid News Recommendation    
-[44] Collaborative Metric Learning with Memory Network for Multi-Relational Recommender Systems  
-[45] Sequential Recommendation with User Memory Networks  
-[46] Leveraging Demonstrations for Reinforcement Recommendation Reasoning over Knowledge Graphs   
-[47] EntityDuet Neural Ranking Understanding the Role of Knowledge Graph Semantics  
-[48] Octopus Comprehensive and Elastic User Representation for the Generation of Recommendation  
-[49] End-to-End Neural Ad-hoc Ranking with Kernel Pooling  
-[50] Categorical reparameterization with gumbel-softmax  
-[51] Deep k-Nearest Neighbors Towards Confident,Interpretable and Robust Deep Learning   
-[52] differentiable-top-k-operator-with-optimal-transport  
+[1] Google News Personalization Scalable Online Collaborative Filtering
+[2] A contextual-bandit approach to personalized news article recommendation
+[3] Content-Based News Recommendation
+[4] Personalized News Recommendation A Review and an Experimental Investigation
+[5] Personalized news recommendation based on click behavior
+[6] SCENE A Scalable Two-Stage Personalized News Recommendation System
+[7] Content-based Collaborative Filtering for News Topic Recommendation
+[8] Embedding-based news recommendation for millions of users
+[9] Matrix factorization techniques for recommender systems
+[10] Factorization Machines
+[11] Wide & Deep Learning for Recommender Systems
+[12] Maximum Likelihood, Logistic Regression, and Stochastic Gradient Training
+[13] Learning deep structured semantic models for web search using clickthrough data
+[14] Combining Content-Based and Collaborative Filtering in an Online Newspaper
+[15] Neural Networks: Tricks of the Trade (Second edition)
+[16] Deepfm afactorizationmachine based neural network for ctr prediction
+[17] News session based recommendations using deep neural networks
+[18] Towards better representation learning for personalized news recommendation a multi-channel deep fusion approach
+[19] Session-based recommendations with recurrent neural networks
+[20] Neural News Recommendation with Attentive Multi-View Learning
+[21] Neural News Recommendation with Long- and Short-term User Representation
+[22] Neural News Recommendation with Multi-Head Self-Attention
+[23] Npa Neural news recommendation with personalized attention
+[24] DKN Deep Knowledge-Aware Network
+[25] DRN A Deep Reinforcement Learning Framework for News Recommendation
+[26] Adaptive User Modeling with Long and Short-Term Preference for Personalized Recommendation
+[27] Co-Attentive Multi-Task Learning for Explainable Recommendation
+[28] Explainable Recommendation through Attentive Multi-View Learning
+[29] Fine-grained Interest Matching for Neural News Recommendation
+[30] Geography-Aware Sequential Location Recommendation
+[31] Hi-Fi Ark Deep User Representation via High-Fidelity Archive Network
+[32] Knowledge Graph Convolutional Networks for Recommender Systems
+[33] Multi-Task Feature Learning for Knowledge Graph Enhanced Recommendation
+[34] Neural News Recommendation with Heterogeneous User Behavior
+[35] Neural News Recommendation with Topic-Aware News Representation
+[36] Personalized Multimedia Item and Key Frame Recommendation
+[37] Reviews Meet Graphs Enhancing User and Item Representations for Recommendation with Hierarchical Attentive Graph Neural Network
+[38] Session-Based Recommendation with Graph Neural Networks
+[39] Graph Neural News Recommendation with Unsupervised Preference Disentanglement
+[40] LightRec A Memory and Search-Efficient Recommender System
+[41] Towards Explainable Conversational Recommendation
+[42] Knowledge-Aware Document Representation for News Recommendations
+[43] Combining Collaborative Filtering and Search Engine into Hybrid News Recommendation
+[44] Collaborative Metric Learning with Memory Network for Multi-Relational Recommender Systems
+[45] Sequential Recommendation with User Memory Networks
+[46] Leveraging Demonstrations for Reinforcement Recommendation Reasoning over Knowledge Graphs
+[47] EntityDuet Neural Ranking Understanding the Role of Knowledge Graph Semantics
+[48] Octopus Comprehensive and Elastic User Representation for the Generation of Recommendation
+[49] End-to-End Neural Ad-hoc Ranking with Kernel Pooling
+[50] Categorical reparameterization with gumbel-softmax
+[51] Deep k-Nearest Neighbors Towards Confident,Interpretable and Robust Deep Learning
+[52] differentiable-top-k-operator-with-optimal-transport
