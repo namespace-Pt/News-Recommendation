@@ -22,13 +22,9 @@ class Pipeline_Encoder(nn.Module):
             logger.warning("No encoded news at '{}', please encode news first!".format(news_embedding_path))
             raise ValueError
 
-        # print(self.news_repr.weight.shape, news_embedding.shape, self.news_embedding.weight.shape)
-
         self.level = news_embedding.shape[-2]
         self.hidden_dim = news_embedding.shape[-1]
-
         self.DropOut = nn.Dropout(hparams['dropout_p'])
-        # print(self.level, self.hidden_dim)
 
     def forward(self,news_batch,**kwargs):
         """ encode news by lookup table
@@ -149,7 +145,7 @@ class Encoder_Wrapper(nn.Module):
         news = x['candidate_title'].long()
         news_embedding, news_repr = self.encoder(
             news,
-            news_id=x['news_id'].long(),
+            news_id=x['cdd_id'].long(),
             attn_mask=x['candidate_title_pad'])
 
         return news_embedding, news_repr

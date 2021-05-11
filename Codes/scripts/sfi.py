@@ -2,6 +2,7 @@ import os
 import sys
 os.chdir('./')
 sys.path.append('./')
+import re
 from utils.utils import evaluate,train,prepare,load_hparams,test,tune,load,pipeline_encode,encode
 
 if __name__ == "__main__":
@@ -72,14 +73,14 @@ if __name__ == "__main__":
         raise ValueError("Undefined Interactor:{}".format(hparams['interactor']))
 
     # FIXME, treat encode as a argument, encode=train means only encode training dataset
-    # if hparams['mode'] == 'encode':
-    #     from models.Encoders.General import Encoder_Wrapper
-    #     hparams['name'] = '-'.join([hparams['name'], hparams['encoder'], hparams['interactor'], hparams['select']])
-    #     encoder_wrapper = Encoder_Wrapper(hparams, encoder).to('cpu')
+    if hparams['mode'] == 'encode':
+        from models.Encoders.General import Encoder_Wrapper
+        hparams['name'] = '-'.join([hparams['name'], hparams['encoder'], hparams['interactor'], hparams['select']])
+        encoder_wrapper = Encoder_Wrapper(hparams, encoder).to('cpu').eval()
 
-    #     load(encoder_wrapper, hparams, hparams['epochs'], hparams['save_step'][0])
-    #     pipeline_encode(encoder_wrapper, hparams, loaders)
-
+        load(encoder_wrapper, hparams, hparams['epochs'], hparams['save_step'][0])
+        encode(encoder_wrapper, hparams, loader=loaders[1])
+        # pipeline_encode(encoder_wrapper, hparams, loaders)
 
     if 'multiview' in hparams:
         hparams['name'] = 'sfi-multiview'
@@ -105,7 +106,10 @@ if __name__ == "__main__":
         else:
             raise ValueError("Undefined Selection Method:{}".format(hparams['select']))
 
-    hparams['name'] = '-'.join([hparams['name'], hparams['encoder'], hparams['interactor'], hparams['select']])
+    if re.search('pipeline', sfiModel.encoder.name):
+        hparams['name'] = hparams['pipeline']
+    else:
+        hparams['name'] = '-'.join([hparams['name'], hparams['encoder'], hparams['interactor'], hparams['select']])
 
     if hparams['mode'] == 'dev':
         evaluate(sfiModel,hparams,loaders[0],loading=True)

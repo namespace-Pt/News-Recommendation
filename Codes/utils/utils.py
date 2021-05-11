@@ -702,7 +702,7 @@ def run_eval(model, dataloader, interval):
     labels = []
     imp_indexes = []
 
-    for batch_data_input in tqdm(dataloader, smoothing=0):
+    for batch_data_input in tqdm(dataloader, smoothing=1):
         pred = model(batch_data_input).squeeze(dim=-1).tolist()
         preds.extend(pred)
         label = batch_data_input['labels'].squeeze(dim=-1).tolist()
@@ -1077,10 +1077,10 @@ def load_hparams(hparams):
 
     parser.add_argument("--device", dest="device",
                         help="device to run on", choices=['0', '1', 'cpu'], default='0')
-    parser.add_argument("--interval", dest="interval", help="the step interval to update processing bar", default=100, type=int)
+    parser.add_argument("--interval", dest="interval", help="the step interval to update processing bar", default=0, type=int)
     parser.add_argument("--save_step", dest="save_step",
                         help="if clarified, save model at the interval of given steps", type=str, default='0')
-    parser.add_argument("--val_freq", dest="val_freq", help="the frequency to validate during training in one epoch", type=int, default=4)
+    parser.add_argument("--val_freq", dest="val_freq", help="the frequency to validate during training in one epoch", type=int, default=0)
 
     parser.add_argument("-ck", "--checkpoint", dest="checkpoint",
                         help="the checkpoint model to load", type=str)
@@ -1175,6 +1175,20 @@ def load_hparams(hparams):
             hparams['learning_rate'] = 1e-4
     else:
         hparams['learning_rate'] = args.learning_rate
+    if not args.interval:
+        if hparams['scale'] == 'demo':
+            hparams['interval'] = 10
+        else:
+            hparams['interval'] = 100
+    else:
+        hparams['interval'] = args.interval
+    if not args.val_freq:
+        if hparams['scale'] == 'demo':
+            hparams['val_freq'] = 1
+        else:
+            hparams['val_freq'] = 4
+    else:
+        hparams['val_freq'] = args.val_freq
     if args.validate:
         hparams['validate'] = args.validate
     if args.onehot:
@@ -1206,6 +1220,7 @@ def load_hparams(hparams):
     if args.pipeline:
         hparams['pipeline'] = args.pipeline
         hparams['encoder'] = 'pipeline'
+        hparams['name'] = args.pipeline
         hparams['spadam'] = False
     if args.bert:
         hparams['encoder'] = 'bert'
@@ -1422,18 +1437,23 @@ def pipeline_encode(model, hparams, loaders):
 
     logging.info('successfully encoded news!')
 
-
-def encode(model, hparams):
+@torch.no_grad()
+def encode(model, hparams, loader=None):
     """
-        Encode news of hparams['scale'] in each mode
+        Encode news of hparams['scale'] in each mode, currently force to encode dev dataset
     """
-    from .MIND import MIND_news
-    path = '/home/peitian_zhang/Data/MIND'
-    news_file = path + '/MIND{}_{}/news.tsv'.format(hparams['scale'],hparams['mode'])
 
-    dataset = MIND_news(hparams, news_file)
-    loader_news = DataLoader(
-        dataset, batch_size=hparams['batch_size'], pin_memory=False, num_workers=8, drop_last=False, collate_fn=my_collate)
+    # very important
+    model.eval()
+
+    if not loader:
+        from .MIND import MIND_news
+        path = '/home/peitian_zhang/Data/MIND'
+        news_file = path + '/MIND{}_{}/news.tsv'.format(hparams['scale'],hparams['mode'])
+
+        dataset = MIND_news(hparams, news_file)
+        loader_news = DataLoader(
+            dataset, batch_size=hparams['batch_size'], pin_memory=False, num_workers=8, drop_last=False, collate_fn=my_collate)
 
     news_num_dict = {
         'demo': {
@@ -1450,25 +1470,25 @@ def encode(model, hparams):
             'test': 120961
         }
     }
-    news_num = news_num_dict[hparams['scale']][hparams['mode']]
+    news_num = news_num_dict[hparams['scale']]['dev']
 
     news_reprs = torch.zeros((news_num + 1, model.hidden_dim))
     news_embeddings = torch.zeros(
         (news_num + 1, model.signal_length, model.level, model.hidden_dim))
 
-    for x in tqdm(loader_news):
+    for x in tqdm(loader):
         embedding, repr = model(x)
         for i in range(embedding.shape[0]):
-            news_reprs[x['news_id'][i]] = repr[i]
-            news_embeddings[x['news_id'][i]] = embedding[i]
+            news_reprs[x['cdd_id'][i]] = repr[i]
+            news_embeddings[x['cdd_id'][i]] = embedding[i]
 
     torch.save(news_reprs, 'data/tensors/news_repr_{}_{}-[{}].tensor'.format(
-        hparams['scale'], hparams['mode'], hparams['name']))
+        hparams['scale'], 'dev', hparams['name']))
     torch.save(news_embeddings, 'data/tensors/news_embedding_{}_{}-[{}].tensor'.format(
-        hparams['scale'], hparams['mode'], hparams['name']))
+        hparams['scale'], 'dev', hparams['name']))
     del news_reprs
     del news_embeddings
-    logging.info('successfully encoded news of {}-{}'.format(hparams['scale'], hparams['mode']))
+    logging.info('successfully encoded news of {}-{}, saved in data/tensors/news_**_{}_{}-[{}].tensor'.format(hparams['scale'], 'dev', hparams['scale'], 'dev', hparams['name']))
 
 def analyse(hparams, path='/home/peitian_zhang/Data/MIND'):
     """

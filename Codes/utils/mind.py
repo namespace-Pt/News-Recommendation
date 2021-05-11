@@ -819,9 +819,6 @@ class MIND_news(Dataset):
         """
 
         title_token = []
-        # category_token = [[0]]
-        # subcategory_token = [[0]]
-
         title_pad = []
         news_ids = []
 
@@ -836,13 +833,9 @@ class MIND_news(Dataset):
                 title_token.append(
                     title[:self.title_size] + [0] * (self.title_size - len(title)))
                 title_pad.append([max(self.title_size - len(title), 0)])
-                # category_token.append([self.vocab[vert]])
-                # subcategory_token.append([self.vocab[subvert]])
                 news_ids.append(self.nid2index[nid])
 
         self.news_title_array = np.asarray(title_token)
-        # self.news_category_array = np.asarray(category_token)
-        # self.news_subcategory_array = np.asarray(subcategory_token)
 
         self.title_pad = np.asarray(title_pad)
         self.news_ids = news_ids
@@ -862,6 +855,6 @@ class MIND_news(Dataset):
         candidate_title_pad = [(self.title_size - self.title_pad[idx][0])*[1] + self.title_pad[idx][0]*[0]]
         return {
             "candidate_title": np.asarray([self.news_title_array[idx]]),
-            "news_id": self.news_ids[idx],
+            "cdd_id": self.news_ids[idx],
             "candidate_title_pad":np.asarray(candidate_title_pad)
         }

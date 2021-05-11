@@ -45,13 +45,21 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
   ```
   - **e.g. train FIM model on MINDlarge for 2 epochs. At the end of each step, save the model, meanwhile, save model every 2000 steps**
     ```shell
-    cd Codes/
-    python scripts/fim.py --scale large --mode train --epoch 2 --save_each_epoch --save_step 2000
+    python scripts/fim.py -s large -m train -e 2 --save_step 2000
+    ```
+  - **e.g. train FIM model on MINDlarge for 2 epochs. Evaluate the model on MINDlarge_dev 4 times an epoch, save the model with best performance**
+    ```shell
+    python scripts/fim.py -s large -m tune -epoch 2
     ```
   - **e.g. test FIM model which were trained on `MINDlarge` and saved at the end of 4000 steps**
     ```shell
-    cd Codes/
     python scripts/fim.py -s large -m test --save_step 4000
+    ```
+  - **e.g. encode news with pre-trained encoders then fine-tune their representations**
+    ```shell
+    python scripts/fim.py -m train -s demo -e 1
+    python scripts/fim.py -m encode -e 1 -s large
+    python scripts/fim.py -m dev -e 1 -s large --select=gating --pipeline=fim-fim
     ```
 - **default path of model parameters is** `data/model_params/[model_name]`, since I didn't upload this folder, you need to create one.
 
@@ -129,30 +137,17 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
     - wrap training and testing/evaluating
 
 ## TODO
-- [x] BERT
 - [ ] t-test
-- [x] inference time comparison
-- [x] pipeline performance comparison
 - [ ] reproduce Hi-Fi Ark
-- [x] sfi frame
-- [x] upgrade MIND iterable dataset to MIND map dataset
 - [ ] subspace disentanglement
 - [ ] abstract out the model properties and hyper parameter settings
-- [x] check original SFI's attention weight
-  - note that selection project's weight will not be updated
-- [x] contrasive learning optimization
-  - forgget about it
-- [x] lstm on embedding before/after dilated cnn
-  - no effect
 - [ ] position embedding
-- [ ] FIM comparison for topk effectiveness
-- [x] different threshold
 - [x] delicate selection project compared with raw attention weight
   - no effect
 - [ ] base_encoder
-- [x] his_size=30, topk=10, achieve result of FIM
-- [x] check sfi-dynamic with threshold=0.5
+- [ ] ensemble
 - [ ] check out probability density of reinforcement learning
+- [ ] fix encoding fault
 
 
 ## Exp
@@ -177,7 +172,7 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 
 |threshold|result|
 |:-:|:-:|
-|0.1||
+|0.1|{'auc': 0.6993, 'mean_mrr': 0.339, 'ndcg@5': 0.3761, 'ndcg@10': 0.4414, 'epoch': 5, 'step': 16916}|
 |0.2|{'auc': 0.6915, 'mean_mrr': 0.3318, 'ndcg@5': 0.3672, 'ndcg@10': 0.4333, 'epoch': 5, 'step': 8458}|
 |0.3|{'auc': 0.6937, 'mean_mrr': 0.3372, 'ndcg@5': 0.3727, 'ndcg@10': 0.4385, 'epoch': 5, 'step': 16916}|
 |0.4|{'auc': 0.6859, 'mean_mrr': 0.3306, 'ndcg@5': 0.3656, 'ndcg@10': 0.4302, 'epoch': 3, 'step': 25374}|
