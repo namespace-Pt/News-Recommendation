@@ -352,9 +352,9 @@ def getOptim(model, hparams, loader_train):
 
     if hparams['spadam']:
         optimizer_param = optim.Adam(
-            parameter(model, ['encoder.embedding.weight'], exclude=True), lr=learning_rate)
+            parameter(model, ['encoder.embedding.weight','encoder.user_embedding.weight'], exclude=True), lr=learning_rate)
         optimizer_embedding = optim.SparseAdam(
-            list(model.encoder.embedding.parameters()), lr=learning_rate)
+            list(parameter(model, ['encoder.embedding.weight','encoder.user_embedding.weight'])), lr=learning_rate)
 
         optimizers = (optimizer_param, optimizer_embedding)
 
