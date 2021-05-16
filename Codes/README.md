@@ -221,8 +221,8 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 |50|30|{'auc': 0.6617, 'mean_mrr': 0.3075, 'ndcg@5': 0.34, 'ndcg@10': 0.4024, 'epoch': 4, 'step': 1181}|
 |50|35|{'auc': 0.6657, 'mean_mrr': 0.3151, 'ndcg@5': 0.3477, 'ndcg@10': 0.4099, 'epoch': 12, 'step': 2363}|
 |50|40|{'auc': 0.6687, 'mean_mrr': 0.3181, 'ndcg@5': 0.352, 'ndcg@10': 0.4146, 'epoch': 9, 'step': 2363}|
-|50|45|{'auc': 0.654, 'mean_mrr': 0.2976, 'ndcg@5': 0.3269, 'ndcg@10': 0.3944, 'epoch': 4, 'step': 2362}|
-|50|50|{'auc': 0.6519, 'mean_mrr': 0.2982, 'ndcg@5': 0.3283, 'ndcg@10': 0.3935, 'epoch': 4, 'step': 1181}|
+|50|45||
+|50|50||
 |30|30|{'auc': 0.6498, 'mean_mrr': 0.2995, 'ndcg@5': 0.328, 'ndcg@10': 0.3942, 'epoch': 5, 'step': 2362}|
 |40|30|{'auc': 0.6526, 'mean_mrr': 0.3018, 'ndcg@5': 0.3312, 'ndcg@10': 0.3972, 'epoch': 5, 'step': 2362}|
 |60|30|{'auc': 0.652, 'mean_mrr': 0.3058, 'ndcg@5': 0.3348, 'ndcg@10': 0.3997, 'epoch': 4, 'step': 2362}|
