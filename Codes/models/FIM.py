@@ -83,15 +83,15 @@ class FIMModel(nn.Module):
         cdd_news_embedding, cdd_news_repr = self.encoder(
             cdd_news,
             user_index=x['user_index'].long().to(self.device),
-            news_id=x['cdd_id'].long().to(self.device),
-            attn_mask=x['candidate_title_pad'].to(self.device))
+            news_id=x['cdd_id'].long().to(self.device))
+            # attn_mask=x['candidate_title_pad'].to(self.device))
 
         his_news = x['clicked_title'].long().to(self.device)
         his_news_embedding, his_news_repr = self.encoder(
             his_news,
             user_index=x['user_index'].long().to(self.device),
-            news_id=x['his_id'].long().to(self.device),
-            attn_mask=x['clicked_title_pad'].to(self.device))
+            news_id=x['his_id'].long().to(self.device))
+            # attn_mask=x['clicked_title_pad'].to(self.device))
 
         fusion_tensors = self._fusion(cdd_news_embedding, his_news_embedding)
 

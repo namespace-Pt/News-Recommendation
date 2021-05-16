@@ -12,11 +12,6 @@ Questions.md
 model_params
 Codes/text
 Codes/manual/main.ipynb
-Codes/models/baseline_FIM.py
-Codes/models/baseline_MHA_MHA.py
-Codes/models/baseline_MHA_CNN.py
-Codes/models/SFI_MHA.py
-Codes/models/SFI_FIM.py
 Codes/models/SFI.py
 Codes/*.log
 Codes/data/results
@@ -25,3 +20,4 @@ Codes/manual/SFI_pipeline.ipynb
 Prediction
 ACM
 SFI_gating.ipynb
+SFI.ipynb

@@ -1,13 +1,13 @@
 import torch
 import torch.nn as nn
 from .Attention import Attention
-from .Encoders.MHA import MHA_Encoder, MHA_User_Encoder
+from .Encoders.MHA import MHA_User_Encoder
 
 class NRMS(nn.Module):
-    def __init__(self, hparams, vocab):
+    def __init__(self, hparams, vocab, encoder):
         super().__init__()
 
-        self.name = 'nrms'
+        self.name = 'nrms' + encoder.name
 
         self.cdd_size = (hparams['npratio'] +
                          1) if hparams['npratio'] > 0 else 1
@@ -16,7 +16,7 @@ class NRMS(nn.Module):
         self.title_length = hparams['title_size']
         self.abs_length = hparams['abs_size']
 
-        self.encoder = MHA_Encoder(hparams, vocab)
+        self.encoder = encoder
         self.user_encoder = MHA_User_Encoder(hparams)
         self.hidden_dim = self.encoder.hidden_dim
 
@@ -44,15 +44,23 @@ class NRMS(nn.Module):
         if x['candidate_title'].shape[0] != self.batch_size:
             self.batch_size = x['candidate_title'].shape[0]
 
-        cdd_title = x['candidate_title'].long().to(self.device)
-        _, cdd_title_repr = self.encoder(cdd_title)
+        cdd_news = x['candidate_title'].long().to(self.device)
+        cdd_news_embedding, cdd_news_repr = self.encoder(
+            cdd_news,
+            user_index=x['user_index'].long().to(self.device),
+            news_id=x['cdd_id'].long().to(self.device),
+            attn_mask=x['candidate_title_pad'].to(self.device))
 
-        his_title = x['clicked_title'].long().to(self.device)
-        _, his_title_repr = self.encoder(his_title)
+        his_news = x['clicked_title'].long().to(self.device)
+        his_news_embedding, his_news_repr = self.encoder(
+            his_news,
+            user_index=x['user_index'].long().to(self.device),
+            news_id=x['his_id'].long().to(self.device),
+            attn_mask=x['clicked_title_pad'].to(self.device))
 
-        user_repr = self.user_encoder(his_title_repr)
+        user_repr = self.user_encoder(his_news_repr)
 
-        score = self._click_predictor(cdd_title_repr, user_repr)
+        score = self._click_predictor(cdd_news_repr, user_repr)
 
         return score
 

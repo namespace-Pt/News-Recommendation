@@ -4,7 +4,7 @@ os.chdir('/home/peitian_zhang/Codes/News-Recommendation')
 sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
 
 import torch
-from utils.utils import evaluate,train,prepare,load_hparams,test,tune
+from utils.utils import evaluate,train,prepare,load_hparams,test,tune,load,encode
 from models.NPA import NPAModel
 
 if __name__ == "__main__":
@@ -18,16 +18,30 @@ if __name__ == "__main__":
     }
 
     hparams = load_hparams(hparams)
-    device = torch.device(hparams['device'])
 
     vocab, loaders = prepare(hparams)
-    npaModel = NPAModel(vocab=vocab,hparams=hparams,uid2idx=loaders[0].dataset.uid2index).to(device)
+
+    hparams['user_dim'] = 200
+    hparams['query_dim'] = 200
+    hparams['filter_num'] = 400
+    from models.Encoders.NPA import NPA_Encoder
+    encoder = NPA_Encoder(hparams, vocab, 876956)
+
+    npaModel = NPAModel(vocab=vocab,hparams=hparams,encoder=encoder).to(hparams['device'])
 
     if hparams['mode'] == 'dev':
-        evaluate(npaModel,hparams,loaders[0],load=True)
+        evaluate(npaModel,hparams,loaders[0],loading=True)
 
     elif hparams['mode'] == 'train':
         train(npaModel, hparams, loaders)
 
     elif hparams['mode'] == 'test':
         test(npaModel, hparams, loaders[0])
+
+    if hparams['mode'] == 'encode':
+        from models.Encoders.General import Encoder_Wrapper
+        encoder_wrapper = Encoder_Wrapper(hparams, encoder).to('cpu').eval()
+
+        load(encoder_wrapper, hparams, hparams['epochs'], hparams['save_step'][0])
+        encode(encoder_wrapper, hparams, loader=loaders[1])
+        # pipeline_encode(encoder_wrapper, hparams, loaders)

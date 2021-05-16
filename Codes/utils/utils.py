@@ -495,7 +495,8 @@ def my_collate(data):
             result[k].append(v)
     for k, v in result.items():
         if k not in excluded:
-            result[k] = torch.tensor(v)
+            result[k] = torch.from_numpy(np.asarray(v))
+
         else:
             continue
     return dict(result)
@@ -857,8 +858,8 @@ def train(model, hparams, loaders, tb=False):
     writer = None
 
     if tb:
-        writer = SummaryWriter('data/tb/{}-{}/{}/{}/'.format(
-            hparams['name'], hparams['select'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
+        writer = SummaryWriter('data/tb/{}/{}/{}/'.format(
+            hparams['name'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
 
     # in case the folder does not exists, create one
     save_derectory = 'data/model_params/{}'.format(hparams['name'])
@@ -977,8 +978,8 @@ def tune(model, hparams, loaders, tb=False):
     writer = None
 
     if tb:
-        writer = SummaryWriter('data/tb/{}-{}/{}/{}/'.format(
-            hparams['name'], hparams['select'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
+        writer = SummaryWriter('data/tb/{}/{}/{}/'.format(
+            hparams['name'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
 
     # in case the folder does not exists, create one
     save_derectory = 'data/model_params/{}'.format(hparams['name'])
@@ -1097,13 +1098,12 @@ def load_hparams(hparams):
         "--topk", dest="k", help="intend for sfi model, if clarified, top k history are involved in interaction calculation", type=int, default=0)
     parser.add_argument(
         "--contra_num", dest="contra_num", help="sample number for contrasive selection aware network", type=int, default=0)
-    parser.add_argument("--select", dest="select", help="choose model for selecting",
-                        choices=['unified', 'gating'], default=None)
+    parser.add_argument("--coarse", dest="coarse", help="if clarified, coarse-level matching signals will be taken into consideration",default=None)
     parser.add_argument("--integrate", dest="integration",
                         help="the way history filter is combined", choices=['gate', 'harmony'], default='gate')
     parser.add_argument("--encoder", dest="encoder", help="choose encoder", default='fim')
     parser.add_argument("--interactor", dest="interactor", help="choose interactor", default=None)
-    parser.add_argument("--threshold", dest="threshold", help="if clarified, SFI will dynamically mask attention weights smaller than threshold with 0", default=0, type=float)
+    parser.add_argument("--threshold", dest="threshold", help="if clarified, SFI will dynamically mask attention weights smaller than threshold with 0", default=-float('inf'), type=float)
     parser.add_argument("--multiview", dest="multiview", help="if clarified, SFI-MultiView will be called", action='store_true')
     parser.add_argument("--ensemble", dest="ensemble", help="choose ensemble strategy for SFI-ensemble", type=str, default=None)
 
@@ -1163,7 +1163,9 @@ def load_hparams(hparams):
 
     hparams['his_size'] = args.his_size
     hparams['k'] = args.k
-    hparams['select'] = args.select
+
+    hparams['threshold'] = args.threshold
+    hparams['coarse'] = args.coarse
 
     hparams['attrs'] = args.attrs.split(',')
     hparams['save_step'] = [int(i) for i in args.save_step.split(',')]
@@ -1201,11 +1203,6 @@ def load_hparams(hparams):
         hparams['checkpoint'] = args.checkpoint
     if args.encoder:
         hparams['encoder'] = args.encoder
-    if args.threshold:
-        hparams['threshold'] = args.threshold
-        # if hparams['k'] != hparams['his_size']:
-            # logging.info("adjust k:{} to his_size:{} automatically".format(args.k, args.his_size))
-            # hparams['k'] = hparams['his_size']
     if args.multiview:
         hparams['multiview'] = args.multiview
         hparams['attrs'] = 'title,vert,subvert,abs'.split(',')
@@ -1213,10 +1210,13 @@ def load_hparams(hparams):
         hparams['onehot'] = True
         hparams['vert_num'] = 18
         hparams['subvert_num'] = 293
+    else:
+        hparams['multiview'] = False
     if args.ensemble:
         hparams['ensemble'] = args.ensemble
-    if hparams['select'] == 'unified':
+    if args.coarse:
         hparams['integration'] = args.integration
+        hparams['coarse'] = 'coarse'
     if args.pipeline:
         hparams['pipeline'] = args.pipeline
         hparams['encoder'] = 'pipeline'
@@ -1256,7 +1256,7 @@ def generate_hparams(hparams, config):
 
 
 def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=False, pin_memory=True, num_workers=8):
-    from .MIND import MIND,MIND_news
+    from .MIND import MIND,MIND_news,MIND_all
     """ prepare dataloader and several paths
 
     Args:
@@ -1303,26 +1303,36 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         news_file_train = path+'/MIND'+hparams['scale']+'_train/news.tsv'
         behavior_file_train = path+'/MIND' + \
             hparams['scale']+'_train/behaviors.tsv'
+        news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
+        behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
 
-        dataset_train = MIND(hparams=hparams, news_file=news_file_train,
+        if hparams['multiview']:
+            dataset_train = MIND_all(hparams=hparams, news_file=news_file_train,
                             behaviors_file=behavior_file_train)
-        loader_train = DataLoader(dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory,
-                                num_workers=num_workers, drop_last=False, shuffle=shuffle, collate_fn=my_collate)
+            dataset_dev = MIND_all(hparams=hparams, news_file=news_file_dev,
+                            behaviors_file=behavior_file_dev)
+        else:
+            dataset_train = MIND(hparams=hparams, news_file=news_file_train,
+                                behaviors_file=behavior_file_train)
+            dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
+                            behaviors_file=behavior_file_dev)
+
         vocab = dataset_train.vocab
         if 'bert' not in hparams:
             embedding = GloVe(dim=300, cache='.vector_cache')
             vocab.load_vectors(embedding)
-
-        news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
-        behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
-        dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
-                        behaviors_file=behavior_file_dev)
+        loader_train = DataLoader(dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory,
+                                num_workers=num_workers, drop_last=False, shuffle=shuffle, collate_fn=my_collate)
         loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                 num_workers=num_workers, drop_last=False, collate_fn=my_collate)
 
         if 'validate' in hparams and hparams['validate']:
-            dataset_validate = MIND(
-                hparams=hparams, news_file=news_file_train, behaviors_file=behavior_file_train, validate=True)
+            if hparams['multiview']:
+                dataset_validate = MIND_all(
+                    hparams=hparams, news_file=news_file_train, behaviors_file=behavior_file_train, validate=True)
+            else:
+                dataset_validate = MIND(
+                    hparams=hparams, news_file=news_file_train, behaviors_file=behavior_file_train, validate=True)
             loader_validate = DataLoader(dataset_validate, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                         num_workers=num_workers, drop_last=False, collate_fn=my_collate)
             return vocab, [loader_train, loader_dev, loader_validate]
@@ -1332,8 +1342,13 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
     elif hparams['mode'] == 'dev':
         news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
         behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
-        dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
-                        behaviors_file=behavior_file_dev)
+
+        if hparams['multiview']:
+            dataset_dev = MIND_all(hparams=hparams, news_file=news_file_dev,
+                            behaviors_file=behavior_file_dev)
+        else:
+            dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
+                            behaviors_file=behavior_file_dev)
         loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                 num_workers=num_workers, drop_last=False, collate_fn=my_collate)
         vocab = dataset_dev.vocab
@@ -1344,11 +1359,14 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
         return vocab, [loader_dev]
 
     elif hparams['mode'] == 'test':
-        dataset_test = MIND(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv',
-                                 '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
+        if hparams['multiview']:
+            dataset_test = MIND_all(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv',
+                                    '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
+        else:
+            dataset_test = MIND(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv',
+                                    '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
         loader_test = DataLoader(dataset_test, batch_size=hparams['batch_size'], pin_memory=pin_memory,
                                  num_workers=num_workers, drop_last=False, collate_fn=my_collate)
-
         vocab = dataset_test.vocab
         if 'bert' not in hparams:
             embedding = GloVe(dim=300, cache='.vector_cache')

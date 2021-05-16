@@ -3,7 +3,7 @@ import sys
 os.chdir('./')
 sys.path.append('./')
 import re
-from utils.utils import evaluate,train,prepare,load_hparams,test,tune,load,pipeline_encode,encode
+from utils.utils import evaluate,train,prepare,load_hparams,test,tune,load,encode
 
 if __name__ == "__main__":
 
@@ -75,41 +75,36 @@ if __name__ == "__main__":
     # FIXME, treat encode as a argument, encode=train means only encode training dataset
     if hparams['mode'] == 'encode':
         from models.Encoders.General import Encoder_Wrapper
-        hparams['name'] = '-'.join([hparams['name'], hparams['encoder'], hparams['interactor'], hparams['select']])
+        hparams['name'] = '-'.join([i for i in [hparams['name'], hparams['encoder'], hparams['interactor'], hparams['coarse']] if i])
         encoder_wrapper = Encoder_Wrapper(hparams, encoder).to('cpu').eval()
 
         load(encoder_wrapper, hparams, hparams['epochs'], hparams['save_step'][0])
         encode(encoder_wrapper, hparams, loader=loaders[1])
         # pipeline_encode(encoder_wrapper, hparams, loaders)
 
-    if 'multiview' in hparams:
+    if hparams['multiview']:
         hparams['name'] = 'sfi-multiview'
-        if hparams['select'] == 'unified':
+        if hparams['coarse']:
             from models.SFI import SFI_unified_MultiView
             sfiModel = SFI_unified_MultiView(hparams, encoder, interactor).to(hparams['device'])
 
-        elif hparams['select'] == 'gating':
-            from models.SFI import SFI_gating_MultiView
-            sfiModel = SFI_gating_MultiView(hparams, encoder, interactor).to(hparams['device'])
-
         else:
-            raise ValueError("Undefined Selection Method:{}".format(hparams['select']))
+            from models.SFI import SFI_MultiView
+            sfiModel = SFI_MultiView(hparams, encoder, interactor).to(hparams['device'])
+
     else:
-        if hparams['select'] == 'unified':
+        if hparams['coarse']:
             from models.SFI import SFI_unified
             sfiModel = SFI_unified(hparams, encoder, interactor).to(hparams['device'])
 
-        elif hparams['select'] == 'gating':
-            from models.SFI import SFI_gating
-            sfiModel = SFI_gating(hparams, encoder, interactor).to(hparams['device'])
-
         else:
-            raise ValueError("Undefined Selection Method:{}".format(hparams['select']))
+            from models.SFI import SFI
+            sfiModel = SFI(hparams, encoder, interactor).to(hparams['device'])
 
     if re.search('pipeline', sfiModel.encoder.name):
         hparams['name'] = hparams['pipeline']
     else:
-        hparams['name'] = '-'.join([hparams['name'], hparams['encoder'], hparams['interactor'], hparams['select']])
+        hparams['name'] = '-'.join([i for i in [hparams['name'], hparams['encoder'], hparams['interactor'], hparams['coarse']] if i])
 
     if hparams['mode'] == 'dev':
         evaluate(sfiModel,hparams,loaders[0],loading=True)

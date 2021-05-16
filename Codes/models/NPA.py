@@ -1,10 +1,10 @@
 import torch
 import math
 import torch.nn as nn
-from .Encoders import NPA_Encoder
+from .Encoders.NPA import NPA_Encoder
 
 class NPAModel(nn.Module):
-    def __init__(self,hparams,vocab,user_num):
+    def __init__(self,hparams,vocab,encoder):
         super().__init__()
         self.name = 'npa'
 
@@ -13,7 +13,7 @@ class NPAModel(nn.Module):
         self.signal_length = hparams['title_size']
         self.his_size =hparams['his_size']
 
-        self.encoder = NPA_Encoder(hparams, vocab, user_num)
+        self.encoder = encoder
 
         self.hidden_dim = self.encoder.hidden_dim
         self.preference_dim =self.encoder.query_dim
@@ -27,7 +27,7 @@ class NPAModel(nn.Module):
         self.newsPrefProject = nn.Linear(self.user_dim,self.preference_dim)
         # project preference query to vector of filter_num
         self.newsQueryProject = nn.Linear(self.preference_dim,self.hidden_dim)
-        
+
         self.RELU = nn.ReLU()
         self.softmax = nn.Softmax(dim=-1)
         self.Tanh = nn.Tanh()
@@ -58,14 +58,14 @@ class NPAModel(nn.Module):
 
     def _user_encoder(self,his_news_batch,news_query,word_query):
         """ encode batch of user history clicked news to user representations of [batch_size,filter_num]
-        
+
         Args:
             his_news_batch: tensor of [batch_size, his_size, title_size]
             news_query: tensor of [batch_size, preference_dim]
-            word_query: tensor of [batch_size, preference_dim]    
-        
+            word_query: tensor of [batch_size, preference_dim]
+
         Returns:
-            user_repr: tensor of [batch_size, filter_num] 
+            user_repr: tensor of [batch_size, filter_num]
         """
         his_news_reprs = self._news_encoder(his_news_batch,word_query).view(self.batch_size,self.his_size,self.filter_num).permute(0,2,1)
         user_reprs = self._attention_news(news_query,his_news_reprs)
@@ -74,11 +74,11 @@ class NPAModel(nn.Module):
 
     def _click_predictor(self,cdd_news_repr,user_repr):
         """ calculate batch of click probability
-        
+
         Args:
             cdd_news_repr: tensor of [batch_size, cdd_size, hidden_dim]
             user_repr: tensor of [batch_size, 1, hidden_dim]
-        
+
         Returns:
             score: tensor of [batch_size, cdd_size]
         """
@@ -92,9 +92,9 @@ class NPAModel(nn.Module):
     def forward(self,x):
         if x['candidate_title'].shape[0] != self.batch_size:
             self.batch_size = x['candidate_title'].shape[0]
-        
+
         user_index = x['user_index'].long().to(self.device)
-        
+
         cdd_news = x['candidate_title'].long().to(self.device)
         _, cdd_news_repr = self.encoder(
             cdd_news,
@@ -104,11 +104,11 @@ class NPAModel(nn.Module):
         _, his_news_repr = self.encoder(
             his_news,
             user_index=user_index)
-        
+
         e_u = self.DropOut(self.user_embedding(user_index))
         news_query = self.Tanh(self.newsQueryProject(
             self.RELU(self.newsPrefProject(e_u))))
-        
+
         user_repr = self._scaled_dp_attention(news_query, his_news_repr, his_news_repr)
         score = self._click_predictor(cdd_news_repr, user_repr)
         return score
