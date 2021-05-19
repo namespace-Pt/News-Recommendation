@@ -61,13 +61,21 @@ if __name__ == "__main__":
     else:
         raise ValueError("Undefined Encoder:{}".format(hparams['encoder']))
 
-    if hparams['interactor'] == None:
-        interactor = None
-        hparams['interactor'] = 'fim'
+    if hparams['interactor'] == 'fim':
+        from models.Interactors.FIM import FIM_Interactor
+        interactor = FIM_Interactor(encoder.level)
 
     elif hparams['interactor'] == 'knrm':
-        from models.Interactors import KNRM_Interactor
+        from models.Interactors.KNRM import KNRM_Interactor
         interactor = KNRM_Interactor()
+
+    elif hparams['interactor'] == '2dcnn':
+        from models.Interactors.CNN import CNN_Interator
+        interactor = CNN_Interator(hparams['k'])
+
+    elif hparams['interactor'] == 'mha':
+        from models.Interactors.MHA import MHA_Interactor
+        interactor = MHA_Interactor(encoder.hidden_dim)
 
     else:
         raise ValueError("Undefined Interactor:{}".format(hparams['interactor']))

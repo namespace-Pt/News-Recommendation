@@ -19,13 +19,14 @@ hparams = {
     'device':'cpu',
     'attrs': ['title'],
     'k':0,
-    'select':None,
+    'coarse':None,
     'save_step':[0],
     'news_id':False,
     'validate':False,
     'interval':10,
     'spadam':True,
+    'multiview':False,
     'onehot':False,
     'val_freq':1,
-    'schedule':None
+    'schedule':None,
 }

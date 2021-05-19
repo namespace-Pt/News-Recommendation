@@ -28,8 +28,8 @@ from transformers import get_linear_schedule_with_warmup
 logging.basicConfig(level=logging.INFO,
                     format="[%(asctime)s] %(levelname)s (%(name)s) %(message)s")
 
-hparam_list = ['name', 'scale', 'select', 'integrate', 'his_size', 'k', 'contra_num', 'threshold', 'checkpoint', 'epochs', 'save_step', 'learning_rate']
-param_list = ['query_words', 'query_levels', 'CoAttention.weight', 'selectionProject.weight']
+hparam_list = ["name", "scale", "select", "integrate", "his_size", "k", "contra_num", "threshold", "checkpoint", "epochs", "save_step", "learning_rate"]
+param_list = ["query_words", "query_levels", "CoAttention.weight", "selectionProject.weight"]
 
 class TripletMarginLoss():
     """
@@ -94,18 +94,18 @@ def newsample(news, ratio):
 
 
 def news_token_generator(news_file_list, tokenizer, attrs):
-    ''' merge and deduplicate training news and testing news then iterate, collect attrs into a single sentence and generate it
+    """ merge and deduplicate training news and testing news then iterate, collect attrs into a single sentence and generate it
 
     Args:
         tokenizer: torchtext.data.utils.tokenizer
         attrs: list of attrs to be collected and yielded
     Returns:
         a generator over attrs in news
-    '''
+    """
     news_df_list = []
     for f in news_file_list:
         news_df_list.append(pd.read_table(f, index_col=None, names=[
-                            'newsID', 'category', 'subcategory', 'title', 'abstract', 'url', 'entity_title', 'entity_abstract'], quoting=3))
+                            "newsID", "category", "subcategory", "title", "abstract", "url", "entity_title", "entity_abstract"], quoting=3))
 
     news_df = pd.concat(news_df_list).drop_duplicates().dropna()
     news_iterator = news_df.iterrows()
@@ -115,7 +115,7 @@ def news_token_generator(news_file_list, tokenizer, attrs):
         for attr in attrs:
             content.append(i[attr])
 
-        yield tokenizer(' '.join(content))
+        yield tokenizer(" ".join(content))
 
 
 def constructVocab(news_file_list, attrs):
@@ -125,12 +125,12 @@ def constructVocab(news_file_list, attrs):
     Returns:
         torchtext.vocabulary
     """
-    tokenizer = get_tokenizer('basic_english')
+    tokenizer = get_tokenizer("basic_english")
     vocab = build_vocab_from_iterator(
         news_token_generator(news_file_list, tokenizer, attrs))
 
     output = open(
-        'data/dictionaries/vocab_{}.pkl'.format(','.join(attrs)), 'wb')
+        "data/dictionaries/vocab_{}.pkl".format(",".join(attrs)), "wb")
     pickle.dump(vocab, output)
     output.close()
 
@@ -142,14 +142,14 @@ def constructNid2idx(news_file, scale, mode):
     nid2index = {}
 
     news_df = pd.read_table(news_file, index_col=None, names=[
-                            'newsID', 'category', 'subcategory', 'title', 'abstract', 'url', 'entity_title', 'entity_abstract'], quoting=3)
+                            "newsID", "category", "subcategory", "title", "abstract", "url", "entity_title", "entity_abstract"], quoting=3)
 
-    for v in news_df['newsID']:
+    for v in news_df["newsID"]:
         if v in nid2index:
             continue
         nid2index[v] = len(nid2index) + 1
 
-    h = open('data/dictionaries/nid2idx_{}_{}.json'.format(scale, mode), 'w')
+    h = open("data/dictionaries/nid2idx_{}_{}.json".format(scale, mode), "w")
     json.dump(nid2index, h, ensure_ascii=False)
     h.close()
 
@@ -163,42 +163,42 @@ def constructUid2idx(behavior_file_list, scale):
     user_df_list = []
     for f in behavior_file_list:
         user_df_list.append(pd.read_table(f, index_col=None, names=[
-                            'imprID', 'uid', 'time', 'hisstory', 'abstract', 'impression'], quoting=3))
+                            "imprID", "uid", "time", "hisstory", "abstract", "impression"], quoting=3))
 
     user_df = pd.concat(user_df_list).drop_duplicates()
 
-    for v in user_df['uid']:
+    for v in user_df["uid"]:
         if v in uid2index:
             continue
         uid2index[v] = len(uid2index) + 1
 
-    h = open('data/dictionaries/uid2idx_{}.json'.format(scale), 'w')
+    h = open("data/dictionaries/uid2idx_{}.json".format(scale), "w")
     json.dump(uid2index, h, ensure_ascii=False)
     h.close()
 
 
-def constructBasicDict(attrs=['title'], path='/home/peitian_zhang/Data/MIND'):
+def constructBasicDict(attrs=["title"], path="/home/peitian_zhang/Data/MIND"):
     """
         construct basic dictionary
     """
-    news_file_list = [path + '/MINDlarge_train/news.tsv', path +
-                       '/MINDlarge_dev/news.tsv', path + '/MINDlarge_test/news.tsv']
+    news_file_list = [path + "/MINDlarge_train/news.tsv", path +
+                       "/MINDlarge_dev/news.tsv", path + "/MINDlarge_test/news.tsv"]
     constructVocab(news_file_list, attrs)
 
-    for scale in ['demo', 'small', 'large']:
-        news_file_list = [path + '/MIND{}_train/news.tsv'.format(
-            scale), path + '/MIND{}_dev/news.tsv'.format(scale), path + '/MIND{}_test/news.tsv'.format(scale)]
-        behavior_file_list = [path + '/MIND{}_train/behaviors.tsv'.format(
-            scale), path + '/MIND{}_dev/behaviors.tsv'.format(scale), path + '/MIND{}_test/behaviors.tsv'.format(scale)]
+    for scale in ["demo", "small", "large"]:
+        news_file_list = [path + "/MIND{}_train/news.tsv".format(
+            scale), path + "/MIND{}_dev/news.tsv".format(scale), path + "/MIND{}_test/news.tsv".format(scale)]
+        behavior_file_list = [path + "/MIND{}_train/behaviors.tsv".format(
+            scale), path + "/MIND{}_dev/behaviors.tsv".format(scale), path + "/MIND{}_test/behaviors.tsv".format(scale)]
 
-        if scale == 'large':
+        if scale == "large":
             news_file_train = news_file_list[0]
             news_file_dev = news_file_list[1]
             news_file_test = news_file_list[2]
 
-            constructNid2idx(news_file_train, scale, 'train')
-            constructNid2idx(news_file_dev, scale, 'dev')
-            constructNid2idx(news_file_test, scale, 'test')
+            constructNid2idx(news_file_train, scale, "train")
+            constructNid2idx(news_file_dev, scale, "dev")
+            constructNid2idx(news_file_test, scale, "test")
 
             constructUid2idx(behavior_file_list, scale)
 
@@ -208,8 +208,8 @@ def constructBasicDict(attrs=['title'], path='/home/peitian_zhang/Data/MIND'):
             news_file_train = news_file_list[0]
             news_file_dev = news_file_list[1]
 
-            constructNid2idx(news_file_train, scale, 'train')
-            constructNid2idx(news_file_dev, scale, 'dev')
+            constructNid2idx(news_file_train, scale, "train")
+            constructNid2idx(news_file_dev, scale, "dev")
 
             behavior_file_list = behavior_file_list[0:2]
             constructUid2idx(behavior_file_list, scale)
@@ -217,18 +217,18 @@ def constructBasicDict(attrs=['title'], path='/home/peitian_zhang/Data/MIND'):
 
 def constructVertOnehot():
     import pandas as pd
-    path = '/home/peitian_zhang/Data/MIND'
-    news_file_list = [path + '/MINDlarge_train/news.tsv', path +
-                        '/MINDlarge_dev/news.tsv', path + '/MINDlarge_test/news.tsv']
+    path = "/home/peitian_zhang/Data/MIND"
+    news_file_list = [path + "/MINDlarge_train/news.tsv", path +
+                        "/MINDlarge_dev/news.tsv", path + "/MINDlarge_test/news.tsv"]
     news_df_list = []
     for f in news_file_list:
-        news_df_list.append(pd.read_table(f, index_col=None, names=['newsID', 'category', 'subcategory', 'title', 'abstract', 'url', 'entity_title', 'entity_abstract'], quoting=3))
+        news_df_list.append(pd.read_table(f, index_col=None, names=["newsID", "category", "subcategory", "title", "abstract", "url", "entity_title", "entity_abstract"], quoting=3))
 
     news_df = pd.concat(news_df_list).drop_duplicates()
 
-    vert = news_df['category'].unique()
-    subvert = news_df['subcategory'].unique()
-    vocab = getVocab('data/dictionaries/vocab_whole.pkl')
+    vert = news_df["category"].unique()
+    subvert = news_df["subcategory"].unique()
+    vocab = getVocab("data/dictionaries/vocab_whole.pkl")
     vert2idx = {
         vocab[v]:i for i,v in enumerate(vert)
     }
@@ -251,40 +251,40 @@ def constructVertOnehot():
         subvert2onehot[int(k)] = a.tolist()
     subvert2onehot[1] = [0]*len(next(iter(subvert2onehot.values())))
 
-    json.dump(vert2onehot, open('data/dictionaries/vert2onehot.json','w'),ensure_ascii=False)
-    json.dump(subvert2onehot, open('data/dictionaries/subvert2onehot.json','w'),ensure_ascii=False)
+    json.dump(vert2onehot, open("data/dictionaries/vert2onehot.json","w"),ensure_ascii=False)
+    json.dump(subvert2onehot, open("data/dictionaries/subvert2onehot.json","w"),ensure_ascii=False)
 
 def tailorData(tsvFile, num):
-    ''' tailor num rows of tsvFile to create demo data file
+    """ tailor num rows of tsvFile to create demo data file
 
     Args:
         tsvFile: str of data path
     Returns:
         create tailored data file
-    '''
-    pattern = re.search('(.*)MIND(.*)_(.*)/(.*).tsv', tsvFile)
+    """
+    pattern = re.search("(.*)MIND(.*)_(.*)/(.*).tsv", tsvFile)
 
     directory = pattern.group(1)
     mode = pattern.group(3)
     behavior_file = pattern.group(4)
 
-    if not os.path.exists(directory + 'MINDdemo' + '_{}/'.format(mode)):
-        os.mkdir(directory + 'MINDdemo' + '_{}/'.format(mode))
+    if not os.path.exists(directory + "MINDdemo" + "_{}/".format(mode)):
+        os.mkdir(directory + "MINDdemo" + "_{}/".format(mode))
 
-    behavior_file = directory + 'MINDdemo' + \
-        '_{}/'.format(mode) + behavior_file + '.tsv'
+    behavior_file = directory + "MINDdemo" + \
+        "_{}/".format(mode) + behavior_file + ".tsv"
 
-    f = open(behavior_file, 'w', encoding='utf-8')
+    f = open(behavior_file, "w", encoding="utf-8")
     count = 0
-    with open(tsvFile, 'r', encoding='utf-8') as g:
+    with open(tsvFile, "r", encoding="utf-8") as g:
         for line in g:
             if count >= num:
                 f.close()
                 break
             f.write(line)
             count += 1
-    news_file = re.sub('behaviors', 'news', tsvFile)
-    news_file_new = re.sub('behaviors', 'news', behavior_file)
+    news_file = re.sub("behaviors", "news", tsvFile)
+    news_file_new = re.sub("behaviors", "news", behavior_file)
 
     os.system("cp {} {}".format(news_file, news_file_new))
     logging.info("tailored {} behaviors to {}, copied news file also".format(
@@ -295,22 +295,22 @@ def tailorData(tsvFile, num):
 def expandData():
     """ Beta
     """
-    a = pd.read_table(r'D:\Data\MIND\MINDlarge_train\behaviors.tsv',
-                      index_col=0, names=['a', 'b', 'c', 'd', 'e'], quoting=3)
-    b = pd.read_table(r'D:\Data\MIND\MINDlarge_dev\behaviors.tsv',
-                      index_col=0, names=['a', 'b', 'c', 'd', 'e'], quoting=3)
+    a = pd.read_table(r"D:\Data\MIND\MINDlarge_train\behaviors.tsv",
+                      index_col=0, names=["a", "b", "c", "d", "e"], quoting=3)
+    b = pd.read_table(r"D:\Data\MIND\MINDlarge_dev\behaviors.tsv",
+                      index_col=0, names=["a", "b", "c", "d", "e"], quoting=3)
     c = pd.concat([a, b]).drop_duplicates().reset_index(inplace=True)
-    c = c[['b', 'c', 'd', 'e']]
+    c = c[["b", "c", "d", "e"]]
 
-    c.to_csv(r'D:\Data\MIND\MINDlarge_whole\behaviors.tsv',
-             index=True, sep='\t', header=False)
+    c.to_csv(r"D:\Data\MIND\MINDlarge_whole\behaviors.tsv",
+             index=True, sep="\t", header=False)
 
 
 def getId2idx(file):
     """
         get Id2idx dictionary from json file
     """
-    g = open(file, 'r', encoding='utf-8')
+    g = open(file, "r", encoding="utf-8")
     dic = json.load(g)
     g.close()
     return dic
@@ -320,7 +320,7 @@ def getVocab(file):
     """
         get Vocabulary from pkl file
     """
-    g = open(file, 'rb')
+    g = open(file, "rb")
     dic = pickle.load(g)
     g.close()
     return dic
@@ -331,7 +331,7 @@ def getLoss(model):
         get loss function for model
     """
     if model.cdd_size > 1:
-        if hasattr(model,'contra_num') and model.contra_num:
+        if hasattr(model,"contra_num") and model.contra_num:
             loss = myLoss
         else:
             loss = nn.NLLLoss()
@@ -345,22 +345,22 @@ def getOptim(model, hparams, loader_train):
     """
         get optimizer/scheduler
     """
-    if 'learning_rate' in hparams:
-        learning_rate = hparams['learning_rate']
+    if "learning_rate" in hparams:
+        learning_rate = hparams["learning_rate"]
     else:
         learning_rate = 1e-3
 
-    if hparams['spadam']:
+    if hparams["spadam"]:
         optimizer_param = optim.Adam(
-            parameter(model, ['encoder.embedding.weight','encoder.user_embedding.weight'], exclude=True), lr=learning_rate)
+            parameter(model, ["encoder.embedding.weight","encoder.user_embedding.weight"], exclude=True), lr=learning_rate)
         optimizer_embedding = optim.SparseAdam(
-            list(parameter(model, ['encoder.embedding.weight','encoder.user_embedding.weight'])), lr=learning_rate)
+            list(parameter(model, ["encoder.embedding.weight","encoder.user_embedding.weight"])), lr=learning_rate)
 
         optimizers = (optimizer_param, optimizer_embedding)
 
-        if hparams['schedule'] == 'linear':
-            scheduler_param =get_linear_schedule_with_warmup(optimizer_param, num_warmup_steps=0, num_training_steps=len(loader_train) * hparams['epochs'])
-            scheduler_embedding =get_linear_schedule_with_warmup(optimizer_embedding, num_warmup_steps=0, num_training_steps=len(loader_train) * hparams['epochs'])
+        if hparams["schedule"] == "linear":
+            scheduler_param =get_linear_schedule_with_warmup(optimizer_param, num_warmup_steps=0, num_training_steps=len(loader_train) * hparams["epochs"])
+            scheduler_embedding =get_linear_schedule_with_warmup(optimizer_embedding, num_warmup_steps=0, num_training_steps=len(loader_train) * hparams["epochs"])
             schedulers = (scheduler_param, scheduler_embedding)
         else:
             schedulers = []
@@ -368,15 +368,15 @@ def getOptim(model, hparams, loader_train):
     else:
         optimizer = optim.Adam(model.parameters(), lr=learning_rate)
         optimizers = (optimizer,)
-        if hparams['schedule'] == 'linear':
-            scheduler =get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=len(loader_train) * hparams['epochs'])
+        if hparams["schedule"] == "linear":
+            scheduler =get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0, num_training_steps=len(loader_train) * hparams["epochs"])
             schedulers = (scheduler,)
         else:
             schedulers = []
 
-    if 'checkpoint' in hparams:
+    if "checkpoint" in hparams:
         logging.info("loading checkpoint...")
-        ck = hparams['checkpoint'].split(',')
+        ck = hparams["checkpoint"].split(",")
         # modify the epoch so the model can be properly saved
         load(model, hparams, ck[0], ck[1], optimizers)
 
@@ -390,10 +390,10 @@ def getLabel(model, x):
     if model.cdd_size > 1:
         index = torch.arange(0, model.cdd_size, device=model.device).expand(
             model.batch_size, -1)
-        label = x['labels'] == 1
+        label = x["labels"] == 1
         label = index[label]
     else:
-        label = x['labels']
+        label = x["labels"]
 
     return label
 
@@ -403,34 +403,34 @@ def save(model, hparams, epoch, step, optimizers=[]):
         shortcut for saving the model and optimizer
     """
     # parse checkpoint
-    if 'checkpoint' in hparams:
-        save_path = 'data/model_params/{}/{}_epoch{}_step{}_ck{}_[hs={},topk={},attrs={}].model'.format(
-            hparams['name'], hparams['scale'], epoch, step, hparams['checkpoint'], hparams['his_size'], hparams['k'], ','.join(hparams['attrs']))
+    if "checkpoint" in hparams:
+        save_path = "data/model_params/{}/{}_epoch{}_step{}_ck{}_[hs={},topk={},attrs={}].model".format(
+            hparams["name"], hparams["scale"], epoch, step, hparams["checkpoint"], hparams["his_size"], hparams["k"], ",".join(hparams["attrs"]))
     else:
-        save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},attrs={}].model'.format(
-            hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], hparams['k'], ','.join(hparams['attrs']))
+        save_path = "data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},attrs={}].model".format(
+            hparams["name"], hparams["scale"], epoch, step, hparams["his_size"], hparams["k"], ",".join(hparams["attrs"]))
 
     state_dict = model.state_dict()
 
-    if re.search('pipeline', hparams['name']):
+    if re.search("pipeline", hparams["name"]):
         state_dict = {k: v for k, v in state_dict.items() if k not in [
-            'encoder.news_repr.weight', 'encoder.news_embedding.weight']}
+            "encoder.news_repr.weight", "encoder.news_embedding.weight"]}
 
     save_dict = {}
-    save_dict['model'] = state_dict
+    save_dict["model"] = state_dict
 
     if len(optimizers) > 1:
-        save_dict['optimizer'] = optimizers[0].state_dict()
-        save_dict['optimizer_embedding'] = optimizers[1].state_dict()
+        save_dict["optimizer"] = optimizers[0].state_dict()
+        save_dict["optimizer_embedding"] = optimizers[1].state_dict()
     else:
-        save_dict['optimizer'] = optimizers[0].state_dict()
+        save_dict["optimizer"] = optimizers[0].state_dict()
 
     # if schedulers:
     #     if len(schedulers) > 1:
-    #         save_dict['scheduler'] = schedulers[0].state_dict()
-    #         save_dict['scheduler_embedding'] = schedulers[1].state_dict()
+    #         save_dict["scheduler"] = schedulers[0].state_dict()
+    #         save_dict["scheduler_embedding"] = schedulers[1].state_dict()
     #     else:
-    #         save_dict['scheduler'] = schedulers[0].state_dict()
+    #         save_dict["scheduler"] = schedulers[0].state_dict()
 
     torch.save(save_dict, save_path)
     logging.info("saved model of step {}, epoch {} at {}".format(
@@ -442,29 +442,29 @@ def load(model, hparams, epoch, step, optimizers=None):
         shortcut for loading model and optimizer parameters
     """
 
-    if 'checkpoint' in hparams:
-        save_path = 'data/model_params/{}/{}_epoch{}_step{}_ck{}_[hs={},topk={},attrs={}].model'.format(
-            hparams['name'], hparams['scale'], epoch, step, hparams['checkpoint'], hparams['his_size'], hparams['k'], ','.join(hparams['attrs']))
+    if "checkpoint" in hparams:
+        save_path = "data/model_params/{}/{}_epoch{}_step{}_ck{}_[hs={},topk={},attrs={}].model".format(
+            hparams["name"], hparams["scale"], epoch, step, hparams["checkpoint"], hparams["his_size"], hparams["k"], ",".join(hparams["attrs"]))
     else:
-        save_path = 'data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},attrs={}].model'.format(
-            hparams['name'], hparams['scale'], epoch, step, hparams['his_size'], hparams['k'], ','.join(hparams['attrs']))
+        save_path = "data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},attrs={}].model".format(
+            hparams["name"], hparams["scale"], epoch, step, hparams["his_size"], hparams["k"], ",".join(hparams["attrs"]))
 
-    state_dict = torch.load(save_path, map_location=hparams['device'])
-    if re.search('pipeline',model.name):
+    state_dict = torch.load(save_path, map_location=hparams["device"])
+    if re.search("pipeline",model.name):
         logging.info("loading in pipeline")
-        model.load_state_dict(state_dict['model'], strict=False)
+        model.load_state_dict(state_dict["model"], strict=False)
     else:
-        model.load_state_dict(state_dict['model'])
+        model.load_state_dict(state_dict["model"])
 
     if optimizers:
-        optimizers[0].load_state_dict(state_dict['optimizer'])
+        optimizers[0].load_state_dict(state_dict["optimizer"])
         if len(optimizers) > 1:
-            optimizers[1].load_state_dict(state_dict['optimizer_embedding'])
+            optimizers[1].load_state_dict(state_dict["optimizer_embedding"])
 
     # if schedulers:
-    #     schedulers[0].load_state_dict(state_dict['scheduler'])
+    #     schedulers[0].load_state_dict(state_dict["scheduler"])
     #     if len(schedulers) > 1:
-    #         schedulers[1].load_state_dict(state_dict['scheduler_embedding'])
+    #         schedulers[1].load_state_dict(state_dict["scheduler_embedding"])
 
     logging.info("Loading model from {}...".format(save_path))
 
@@ -473,7 +473,7 @@ def _log(res, model, hparams):
     """ wrap logging
     """
     logging.info("evaluation results:{}".format(res))
-    with open('performance.log', 'a+') as f:
+    with open("performance.log", "a+") as f:
         d = {}
         for k, v in hparams.items():
             if k in hparam_list:
@@ -483,12 +483,12 @@ def _log(res, model, hparams):
                 if name in param_list:
                     d[name] = tuple(param.shape)
 
-        f.write(str(d)+'\n')
-        f.write(str(res) + '\n')
-        f.write('\n')
+        f.write(str(d)+"\n")
+        f.write(str(res) + "\n")
+        f.write("\n")
 
 def my_collate(data):
-    excluded = ['impression_index']
+    excluded = ["impression_index"]
     result = defaultdict(list)
     for d in data:
         for k, v in d.items():
@@ -518,12 +518,6 @@ def myLoss(pred, label, hidden_dim, margin=1):
     slct_loss = select_Loss(cdd_repr.unsqueeze(dim=-2).expand(pos_repr.shape).reshape(-1, hidden_dim), pos_repr.view(-1, hidden_dim), neg_repr.view(-1, hidden_dim))
 
     return reco_loss + slct_loss
-
-
-def _distance_func(repr1, repr2):
-    """
-        calculate distance between two representation, used in TripletMarginWithDistanceLoss
-    """
 
 
 def parameter(model, param_list, exclude=False):
@@ -706,9 +700,9 @@ def run_eval(model, dataloader, interval):
     for batch_data_input in tqdm(dataloader, smoothing=1):
         pred = model(batch_data_input).squeeze(dim=-1).tolist()
         preds.extend(pred)
-        label = batch_data_input['labels'].squeeze(dim=-1).tolist()
+        label = batch_data_input["labels"].squeeze(dim=-1).tolist()
         labels.extend(label)
-        imp_indexes.extend(batch_data_input['impression_index'])
+        imp_indexes.extend(batch_data_input["impression_index"])
 
     all_keys = list(set(imp_indexes))
     all_keys.sort()
@@ -743,10 +737,10 @@ def evaluate(model, hparams, dataloader, loading=False, log=True):
     Returns:
         dict: A dictionary contains evaluation metrics.
     """
-    if len(hparams['save_step']) > 1:
-        for step in hparams['save_step'][1:]:
-            command = re.sub(','.join([str(i) for i in hparams['save_step']]), str(
-                step), hparams['command'])
+    if len(hparams["save_step"]) > 1:
+        for step in hparams["save_step"][1:]:
+            command = re.sub(",".join([str(i) for i in hparams["save_step"]]), str(
+                step), hparams["command"])
             subprocess.Popen(command, shell=True)
 
     if isinstance(model, nn.Module):
@@ -755,16 +749,16 @@ def evaluate(model, hparams, dataloader, loading=False, log=True):
         model.eval()
 
     if loading:
-        load(model, hparams, hparams['epochs'], hparams['save_step'][0])
+        load(model, hparams, hparams["epochs"], hparams["save_step"][0])
 
     logging.info("evaluating...")
 
-    imp_indexes, labels, preds = run_eval(model, dataloader, hparams['interval'])
-    res = cal_metric(labels, preds, hparams['metrics'].split(','))
+    imp_indexes, labels, preds = run_eval(model, dataloader, hparams["interval"])
+    res = cal_metric(labels, preds, hparams["metrics"].split(","))
 
     if log:
-        res['epoch'] = hparams['epochs']
-        res['step'] = hparams['save_step'][0]
+        res["epoch"] = hparams["epochs"]
+        res["step"] = hparams["save_step"][0]
 
         _log(res, model, hparams)
 
@@ -776,7 +770,7 @@ def evaluate(model, hparams, dataloader, loading=False, log=True):
 
 
 def run_train(model, dataloader, optimizers, loss_func, hparams, schedulers=None, writer=None, interval=100, save_step=None):
-    ''' train model and print loss meanwhile
+    """ train model and print loss meanwhile
     Args:
         model(torch.nn.Module): the model to be trained
         dataloader(torch.utils.data.DataLoader): provide data
@@ -788,11 +782,11 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, schedulers=None
         save_epoch(bool): whether to save the model after every epoch
     Returns:
         model: trained model
-    '''
+    """
     total_loss = 0
     total_steps = 0
 
-    for epoch in range(hparams['epochs']):
+    for epoch in range(hparams["epochs"]):
         epoch_loss = 0
         tqdm_ = tqdm(dataloader, smoothing=0)
         for step, x in enumerate(tqdm_):
@@ -803,7 +797,7 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, schedulers=None
             pred = model(x)
             label = getLabel(model, x)
 
-            if hasattr(model, 'contra_num') and model.contra_num:
+            if hasattr(model, "contra_num") and model.contra_num:
                 loss = loss_func(pred, label, model.hidden_dim)
             else:
                 loss = loss_func(pred, label)
@@ -828,7 +822,7 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, schedulers=None
                     for name, param in model.named_parameters():
                         writer.add_histogram(name, param, step)
 
-                    writer.add_scalar('data_loss',
+                    writer.add_scalar("data_loss",
                                       total_loss/total_steps)
 
             if save_step:
@@ -838,7 +832,7 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, schedulers=None
             total_steps += 1
 
         if writer:
-            writer.add_scalar('epoch_loss', epoch_loss, epoch)
+            writer.add_scalar("epoch_loss", epoch_loss, epoch)
 
         save(model, hparams, epoch+1, 0, optimizers)
 
@@ -858,11 +852,11 @@ def train(model, hparams, loaders, tb=False):
     writer = None
 
     if tb:
-        writer = SummaryWriter('data/tb/{}/{}/{}/'.format(
-            hparams['name'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
+        writer = SummaryWriter("data/tb/{}/{}/{}/".format(
+            hparams["name"], hparams["scale"], datetime.now().strftime("%Y%m%d-%H")))
 
     # in case the folder does not exists, create one
-    save_derectory = 'data/model_params/{}'.format(hparams['name'])
+    save_derectory = "data/model_params/{}".format(hparams["name"])
     if not os.path.exists(save_derectory):
         os.mkdir(save_derectory)
 
@@ -871,7 +865,7 @@ def train(model, hparams, loaders, tb=False):
     optimizers, schedulers = getOptim(model, hparams, loaders[0])
 
     model = run_train(model, loaders[0], optimizers, loss_func, hparams, schedulers=schedulers,
-                      writer=writer, interval=hparams['interval'], save_step=hparams['save_step'][0])
+                      writer=writer, interval=hparams["interval"], save_step=hparams["save_step"][0])
 
     # loader_train, loader_dev, loader_validate
     # if len(loaders) > 1:
@@ -882,7 +876,7 @@ def train(model, hparams, loaders, tb=False):
 
 
 def run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=[], writer=None, interval=100, save_step=None):
-    ''' train model and print loss meanwhile
+    """ train model and print loss meanwhile
     Args:
         model(torch.nn.Module): the model to be trained
         dataloader(torch.utils.data.DataLoader): provide data
@@ -894,13 +888,13 @@ def run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=[], writ
         save_epoch(bool): whether to save the model after every epoch
     Returns:
         model: trained model
-    '''
+    """
     total_loss = 0
     total_steps = 0
 
-    best_res = {'auc':0}
+    best_res = {"auc":0}
 
-    for epoch in range(hparams['epochs']):
+    for epoch in range(hparams["epochs"]):
         epoch_loss = 0
         tqdm_ = tqdm(loaders[0], smoothing=0)
         for step, x in enumerate(tqdm_):
@@ -911,7 +905,7 @@ def run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=[], writ
             pred = model(x)
             label = getLabel(model, x)
 
-            if hasattr(model, 'contra_num') and model.contra_num:
+            if hasattr(model, "contra_num") and model.contra_num:
                 loss = loss_func(pred, label, model.hidden_dim)
             else:
                 loss = loss_func(pred, label)
@@ -936,30 +930,30 @@ def run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=[], writ
                     for name, param in model.named_parameters():
                         writer.add_histogram(name, param, step)
 
-                    writer.add_scalar('data_loss',
+                    writer.add_scalar("data_loss",
                                       total_loss/total_steps)
 
             if step % save_step == 0 and step > 0:
-                print('\n')
+                print("\n")
                 result = evaluate(model, hparams, loaders[1], log=False)
-                result['epoch'] = epoch+1
-                result['step'] = step
+                result["epoch"] = epoch+1
+                result["step"] = step
 
-                logging.info("current result is {}".format(result))
-                if result['auc'] > best_res['auc']:
+                logging.info("current result of {} is {}".format(hparams["name"], result))
+                if result["auc"] > best_res["auc"]:
                     best_res = result
                     logging.info("best result till now is {}".format(best_res))
                     save(model, hparams, epoch+1, step, optimizers)
                     _log(result, model, hparams)
 
-                elif result['auc'] - best_res['auc'] < -0.1:
+                elif result["auc"] - best_res["auc"] < -0.05:
                     logging.info("model is overfitting, the result is {}, force shutdown".format(result))
                     return model, best_res
 
             total_steps += 1
 
         if writer:
-            writer.add_scalar('epoch_loss', epoch_loss, epoch)
+            writer.add_scalar("epoch_loss", epoch_loss, epoch)
 
     return model, best_res
 
@@ -978,11 +972,11 @@ def tune(model, hparams, loaders, tb=False):
     writer = None
 
     if tb:
-        writer = SummaryWriter('data/tb/{}/{}/{}/'.format(
-            hparams['name'], hparams['scale'], datetime.now().strftime("%Y%m%d-%H")))
+        writer = SummaryWriter("data/tb/{}/{}/{}/".format(
+            hparams["name"], hparams["scale"], datetime.now().strftime("%Y%m%d-%H")))
 
     # in case the folder does not exists, create one
-    save_derectory = 'data/model_params/{}'.format(hparams['name'])
+    save_derectory = "data/model_params/{}".format(hparams["name"])
     if not os.path.exists(save_derectory):
         os.mkdir(save_derectory)
 
@@ -991,7 +985,7 @@ def tune(model, hparams, loaders, tb=False):
     optimizers, schedulers = getOptim(model, hparams, loaders[0])
 
     model, res = run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=schedulers,
-                      writer=writer, interval=hparams['interval'], save_step=int(len(loaders[0])/hparams['val_freq'])-1)
+                      writer=writer, interval=hparams["interval"], save_step=int(len(loaders[0])/hparams["val_freq"])-1)
 
     _log(res, model, hparams)
     return model
@@ -1006,7 +1000,7 @@ def test(model, hparams, loader_test):
         hparams
         loader_test: DataLoader of MINDlarge_test
     """
-    load(model, hparams, hparams['epochs'], hparams['save_step'][0])
+    load(model, hparams, hparams["epochs"], hparams["save_step"][0])
 
     logging.info("testing...")
     try:
@@ -1015,14 +1009,14 @@ def test(model, hparams, loader_test):
     except:
         logging.info("this model is not inherited from nn.Module")
 
-    save_path = 'data/results/prediction={}_{}_epoch{}_step{}_[hs={},topk={}].txt'.format(
-        hparams['name'], hparams['scale'], hparams['epochs'], hparams['save_step'][0], hparams['his_size'], hparams['k'])
-    with open(save_path, 'w') as f:
+    save_path = "data/results/prediction={}_{}_epoch{}_step{}_[hs={},topk={}].txt".format(
+        hparams["name"], hparams["scale"], hparams["epochs"], hparams["save_step"][0], hparams["his_size"], hparams["k"])
+    with open(save_path, "w") as f:
         preds = []
         imp_indexes = []
         for x in tqdm(loader_test, smoothing=0):
             preds.extend(model.forward(x).tolist())
-            imp_indexes.extend(x['impression_index'])
+            imp_indexes.extend(x["impression_index"])
 
         all_keys = list(set(imp_indexes))
         all_keys.sort()
@@ -1033,14 +1027,14 @@ def test(model, hparams, loader_test):
 
         for k, v in group_preds.items():
             array = np.asarray(v)
-            rank_list = ss.rankdata(1 - array, method='ordinal')
-            line = str(k) + ' [' + ','.join([str(i)
-                                             for i in rank_list]) + ']' + '\n'
+            rank_list = ss.rankdata(1 - array, method="ordinal")
+            line = str(k) + " [" + ",".join([str(i)
+                                             for i in rank_list]) + "]" + "\n"
             f.write(line)
 
     logging.info("written to prediction at {}!".format(save_path))
 
-    with open('performance.log', 'a+') as f:
+    with open("performance.log", "a+") as f:
         d = {}
         for k, v in hparams.items():
             if k in hparam_list:
@@ -1049,9 +1043,9 @@ def test(model, hparams, loader_test):
             if name in param_list:
                 d[name] = tuple(param.shape)
 
-        f.write(str(d)+'\n')
-        f.write('\n')
-        f.write('\n')
+        f.write(str(d)+"\n")
+        f.write("\n")
+        f.write("\n")
 
 
 
@@ -1061,9 +1055,9 @@ def load_hparams(hparams):
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--scale", dest="scale", help="data scale",
-                        choices=['demo', 'small', 'large', 'whole'], required=True)
+                        choices=["demo", "small", "large", "whole"], required=True)
     parser.add_argument("-m", "--mode", dest="mode", help="train or test",
-                        choices=['train', 'dev', 'test', 'tune', 'encode'], default='train')
+                        choices=["train", "dev", "test", "tune", "encode"], default="train")
     parser.add_argument("-e", "--epochs", dest="epochs",
                         help="epochs to train the model", type=int, default=10)
 
@@ -1077,17 +1071,17 @@ def load_hparams(hparams):
                         help="history size", type=int, default=50)
 
     parser.add_argument("--device", dest="device",
-                        help="device to run on", choices=['0', '1', 'cpu'], default='0')
+                        help="device to run on", choices=["0", "1", "cpu"], default="0")
     parser.add_argument("--interval", dest="interval", help="the step interval to update processing bar", default=0, type=int)
     parser.add_argument("--save_step", dest="save_step",
-                        help="if clarified, save model at the interval of given steps", type=str, default='0')
+                        help="if clarified, save model at the interval of given steps", type=str, default="0")
     parser.add_argument("--val_freq", dest="val_freq", help="the frequency to validate during training in one epoch", type=int, default=0)
 
     parser.add_argument("-ck", "--checkpoint", dest="checkpoint",
                         help="the checkpoint model to load", type=str)
     parser.add_argument("--learning_rate", dest="learning_rate",
                         help="learning rate when training", type=float, default=0)
-    parser.add_argument("--schedule", dest="schedule", help="choose schedule scheme for optimizer", default='linear')
+    parser.add_argument("--schedule", dest="schedule", help="choose schedule scheme for optimizer", default="linear")
 
     parser.add_argument("--npratio", dest="npratio",
                         help="the number of unclicked news to sample when training", type=int, default=4)
@@ -1100,16 +1094,16 @@ def load_hparams(hparams):
         "--contra_num", dest="contra_num", help="sample number for contrasive selection aware network", type=int, default=0)
     parser.add_argument("--coarse", dest="coarse", help="if clarified, coarse-level matching signals will be taken into consideration",default=None)
     parser.add_argument("--integrate", dest="integration",
-                        help="the way history filter is combined", choices=['gate', 'harmony'], default='gate')
-    parser.add_argument("--encoder", dest="encoder", help="choose encoder", default='fim')
-    parser.add_argument("--interactor", dest="interactor", help="choose interactor", default=None)
-    parser.add_argument("--threshold", dest="threshold", help="if clarified, SFI will dynamically mask attention weights smaller than threshold with 0", default=-float('inf'), type=float)
-    parser.add_argument("--multiview", dest="multiview", help="if clarified, SFI-MultiView will be called", action='store_true')
+                        help="the way history filter is combined", choices=["gate", "harmony"], default="gate")
+    parser.add_argument("--encoder", dest="encoder", help="choose encoder", default="fim")
+    parser.add_argument("--interactor", dest="interactor", help="choose interactor", default="fim")
+    parser.add_argument("--threshold", dest="threshold", help="if clarified, SFI will dynamically mask attention weights smaller than threshold with 0", default=-float("inf"), type=float)
+    parser.add_argument("--multiview", dest="multiview", help="if clarified, SFI-MultiView will be called", action="store_true")
     parser.add_argument("--ensemble", dest="ensemble", help="choose ensemble strategy for SFI-ensemble", type=str, default=None)
 
 
     parser.add_argument("--bert", dest="bert", help="choose bert model(encoder)",
-                        choices=['bert-base-uncased', 'albert-base-v2'], default=None)
+                        choices=["bert-base-uncased", "albert-base-v2"], default=None)
     parser.add_argument("--level", dest="level",
                         help="intend for bert encoder, if clarified, level representations will be kept for a token", type=int, default=1)
 
@@ -1124,111 +1118,106 @@ def load_hparams(hparams):
                         help="dimension of projected query", type=int, default=200)
 
     parser.add_argument("--attrs", dest="attrs",
-                        help="clarified attributes of news will be yielded by dataloader, seperate with comma", type=str, default='title')
+                        help="clarified attributes of news will be yielded by dataloader, seperate with comma", type=str, default="title")
     parser.add_argument("--validate", dest="validate",
-                        help="if clarified, evaluate the model on training set", action='store_true')
-    parser.add_argument("--onehot", dest="onehot", help="if clarified, one hot encode of category/subcategory will be returned by dataloader", action='store_true')
-
-    # parser.add_argument("-dp","--dropout", dest="dropout", help="drop out probability", type=float, default=0.2)
-    # parser.add_argument("-ed","--embedding_dim", dest="embedding_dim", help="dimension of word embedding", type=int, default=300)
-    # parser.add_argument("-qd","--query_dim", dest="query_dim", help="dimension of query tensor", type=int, default=200)
-    # parser.add_argument("-fn","--filter_num", dest="filter_num", help="the number of filters (out channels) for convolution", type=int, default=150)
-
+                        help="if clarified, evaluate the model on training set", action="store_true")
+    parser.add_argument("--onehot", dest="onehot", help="if clarified, one hot encode of category/subcategory will be returned by dataloader", action="store_true")
+    
     args = parser.parse_args()
 
-    hparams['scale'] = args.scale
-    hparams['mode'] = args.mode
-    if hparams['mode'] == 'train':
+    hparams["scale"] = args.scale
+    hparams["mode"] = args.mode
+    if hparams["mode"] == "train":
         # 2000 by default
-        hparams['save_step'] = 2000
+        hparams["save_step"] = 2000
     if len(args.device) > 1:
-        hparams['device'] = args.device
+        hparams["device"] = args.device
     else:
-        hparams['device'] = 'cuda:' + args.device
-    hparams['epochs'] = args.epochs
-    hparams['batch_size'] = args.batch_size
-    hparams['interval'] = args.interval
-    hparams['title_size'] = args.title_size
-    hparams['abs_size'] = args.abs_size
-    hparams['npratio'] = args.npratio
-    hparams['metrics'] = args.metrics
-    hparams['val_freq'] = args.val_freq
-    hparams['schedule'] = args.schedule
-    hparams['spadam'] = True
-    hparams['contra_num'] = args.contra_num
-    hparams['head_num'] = args.head_num
-    hparams['value_dim'] = args.value_dim
-    hparams['query_dim'] = args.query_dim
-    hparams['interactor'] = args.interactor
+        hparams["device"] = "cuda:" + args.device
+    hparams["epochs"] = args.epochs
+    hparams["batch_size"] = args.batch_size
+    hparams["interval"] = args.interval
+    hparams["title_size"] = args.title_size
+    hparams["abs_size"] = args.abs_size
+    hparams["npratio"] = args.npratio
+    hparams["metrics"] = args.metrics
+    hparams["val_freq"] = args.val_freq
+    hparams["schedule"] = args.schedule
+    hparams["spadam"] = True
+    hparams["contra_num"] = args.contra_num
+    hparams["head_num"] = args.head_num
+    hparams["value_dim"] = args.value_dim
+    hparams["query_dim"] = args.query_dim
+    hparams["interactor"] = args.interactor
 
-    hparams['his_size'] = args.his_size
-    hparams['k'] = args.k
+    hparams["his_size"] = args.his_size
+    hparams["k"] = args.k
 
-    hparams['threshold'] = args.threshold
-    hparams['coarse'] = args.coarse
+    hparams["threshold"] = args.threshold
+    hparams["coarse"] = args.coarse
 
-    hparams['attrs'] = args.attrs.split(',')
-    hparams['save_step'] = [int(i) for i in args.save_step.split(',')]
+    hparams["attrs"] = args.attrs.split(",")
+    hparams["save_step"] = [int(i) for i in args.save_step.split(",")]
 
     if not args.learning_rate:
-        if hparams['scale'] == 'demo':
-            hparams['learning_rate'] = 1e-3
+        if hparams["scale"] == "demo":
+            hparams["learning_rate"] = 1e-3
         else:
-            hparams['learning_rate'] = 1e-4
+            hparams["learning_rate"] = 1e-4
     else:
-        hparams['learning_rate'] = args.learning_rate
+        hparams["learning_rate"] = args.learning_rate
     if not args.interval:
-        if hparams['scale'] == 'demo':
-            hparams['interval'] = 10
+        if hparams["scale"] == "demo":
+            hparams["interval"] = 10
         else:
-            hparams['interval'] = 100
+            hparams["interval"] = 100
     else:
-        hparams['interval'] = args.interval
+        hparams["interval"] = args.interval
     if not args.val_freq:
-        if hparams['scale'] == 'demo':
-            hparams['val_freq'] = 1
+        if hparams["scale"] == "demo":
+            hparams["val_freq"] = 1
         else:
-            hparams['val_freq'] = 4
+            hparams["val_freq"] = 4
     else:
-        hparams['val_freq'] = args.val_freq
+        hparams["val_freq"] = args.val_freq
     if args.validate:
-        hparams['validate'] = args.validate
+        hparams["validate"] = args.validate
     if args.onehot:
-        hparams['onehot'] = args.onehot
-        hparams['vert_num'] = 18
-        hparams['subvert_num'] = 293
+        hparams["onehot"] = args.onehot
+        hparams["vert_num"] = 18
+        hparams["subvert_num"] = 293
     else:
-        hparams['onehot'] = False
+        hparams["onehot"] = False
     if args.checkpoint:
-        hparams['checkpoint'] = args.checkpoint
+        hparams["checkpoint"] = args.checkpoint
     if args.encoder:
-        hparams['encoder'] = args.encoder
+        hparams["encoder"] = args.encoder
     if args.multiview:
-        hparams['multiview'] = args.multiview
-        hparams['attrs'] = 'title,vert,subvert,abs'.split(',')
+        hparams["multiview"] = args.multiview
+        hparams["attrs"] = "title,vert,subvert,abs".split(",")
         logging.info("automatically set True for onehot encoding of (sub)categories")
-        hparams['onehot'] = True
-        hparams['vert_num'] = 18
-        hparams['subvert_num'] = 293
+        hparams["onehot"] = True
+        hparams["vert_num"] = 18
+        hparams["subvert_num"] = 293
     else:
-        hparams['multiview'] = False
+        hparams["multiview"] = False
     if args.ensemble:
-        hparams['ensemble'] = args.ensemble
+        hparams["ensemble"] = args.ensemble
     if args.coarse:
-        hparams['integration'] = args.integration
-        hparams['coarse'] = 'coarse'
+        hparams["integration"] = args.integration
+        hparams["coarse"] = "coarse"
     if args.pipeline:
-        hparams['pipeline'] = args.pipeline
-        hparams['encoder'] = 'pipeline'
-        hparams['name'] = args.pipeline
-        hparams['spadam'] = False
+        hparams["pipeline"] = args.pipeline
+        hparams["encoder"] = "pipeline"
+        hparams["name"] = args.pipeline
+        hparams["spadam"] = False
     if args.bert:
-        hparams['encoder'] = 'bert'
-        hparams['bert'] = args.bert
-        hparams['level'] = args.level
+        hparams["encoder"] = "bert"
+        hparams["bert"] = args.bert
+        hparams["level"] = args.level
 
-    if len(hparams['save_step']) > 1:
-        hparams['command'] = "python " + " ".join(sys.argv)
+    if len(hparams["save_step"]) > 1:
+        hparams["command"] = "python " + " ".join(sys.argv)
 
     return hparams
 
@@ -1255,7 +1244,7 @@ def generate_hparams(hparams, config):
         yield hparams
 
 
-def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=False, pin_memory=True, num_workers=8):
+def prepare(hparams, path="/home/peitian_zhang/Data/MIND", shuffle=True, news=False, pin_memory=True, num_workers=8):
     from .MIND import MIND,MIND_news,MIND_all
     """ prepare dataloader and several paths
 
@@ -1271,42 +1260,42 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
     logging.info("preparing dataset...")
 
     if news:
-        path = '/home/peitian_zhang/Data/MIND'
+        path = "/home/peitian_zhang/Data/MIND"
         news_file_train = path + \
-            '/MIND{}_train/news.tsv'.format(hparams['scale'])
-        news_file_dev = path+'/MIND{}_dev/news.tsv'.format(hparams['scale'])
+            "/MIND{}_train/news.tsv".format(hparams["scale"])
+        news_file_dev = path+"/MIND{}_dev/news.tsv".format(hparams["scale"])
 
         dataset_train = MIND_news(hparams, news_file_train)
         loader_news_train = DataLoader(
-            dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=num_workers, drop_last=False, collate_fn=my_collate)
+            dataset_train, batch_size=hparams["batch_size"], pin_memory=pin_memory, num_workers=num_workers, drop_last=False, collate_fn=my_collate)
 
         dataset_dev = MIND_news(hparams, news_file_dev)
         loader_news_dev = DataLoader(
-            dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=num_workers, drop_last=False, collate_fn=my_collate)
+            dataset_dev, batch_size=hparams["batch_size"], pin_memory=pin_memory, num_workers=num_workers, drop_last=False, collate_fn=my_collate)
 
         vocab = dataset_train.vocab
-        embedding = GloVe(dim=300, cache='.vector_cache')
+        embedding = GloVe(dim=300, cache=".vector_cache")
         vocab.load_vectors(embedding)
 
-        if hparams['scale'] == 'large':
+        if hparams["scale"] == "large":
             news_file_test = path + \
-                '/MIND{}_test/news.tsv'.format(hparams['scale'])
+                "/MIND{}_test/news.tsv".format(hparams["scale"])
             dataset_test = MIND_news(hparams, news_file_test)
             loader_news_test = DataLoader(
-                dataset_test, batch_size=hparams['batch_size'], pin_memory=pin_memory, num_workers=num_workers, drop_last=False, collate_fn=my_collate)
+                dataset_test, batch_size=hparams["batch_size"], pin_memory=pin_memory, num_workers=num_workers, drop_last=False, collate_fn=my_collate)
 
             return vocab, [loader_news_train, loader_news_dev, loader_news_test]
 
         return vocab, [loader_news_train, loader_news_dev]
 
-    elif hparams['mode'] in ['train', 'tune']:
-        news_file_train = path+'/MIND'+hparams['scale']+'_train/news.tsv'
-        behavior_file_train = path+'/MIND' + \
-            hparams['scale']+'_train/behaviors.tsv'
-        news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
-        behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
+    elif hparams["mode"] in ["train", "tune"]:
+        news_file_train = path+"/MIND"+hparams["scale"]+"_train/news.tsv"
+        behavior_file_train = path+"/MIND" + \
+            hparams["scale"]+"_train/behaviors.tsv"
+        news_file_dev = path+"/MIND"+hparams["scale"]+"_dev/news.tsv"
+        behavior_file_dev = path+"/MIND"+hparams["scale"]+"_dev/behaviors.tsv"
 
-        if hparams['multiview']:
+        if hparams["multiview"]:
             dataset_train = MIND_all(hparams=hparams, news_file=news_file_train,
                             behaviors_file=behavior_file_train)
             dataset_dev = MIND_all(hparams=hparams, news_file=news_file_dev,
@@ -1318,58 +1307,58 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
                             behaviors_file=behavior_file_dev)
 
         vocab = dataset_train.vocab
-        if 'bert' not in hparams:
-            embedding = GloVe(dim=300, cache='.vector_cache')
+        if "bert" not in hparams:
+            embedding = GloVe(dim=300, cache=".vector_cache")
             vocab.load_vectors(embedding)
-        loader_train = DataLoader(dataset_train, batch_size=hparams['batch_size'], pin_memory=pin_memory,
+        loader_train = DataLoader(dataset_train, batch_size=hparams["batch_size"], pin_memory=pin_memory,
                                 num_workers=num_workers, drop_last=False, shuffle=shuffle, collate_fn=my_collate)
-        loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
+        loader_dev = DataLoader(dataset_dev, batch_size=hparams["batch_size"], pin_memory=pin_memory,
                                 num_workers=num_workers, drop_last=False, collate_fn=my_collate)
 
-        if 'validate' in hparams and hparams['validate']:
-            if hparams['multiview']:
+        if "validate" in hparams and hparams["validate"]:
+            if hparams["multiview"]:
                 dataset_validate = MIND_all(
                     hparams=hparams, news_file=news_file_train, behaviors_file=behavior_file_train, validate=True)
             else:
                 dataset_validate = MIND(
                     hparams=hparams, news_file=news_file_train, behaviors_file=behavior_file_train, validate=True)
-            loader_validate = DataLoader(dataset_validate, batch_size=hparams['batch_size'], pin_memory=pin_memory,
+            loader_validate = DataLoader(dataset_validate, batch_size=hparams["batch_size"], pin_memory=pin_memory,
                                         num_workers=num_workers, drop_last=False, collate_fn=my_collate)
             return vocab, [loader_train, loader_dev, loader_validate]
         else:
             return vocab, [loader_train, loader_dev]
 
-    elif hparams['mode'] == 'dev':
-        news_file_dev = path+'/MIND'+hparams['scale']+'_dev/news.tsv'
-        behavior_file_dev = path+'/MIND'+hparams['scale']+'_dev/behaviors.tsv'
+    elif hparams["mode"] == "dev":
+        news_file_dev = path+"/MIND"+hparams["scale"]+"_dev/news.tsv"
+        behavior_file_dev = path+"/MIND"+hparams["scale"]+"_dev/behaviors.tsv"
 
-        if hparams['multiview']:
+        if hparams["multiview"]:
             dataset_dev = MIND_all(hparams=hparams, news_file=news_file_dev,
                             behaviors_file=behavior_file_dev)
         else:
             dataset_dev = MIND(hparams=hparams, news_file=news_file_dev,
                             behaviors_file=behavior_file_dev)
-        loader_dev = DataLoader(dataset_dev, batch_size=hparams['batch_size'], pin_memory=pin_memory,
+        loader_dev = DataLoader(dataset_dev, batch_size=hparams["batch_size"], pin_memory=pin_memory,
                                 num_workers=num_workers, drop_last=False, collate_fn=my_collate)
         vocab = dataset_dev.vocab
-        if 'bert' not in hparams:
-            embedding = GloVe(dim=300, cache='.vector_cache')
+        if "bert" not in hparams:
+            embedding = GloVe(dim=300, cache=".vector_cache")
             vocab.load_vectors(embedding)
 
         return vocab, [loader_dev]
 
-    elif hparams['mode'] == 'test':
-        if hparams['multiview']:
-            dataset_test = MIND_all(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv',
-                                    '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
+    elif hparams["mode"] == "test":
+        if hparams["multiview"]:
+            dataset_test = MIND_all(hparams, "/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv",
+                                    "/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv")
         else:
-            dataset_test = MIND(hparams, '/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv',
-                                    '/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv')
-        loader_test = DataLoader(dataset_test, batch_size=hparams['batch_size'], pin_memory=pin_memory,
+            dataset_test = MIND(hparams, "/home/peitian_zhang/Data/MIND/MINDlarge_test/news.tsv",
+                                    "/home/peitian_zhang/Data/MIND/MINDlarge_test/behaviors.tsv")
+        loader_test = DataLoader(dataset_test, batch_size=hparams["batch_size"], pin_memory=pin_memory,
                                  num_workers=num_workers, drop_last=False, collate_fn=my_collate)
         vocab = dataset_test.vocab
-        if 'bert' not in hparams:
-            embedding = GloVe(dim=300, cache='.vector_cache')
+        if "bert" not in hparams:
+            embedding = GloVe(dim=300, cache=".vector_cache")
             vocab.load_vectors(embedding)
 
         return vocab, [loader_test]
@@ -1377,24 +1366,24 @@ def prepare(hparams, path='/home/peitian_zhang/Data/MIND', shuffle=True, news=Fa
 
 def pipeline_encode(model, hparams, loaders):
     """
-        Encode news of hparams['scale'] in each mode
+        Encode news of hparams["scale"] in each mode
     """
     news_num_dict = {
-        'demo': {
-            'train': 51282,
-            'dev': 42416
+        "demo": {
+            "train": 51282,
+            "dev": 42416
         },
-        'small': {
-            'train': 51282,
-            'dev': 42416
+        "small": {
+            "train": 51282,
+            "dev": 42416
         },
-        'large': {
-            'train': 101527,
-            'dev': 72023,
-            'test': 120961
+        "large": {
+            "train": 101527,
+            "dev": 72023,
+            "test": 120961
         }
     }
-    news_num = news_num_dict[hparams['scale']]['train']
+    news_num = news_num_dict[hparams["scale"]]["train"]
 
     news_reprs = torch.zeros((news_num + 1, model.hidden_dim))
     news_embeddings = torch.zeros(
@@ -1403,17 +1392,17 @@ def pipeline_encode(model, hparams, loaders):
     for x in tqdm(loaders[0]):
         embedding, repr = model(x)
         for i in range(embedding.shape[0]):
-            news_reprs[x['news_id'][i]] = repr[i]
-            news_embeddings[x['news_id'][i]] = embedding[i]
+            news_reprs[x["news_id"][i]] = repr[i]
+            news_embeddings[x["news_id"][i]] = embedding[i]
 
-    torch.save(news_reprs, 'data/tensors/news_repr_{}_train-[{}].tensor'.format(
-        hparams['scale'], hparams['name']))
-    torch.save(news_embeddings, 'data/tensors/news_embedding_{}_train-[{}].tensor'.format(
-        hparams['scale'], hparams['name']))
+    torch.save(news_reprs, "data/tensors/news_repr_{}_train-[{}].tensor".format(
+        hparams["scale"], hparams["name"]))
+    torch.save(news_embeddings, "data/tensors/news_embedding_{}_train-[{}].tensor".format(
+        hparams["scale"], hparams["name"]))
     del news_reprs
     del news_embeddings
 
-    news_num_dev = news_num_dict[hparams['scale']]['dev']
+    news_num_dev = news_num_dict[hparams["scale"]]["dev"]
 
     news_reprs = torch.zeros((news_num_dev + 1, model.hidden_dim))
     news_embeddings = torch.zeros(
@@ -1422,19 +1411,19 @@ def pipeline_encode(model, hparams, loaders):
     for x in tqdm(loaders[1]):
         embedding, repr = model(x)
         for i in range(embedding.shape[0]):
-            news_reprs[x['news_id'][i]] = repr[i]
-            news_embeddings[x['news_id'][i]] = embedding[i]
+            news_reprs[x["news_id"][i]] = repr[i]
+            news_embeddings[x["news_id"][i]] = embedding[i]
 
-    torch.save(news_reprs, 'data/tensors/news_repr_{}_dev-[{}].tensor'.format(
-        hparams['scale'], hparams['name']))
-    torch.save(news_embeddings, 'data/tensors/news_embedding_{}_dev-[{}].tensor'.format(
-        hparams['scale'], hparams['name']))
+    torch.save(news_reprs, "data/tensors/news_repr_{}_dev-[{}].tensor".format(
+        hparams["scale"], hparams["name"]))
+    torch.save(news_embeddings, "data/tensors/news_embedding_{}_dev-[{}].tensor".format(
+        hparams["scale"], hparams["name"]))
     del news_reprs
     del news_embeddings
 
 
-    if hparams['scale'] == 'large':
-        news_num_test = news_num_dict[hparams['scale']]['test']
+    if hparams["scale"] == "large":
+        news_num_test = news_num_dict[hparams["scale"]]["test"]
 
         news_reprs = torch.zeros((news_num_test + 1, model.hidden_dim))
         news_embeddings = torch.zeros(
@@ -1443,22 +1432,22 @@ def pipeline_encode(model, hparams, loaders):
         for x in tqdm(loaders[2]):
             embedding, repr = model(x)
             for i in range(embedding.shape[0]):
-                news_reprs[x['news_id'][i]] = repr[i]
-                news_embeddings[x['news_id'][i]] = embedding[i]
+                news_reprs[x["news_id"][i]] = repr[i]
+                news_embeddings[x["news_id"][i]] = embedding[i]
 
-        torch.save(news_reprs, 'data/tensors/news_repr_{}_test-[{}].tensor'.format(
-            hparams['scale'], hparams['name']))
-        torch.save(news_embeddings, 'data/tensors/news_embedding_{}_test-[{}].tensor'.format(
-            hparams['scale'], hparams['name']))
+        torch.save(news_reprs, "data/tensors/news_repr_{}_test-[{}].tensor".format(
+            hparams["scale"], hparams["name"]))
+        torch.save(news_embeddings, "data/tensors/news_embedding_{}_test-[{}].tensor".format(
+            hparams["scale"], hparams["name"]))
         del news_reprs
         del news_embeddings
 
-    logging.info('successfully encoded news!')
+    logging.info("successfully encoded news!")
 
 @torch.no_grad()
 def encode(model, hparams, loader=None):
     """
-        Encode news of hparams['scale'] in each mode, currently force to encode dev dataset
+        Encode news of hparams["scale"] in each mode, currently force to encode dev dataset
     """
 
     # very important
@@ -1466,29 +1455,29 @@ def encode(model, hparams, loader=None):
 
     if not loader:
         from .MIND import MIND_news
-        path = '/home/peitian_zhang/Data/MIND'
-        news_file = path + '/MIND{}_{}/news.tsv'.format(hparams['scale'],hparams['mode'])
+        path = "/home/peitian_zhang/Data/MIND"
+        news_file = path + "/MIND{}_{}/news.tsv".format(hparams["scale"],hparams["mode"])
 
         dataset = MIND_news(hparams, news_file)
         loader_news = DataLoader(
-            dataset, batch_size=hparams['batch_size'], pin_memory=False, num_workers=8, drop_last=False, collate_fn=my_collate)
+            dataset, batch_size=hparams["batch_size"], pin_memory=False, num_workers=8, drop_last=False, collate_fn=my_collate)
 
     news_num_dict = {
-        'demo': {
-            'train': 51282,
-            'dev': 42416
+        "demo": {
+            "train": 51282,
+            "dev": 42416
         },
-        'small': {
-            'train': 51282,
-            'dev': 42416
+        "small": {
+            "train": 51282,
+            "dev": 42416
         },
-        'large': {
-            'train': 101527,
-            'dev': 72023,
-            'test': 120961
+        "large": {
+            "train": 101527,
+            "dev": 72023,
+            "test": 120961
         }
     }
-    news_num = news_num_dict[hparams['scale']]['dev']
+    news_num = news_num_dict[hparams["scale"]]["dev"]
 
     news_reprs = torch.zeros((news_num + 1, model.hidden_dim))
     news_embeddings = torch.zeros(
@@ -1497,18 +1486,18 @@ def encode(model, hparams, loader=None):
     for x in tqdm(loader):
         embedding, repr = model(x)
         for i in range(embedding.shape[0]):
-            news_reprs[x['cdd_id'][i]] = repr[i]
-            news_embeddings[x['cdd_id'][i]] = embedding[i]
+            news_reprs[x["cdd_id"][i]] = repr[i]
+            news_embeddings[x["cdd_id"][i]] = embedding[i]
 
-    torch.save(news_reprs, 'data/tensors/news_repr_{}_{}-[{}].tensor'.format(
-        hparams['scale'], 'dev', hparams['name']))
-    torch.save(news_embeddings, 'data/tensors/news_embedding_{}_{}-[{}].tensor'.format(
-        hparams['scale'], 'dev', hparams['name']))
+    torch.save(news_reprs, "data/tensors/news_repr_{}_{}-[{}].tensor".format(
+        hparams["scale"], "dev", hparams["name"]))
+    torch.save(news_embeddings, "data/tensors/news_embedding_{}_{}-[{}].tensor".format(
+        hparams["scale"], "dev", hparams["name"]))
     del news_reprs
     del news_embeddings
-    logging.info('successfully encoded news of {}-{}, saved in data/tensors/news_**_{}_{}-[{}].tensor'.format(hparams['scale'], 'dev', hparams['scale'], 'dev', hparams['name']))
+    logging.info("successfully encoded news of {}-{}, saved in data/tensors/news_**_{}_{}-[{}].tensor".format(hparams["scale"], "dev", hparams["scale"], "dev", hparams["name"]))
 
-def analyse(hparams, path='/home/peitian_zhang/Data/MIND'):
+def analyse(hparams, path="/home/peitian_zhang/Data/MIND"):
     """
         analyse over MIND
     """
@@ -1521,28 +1510,28 @@ def analyse(hparams, path='/home/peitian_zhang/Data/MIND'):
     cnt_imp_multi = 0
 
     news_file = path + \
-        '/MIND{}_{}/news.tsv'.format(hparams['scale'], hparams['mode'])
+        "/MIND{}_{}/news.tsv".format(hparams["scale"], hparams["mode"])
 
     behavior_file = path + \
-        '/MIND{}_{}/behaviors.tsv'.format(hparams['scale'], hparams['mode'])
+        "/MIND{}_{}/behaviors.tsv".format(hparams["scale"], hparams["mode"])
 
-    with open(news_file, "r", encoding='utf-8') as rd:
+    with open(news_file, "r", encoding="utf-8") as rd:
         count = 0
         for idx in rd:
             nid, vert, subvert, title, ab, url, _, _ = idx.strip(
-                "\n").split('\t')
-            avg_title_length += len(title.split(' '))
-            avg_abstract_length += len(ab.split(' '))
+                "\n").split("\t")
+            avg_title_length += len(title.split(" "))
+            avg_abstract_length += len(ab.split(" "))
             count += 1
     avg_title_length = avg_title_length/count
     avg_abstract_length = avg_abstract_length/count
 
-    with open(behavior_file, "r", encoding='utf-8') as rd:
+    with open(behavior_file, "r", encoding="utf-8") as rd:
         count = 0
         for idx in rd:
-            uid, time, history, impr = idx.strip("\n").split('\t')[-4:]
-            his = history.split(' ')
-            imp = impr.split(' ')
+            uid, time, history, impr = idx.strip("\n").split("\t")[-4:]
+            his = history.split(" ")
+            imp = impr.split(" ")
             if len(his) > 50:
                 cnt_his_lg_50 += 1
             if len(imp) > 50:

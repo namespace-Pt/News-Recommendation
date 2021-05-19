@@ -179,32 +179,20 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 |0.5|{'auc': 0.6759, 'mean_mrr': 0.3245, 'ndcg@5': 0.3575, 'ndcg@10': 0.4199, 'epoch': 4, 'step': 25374}|
 |0.7|{'auc': 0.6208, 'mean_mrr': 0.3046, 'ndcg@5': 0.3327, 'ndcg@10': 0.3938, 'epoch': 1, 'step': 8458}|
 
-|Encoder|Interactor|selection|result|
+|Encoder|Interactor|result|
 |:-:|:-:|:-:|:-:|
-|NPA|3DCNN|hard||
-|NPA|KNRM|hard||
-|NPA|2DCNN|hard||
-|NPA|3DCNN|soft||
-|NPA|KNRM|soft||
-|NPA|2DCNN|soft||
-|NRMS|3DCNN|hard||
-|NRMS|KNRM|hard||
-|NRMS|2DCNN|hard||
-|NRMS|3DCNN|soft||
-|NRMS|KNRM|soft||
-|NRMS|2DCNN|soft||
-|FIM|3DCNN|hard||
-|FIM|KNRM|hard||
-|FIM|2DCNN|hard||
-|FIM|3DCNN|soft||
-|FIM|KNRM|soft||
-|FIM|2DCNN|soft||
-|CNN|3DCNN|hard||
-|CNN|KNRM|hard||
-|CNN|2DCNN|hard||
-|CNN|3DCNN|soft||
-|CNN|KNRM|soft||
-|CNN|2DCNN|soft||
+|NPA|2DCNN|{'auc': 0.6371, 'mean_mrr': 0.2919, 'ndcg@5': 0.3194, 'ndcg@10': 0.3859, 'epoch': 5, 'step': 33834}|
+|NPA|3DCNN|{'auc': 0.6395, 'mean_mrr': 0.2948, 'ndcg@5': 0.323, 'ndcg@10': 0.3875, 'epoch': 1, 'step': 33834}|
+|NPA|MHA|{'auc': 0.6554, 'mean_mrr': 0.3046, 'ndcg@5': 0.3329, 'ndcg@10': 0.3997, 'epoch': 5, 'step': 22556, 'plus':1}|
+|NPA|KNRM|{'auc': 0.6324, 'mean_mrr': 0.29, 'ndcg@5': 0.3169, 'ndcg@10': 0.3845, 'epoch': 4, 'step': 22556}|
+|FIM|2DCNN|{'auc': 0.6845, 'mean_mrr': 0.3281, 'ndcg@5': 0.3644, 'ndcg@10': 0.4269, 'epoch': 4, 'step': 33834}|
+|FIM|3DCNN|{'auc': 0.6867, 'mean_mrr': 0.3294, 'ndcg@5': 0.364, 'ndcg@10': 0.4297, 'epoch': 5, 'step': 33834}|
+|FIM|MHA|{'auc': 0.6366, 'mean_mrr': 0.2932, 'ndcg@5': 0.3166, 'ndcg@10': 0.3852, 'epoch': 5, 'step': 16916}|
+|FIM|KNRM|{'auc': 0.5999, 'mean_mrr': 0.2772, 'ndcg@5': 0.2996, 'ndcg@10': 0.3664, 'epoch': 4, 'step': 11278}|
+|MHA|2DCNN|{'auc': 0.6644, 'mean_mrr': 0.3155, 'ndcg@5': 0.3483, 'ndcg@10': 0.414, 'epoch': 5, 'step': 33834, 'plus'}|
+|MHA|3DCNN|{'auc': 0.6556, 'mean_mrr': 0.303, 'ndcg@5': 0.334, 'ndcg@10': 0.4006, 'epoch': 5, 'step': 11278}|
+|MHA|MHA|{'auc': 0.6131, 'mean_mrr': 0.2778, 'ndcg@5': 0.3016, 'ndcg@10': 0.3682, 'epoch': 5, 'step': 33834}|
+|MHA|KNRM|{'auc': 0.6392, 'mean_mrr': 0.2885, 'ndcg@5': 0.3165, 'ndcg@10': 0.3837, 'epoch': 1, 'step': 22556}|
 
 |pre-training|result|
 |:-:|:-:|
@@ -212,8 +200,8 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 |NPA||
 |NRMS||
 
-|his_size|topk|result|
-|:-:|:-:|:-:|
+|his_size|topk|result|speed|
+|:-:|:-:|:-:|:-:|
 |50|10|{'auc': 0.6485, 'mean_mrr': 0.3047, 'ndcg@5': 0.3335, 'ndcg@10': 0.3984, 'epoch': 7, 'step': 2363}|
 |50|15|{'auc': 0.6481, 'mean_mrr': 0.3026, 'ndcg@5': 0.3319, 'ndcg@10': 0.3971, 'epoch': 10, 'step': 2363}|
 |50|20|{'auc': 0.6501, 'mean_mrr': 0.3051, 'ndcg@5': 0.3339, 'ndcg@10': 0.3988, 'epoch': 9, 'step': 2363}|
@@ -221,12 +209,5 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 |50|30|{'auc': 0.6617, 'mean_mrr': 0.3075, 'ndcg@5': 0.34, 'ndcg@10': 0.4024, 'epoch': 4, 'step': 1181}|
 |50|35|{'auc': 0.6657, 'mean_mrr': 0.3151, 'ndcg@5': 0.3477, 'ndcg@10': 0.4099, 'epoch': 12, 'step': 2363}|
 |50|40|{'auc': 0.6687, 'mean_mrr': 0.3181, 'ndcg@5': 0.352, 'ndcg@10': 0.4146, 'epoch': 9, 'step': 2363}|
-|50|45||
-|50|50||
-|30|30|{'auc': 0.6498, 'mean_mrr': 0.2995, 'ndcg@5': 0.328, 'ndcg@10': 0.3942, 'epoch': 5, 'step': 2362}|
-|40|30|{'auc': 0.6526, 'mean_mrr': 0.3018, 'ndcg@5': 0.3312, 'ndcg@10': 0.3972, 'epoch': 5, 'step': 2362}|
-|60|30|{'auc': 0.652, 'mean_mrr': 0.3058, 'ndcg@5': 0.3348, 'ndcg@10': 0.3997, 'epoch': 4, 'step': 2362}|
-|70|30|{'auc': 0.6539, 'mean_mrr': 0.3048, 'ndcg@5': 0.3372, 'ndcg@10': 0.4007, 'epoch': 5, 'step': 2362}|
-|80|30|{'auc': 0.6597, 'mean_mrr': 0.3058, 'ndcg@5': 0.34, 'ndcg@10': 0.4024, 'epoch': 5, 'step': 2362}|
-|90|30|{'auc': 0.6495, 'mean_mrr': 0.2947, 'ndcg@5': 0.3244, 'ndcg@10': 0.3891, 'epoch': 3, 'step': 1181}|
-|100|30|{'auc': 0.6544, 'mean_mrr': 0.3044, 'ndcg@5': 0.3367, 'ndcg@10': 0.4006, 'epoch': 5, 'step': 1181}|
+|50|45|{'auc': 0.6664, 'mean_mrr': 0.3145, 'ndcg@5': 0.3482, 'ndcg@10': 0.411, 'epoch': 14, 'step': 2363}|
+|50|50|{'auc': 0.6645, 'mean_mrr': 0.3135, 'ndcg@5': 0.3465, 'ndcg@10': 0.409, 'epoch': 13, 'step': 2363}|
