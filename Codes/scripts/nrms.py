@@ -65,7 +65,7 @@ if __name__ == "__main__":
     else:
         raise ValueError("Undefined Selection Method")
 
-    if 'multiview' in hparams:
+    if hparams['multiview']:
         nrms = NRMS_MultiView(hparams, vocab).to(hparams['device'])
     else:
         nrms = NRMS(vocab=vocab,hparams=hparams, encoder=encoder).to(hparams['device'])

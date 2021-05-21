@@ -191,7 +191,7 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 |FIM|KNRM|{'auc': 0.5999, 'mean_mrr': 0.2772, 'ndcg@5': 0.2996, 'ndcg@10': 0.3664, 'epoch': 4, 'step': 11278}|
 |MHA|2DCNN|{'auc': 0.6644, 'mean_mrr': 0.3155, 'ndcg@5': 0.3483, 'ndcg@10': 0.414, 'epoch': 5, 'step': 33834, 'plus'}|
 |MHA|3DCNN|{'auc': 0.6556, 'mean_mrr': 0.303, 'ndcg@5': 0.334, 'ndcg@10': 0.4006, 'epoch': 5, 'step': 11278}|
-|MHA|MHA|{'auc': 0.6131, 'mean_mrr': 0.2778, 'ndcg@5': 0.3016, 'ndcg@10': 0.3682, 'epoch': 5, 'step': 33834}|
+|MHA|MHA|{'auc': 0.6144, 'mean_mrr': 0.2811, 'ndcg@5': 0.3047, 'ndcg@10': 0.3709, 'epoch': 7, 'step': 11278}|
 |MHA|KNRM|{'auc': 0.6392, 'mean_mrr': 0.2885, 'ndcg@5': 0.3165, 'ndcg@10': 0.3837, 'epoch': 1, 'step': 22556}|
 
 |pre-training|result|
@@ -202,12 +202,15 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
 
 |his_size|topk|result|speed|
 |:-:|:-:|:-:|:-:|
-|50|10|{'auc': 0.6485, 'mean_mrr': 0.3047, 'ndcg@5': 0.3335, 'ndcg@10': 0.3984, 'epoch': 7, 'step': 2363}|
-|50|15|{'auc': 0.6481, 'mean_mrr': 0.3026, 'ndcg@5': 0.3319, 'ndcg@10': 0.3971, 'epoch': 10, 'step': 2363}|
-|50|20|{'auc': 0.6501, 'mean_mrr': 0.3051, 'ndcg@5': 0.3339, 'ndcg@10': 0.3988, 'epoch': 9, 'step': 2363}|
-|50|25|{'auc': 0.651, 'mean_mrr': 0.3038, 'ndcg@5': 0.3342, 'ndcg@10': 0.3986, 'epoch': 10, 'step': 2363}|
-|50|30|{'auc': 0.6617, 'mean_mrr': 0.3075, 'ndcg@5': 0.34, 'ndcg@10': 0.4024, 'epoch': 4, 'step': 1181}|
-|50|35|{'auc': 0.6657, 'mean_mrr': 0.3151, 'ndcg@5': 0.3477, 'ndcg@10': 0.4099, 'epoch': 12, 'step': 2363}|
-|50|40|{'auc': 0.6687, 'mean_mrr': 0.3181, 'ndcg@5': 0.352, 'ndcg@10': 0.4146, 'epoch': 9, 'step': 2363}|
-|50|45|{'auc': 0.6664, 'mean_mrr': 0.3145, 'ndcg@5': 0.3482, 'ndcg@10': 0.411, 'epoch': 14, 'step': 2363}|
-|50|50|{'auc': 0.6645, 'mean_mrr': 0.3135, 'ndcg@5': 0.3465, 'ndcg@10': 0.409, 'epoch': 13, 'step': 2363}|
+|50|10|{'auc': 0.6485, 'mean_mrr': 0.3047, 'ndcg@5': 0.3335, 'ndcg@10': 0.3984, 'epoch': 7, 'step': 2363}|74.86|
+|50|15|{'auc': 0.6481, 'mean_mrr': 0.3026, 'ndcg@5': 0.3319, 'ndcg@10': 0.3971, 'epoch': 10, 'step': 2363}|56.43|
+|50|20|{'auc': 0.6501, 'mean_mrr': 0.3051, 'ndcg@5': 0.3339, 'ndcg@10': 0.3988, 'epoch': 9, 'step': 2363}|43.12|
+|50|25|{'auc': 0.651, 'mean_mrr': 0.3038, 'ndcg@5': 0.3342, 'ndcg@10': 0.3986, 'epoch': 10, 'step': 2363}|34.27|
+|50|30|{'auc': 0.6617, 'mean_mrr': 0.3075, 'ndcg@5': 0.34, 'ndcg@10': 0.4024, 'epoch': 4, 'step': 1181}|29.65|
+|50|35|{'auc': 0.6657, 'mean_mrr': 0.3151, 'ndcg@5': 0.3477, 'ndcg@10': 0.4099, 'epoch': 12, 'step': 2363}|25.43|
+|50|40|{'auc': 0.6687, 'mean_mrr': 0.3181, 'ndcg@5': 0.352, 'ndcg@10': 0.4146, 'epoch': 9, 'step': 2363}|22.91|
+|50|45|{'auc': 0.6664, 'mean_mrr': 0.3145, 'ndcg@5': 0.3482, 'ndcg@10': 0.411, 'epoch': 14, 'step': 2363}|19.86|
+|50|50|{'auc': 0.6645, 'mean_mrr': 0.3135, 'ndcg@5': 0.3465, 'ndcg@10': 0.409, 'epoch': 13, 'step': 2363}|19.74|
+
+nrms:
+npa:14.93/24.36

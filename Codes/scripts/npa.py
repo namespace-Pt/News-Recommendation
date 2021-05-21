@@ -37,11 +37,3 @@ if __name__ == "__main__":
 
     elif hparams['mode'] == 'test':
         test(npaModel, hparams, loaders[0])
-
-    if hparams['mode'] == 'encode':
-        from models.Encoders.General import Encoder_Wrapper
-        encoder_wrapper = Encoder_Wrapper(hparams, encoder).to('cpu').eval()
-
-        load(encoder_wrapper, hparams, hparams['epochs'], hparams['save_step'][0])
-        encode(encoder_wrapper, hparams, loader=loaders[1])
-        # pipeline_encode(encoder_wrapper, hparams, loaders)

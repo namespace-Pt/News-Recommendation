@@ -4,18 +4,28 @@ import torch.nn as nn
 
 
 class FIM_Interactor(nn.Module):
-    def __init__(self, level):
+    def __init__(self, level, k=10):
         super().__init__()
         self.name = 'fim'
 
-        self.SeqCNN3D = nn.Sequential(
-            nn.Conv3d(in_channels=level, out_channels=32, kernel_size=[3, 3, 3], padding=1),
-            nn.ReLU(),
-            nn.MaxPool3d(kernel_size=[3, 3, 3], stride=[3, 3, 3]),
-            nn.Conv3d(in_channels=32, out_channels=16, kernel_size=[3, 3, 3], padding=1),
-            nn.ReLU(),
-            nn.MaxPool3d(kernel_size=[3, 3, 3], stride=[3, 3, 3])
-        )
+        if k > 9:
+            self.SeqCNN3D = nn.Sequential(
+                nn.Conv3d(in_channels=level, out_channels=32, kernel_size=[3, 3, 3], padding=1),
+                nn.ReLU(),
+                nn.MaxPool3d(kernel_size=[3, 3, 3], stride=[3, 3, 3]),
+                nn.Conv3d(in_channels=32, out_channels=16, kernel_size=[3, 3, 3], padding=1),
+                nn.ReLU(),
+                nn.MaxPool3d(kernel_size=[3, 3, 3], stride=[3, 3, 3])
+            )
+        else:
+            self.SeqCNN3D = nn.Sequential(
+                nn.Conv3d(in_channels=level, out_channels=32, kernel_size=[3, 3, 3], padding=1),
+                nn.ReLU(),
+                nn.MaxPool3d(kernel_size=[3, 3, 3], stride=[1, 3, 3]),
+                nn.Conv3d(in_channels=32, out_channels=16, kernel_size=[3, 3, 3], padding=1),
+                nn.ReLU(),
+                nn.MaxPool3d(kernel_size=[3, 3, 3], stride=[1, 3, 3])
+            )
         nn.init.xavier_normal_(self.SeqCNN3D[0].weight)
         nn.init.xavier_normal_(self.SeqCNN3D[3].weight)
 

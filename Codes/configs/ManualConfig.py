@@ -4,7 +4,7 @@ hparams = {
     'batch_size':10,
     'title_size':20,
     'abs_size':40,
-    'his_size':30,
+    'his_size':50,
     'vert_num':18,
     'subvert_num':293,
     'npratio':4,

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from .Attention import Attention
-from .Encoders.MHA import MHA_User_Encoder
+from .Encoders.MHA import MHA_User_Encoder,MHA_Encoder
 
 class NRMS(nn.Module):
     def __init__(self, hparams, vocab, encoder):

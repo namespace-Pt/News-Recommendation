@@ -697,7 +697,7 @@ def run_eval(model, dataloader, interval):
     labels = []
     imp_indexes = []
 
-    for batch_data_input in tqdm(dataloader, smoothing=1):
+    for batch_data_input in tqdm(dataloader, smoothing=0.3):
         pred = model(batch_data_input).squeeze(dim=-1).tolist()
         preds.extend(pred)
         label = batch_data_input["labels"].squeeze(dim=-1).tolist()
@@ -1092,7 +1092,7 @@ def load_hparams(hparams):
         "--topk", dest="k", help="intend for sfi model, if clarified, top k history are involved in interaction calculation", type=int, default=0)
     parser.add_argument(
         "--contra_num", dest="contra_num", help="sample number for contrasive selection aware network", type=int, default=0)
-    parser.add_argument("--coarse", dest="coarse", help="if clarified, coarse-level matching signals will be taken into consideration",default=None)
+    parser.add_argument("--coarse", dest="coarse", help="if clarified, coarse-level matching signals will be taken into consideration",action='store_true')
     parser.add_argument("--integrate", dest="integration",
                         help="the way history filter is combined", choices=["gate", "harmony"], default="gate")
     parser.add_argument("--encoder", dest="encoder", help="choose encoder", default="fim")
@@ -1122,7 +1122,7 @@ def load_hparams(hparams):
     parser.add_argument("--validate", dest="validate",
                         help="if clarified, evaluate the model on training set", action="store_true")
     parser.add_argument("--onehot", dest="onehot", help="if clarified, one hot encode of category/subcategory will be returned by dataloader", action="store_true")
-    
+
     args = parser.parse_args()
 
     hparams["scale"] = args.scale
@@ -1154,7 +1154,6 @@ def load_hparams(hparams):
     hparams["k"] = args.k
 
     hparams["threshold"] = args.threshold
-    hparams["coarse"] = args.coarse
 
     hparams["attrs"] = args.attrs.split(",")
     hparams["save_step"] = [int(i) for i in args.save_step.split(",")]
@@ -1201,6 +1200,10 @@ def load_hparams(hparams):
         hparams["subvert_num"] = 293
     else:
         hparams["multiview"] = False
+    if args.coarse:
+        hparams['coarse'] = 'coarse'
+    else:
+        hparams['coarse'] = None
     if args.ensemble:
         hparams["ensemble"] = args.ensemble
     if args.coarse:
@@ -1215,6 +1218,10 @@ def load_hparams(hparams):
         hparams["encoder"] = "bert"
         hparams["bert"] = args.bert
         hparams["level"] = args.level
+
+    if args.k < 5 and args.k > 0:
+        logging.warning("k should always be larger than 4")
+        hparams['k'] = 5
 
     if len(hparams["save_step"]) > 1:
         hparams["command"] = "python " + " ".join(sys.argv)
