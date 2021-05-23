@@ -807,6 +807,8 @@ def run_train(model, dataloader, optimizers, loss_func, hparams, schedulers=None
 
             loss.backward()
 
+            # print(model.selectionProject[0].weight.grad)
+
             for optimizer in optimizers:
                 optimizer.step()
 
@@ -1009,6 +1011,19 @@ def test(model, hparams, loader_test):
     except:
         logging.info("this model is not inherited from nn.Module")
 
+    with open("performance.log", "a+") as f:
+        d = {}
+        for k, v in hparams.items():
+            if k in hparam_list:
+                d[k] = v
+        for name, param in model.named_parameters():
+            if name in param_list:
+                d[name] = tuple(param.shape)
+
+        f.write(str(d)+"\n")
+        f.write("\n")
+        f.write("\n")
+
     save_path = "data/results/prediction={}_{}_epoch{}_step{}_[hs={},topk={}].txt".format(
         hparams["name"], hparams["scale"], hparams["epochs"], hparams["save_step"][0], hparams["his_size"], hparams["k"])
     with open(save_path, "w") as f:
@@ -1033,20 +1048,6 @@ def test(model, hparams, loader_test):
             f.write(line)
 
     logging.info("written to prediction at {}!".format(save_path))
-
-    with open("performance.log", "a+") as f:
-        d = {}
-        for k, v in hparams.items():
-            if k in hparam_list:
-                d[k] = v
-        for name, param in model.named_parameters():
-            if name in param_list:
-                d[name] = tuple(param.shape)
-
-        f.write(str(d)+"\n")
-        f.write("\n")
-        f.write("\n")
-
 
 
 def load_hparams(hparams):

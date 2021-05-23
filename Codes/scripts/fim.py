@@ -79,6 +79,9 @@ if __name__ == "__main__":
     elif hparams['mode'] == 'test':
         test(fimModel, hparams, loaders[0])
 
+    elif hparams['mode'] == 'tune':
+        tune(fimModel, hparams, loaders)
+
     elif hparams['mode'] == 'encode':
         from models.Encoders.General import Encoder_Wrapper
         encoder_wrapper = Encoder_Wrapper(hparams, encoder).to('cpu').eval()
