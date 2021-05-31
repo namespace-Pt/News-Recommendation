@@ -103,7 +103,7 @@ class RNN_Encoder(nn.Module):
         self.embedding = nn.Embedding.from_pretrained(vocab.vectors,sparse=True,freeze=False)
 
         # dimension for the final output embedding/representation
-        self.hidden_dim = hparams['hidden_dim']
+        self.hidden_dim = 200
 
         self.lstm = nn.LSTM(self.embedding_dim, self.hidden_dim, batch_first=True,bidirectional=True)
 

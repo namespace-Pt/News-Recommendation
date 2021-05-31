@@ -19,7 +19,7 @@ class FIMModel(nn.Module):
         self.hidden_dim = self.encoder.hidden_dim
         self.level = self.encoder.level
         self.DropOut = self.encoder.DropOut
-        self.name = 'fim'
+        self.name = self.encoder.name + '-fim'
 
         self.interactor = FIM_Interactor(encoder.level, self.his_size)
 

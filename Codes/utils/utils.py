@@ -697,7 +697,7 @@ def run_eval(model, dataloader, interval):
     labels = []
     imp_indexes = []
 
-    for batch_data_input in tqdm(dataloader, smoothing=0.3):
+    for batch_data_input in tqdm(dataloader, smoothing=1):
         pred = model(batch_data_input).squeeze(dim=-1).tolist()
         preds.extend(pred)
         label = batch_data_input["labels"].squeeze(dim=-1).tolist()
@@ -935,22 +935,23 @@ def run_tune(model, loaders, optimizers, loss_func, hparams, schedulers=[], writ
                     writer.add_scalar("data_loss",
                                       total_loss/total_steps)
 
-            if step % save_step == 0 and step > 0:
+            if step % save_step == 0 and step > 0 and epoch > 0:
                 print("\n")
-                result = evaluate(model, hparams, loaders[1], log=False)
-                result["epoch"] = epoch+1
-                result["step"] = step
+                with torch.no_grad():
+                    result = evaluate(model, hparams, loaders[1], log=False)
+                    result["epoch"] = epoch+1
+                    result["step"] = step
 
-                logging.info("current result of {} is {}".format(hparams["name"], result))
-                if result["auc"] > best_res["auc"]:
-                    best_res = result
-                    logging.info("best result till now is {}".format(best_res))
-                    save(model, hparams, epoch+1, step, optimizers)
-                    _log(result, model, hparams)
+                    logging.info("current result of {} is {}".format(hparams["name"], result))
+                    if result["auc"] > best_res["auc"]:
+                        best_res = result
+                        logging.info("best result till now is {}".format(best_res))
+                        save(model, hparams, epoch+1, step, optimizers)
+                        _log(result, model, hparams)
 
-                elif result["auc"] - best_res["auc"] < -0.05:
-                    logging.info("model is overfitting, the result is {}, force shutdown".format(result))
-                    return model, best_res
+                    elif result["auc"] - best_res["auc"] < -0.05:
+                        logging.info("model is overfitting, the result is {}, force shutdown".format(result))
+                        return model, best_res
 
             total_steps += 1
 
@@ -1252,8 +1253,8 @@ def generate_hparams(hparams, config):
         yield hparams
 
 
-def prepare(hparams, path="/home/peitian_zhang/Data/MIND", shuffle=True, news=False, pin_memory=True, num_workers=8):
-    from .MIND import MIND,MIND_news,MIND_all
+def prepare(hparams, path="/home/peitian_zhang/Data/MIND", shuffle=True, news=False, pin_memory=True, num_workers=8, impr=False):
+    from .MIND import MIND,MIND_news,MIND_all,MIND_impr
     """ prepare dataloader and several paths
 
     Args:
@@ -1266,6 +1267,21 @@ def prepare(hparams, path="/home/peitian_zhang/Data/MIND", shuffle=True, news=Fa
     logging.info("Hyper Parameters are\n{}".format(hparams))
 
     logging.info("preparing dataset...")
+
+    if impr:
+        news_file_dev = path+"/MIND"+hparams["scale"]+"_dev/news.tsv"
+        behavior_file_dev = path+"/MIND"+hparams["scale"]+"_dev/behaviors.tsv"
+
+        dataset_dev = MIND_impr(hparams=hparams, news_file=news_file_dev,
+                            behaviors_file=behavior_file_dev)
+        loader_dev = DataLoader(dataset_dev, batch_size=hparams["batch_size"], pin_memory=pin_memory,
+                                num_workers=num_workers, drop_last=False, collate_fn=my_collate)
+        vocab = dataset_dev.vocab
+        if "bert" not in hparams:
+            embedding = GloVe(dim=300, cache=".vector_cache")
+            vocab.load_vectors(embedding)
+
+        return vocab, [loader_dev]
 
     if news:
         path = "/home/peitian_zhang/Data/MIND"

@@ -49,6 +49,10 @@ if __name__ == "__main__":
         from models.Encoders.General import CNN_Encoder
         encoder = CNN_Encoder(hparams, vocab)
 
+    elif hparams['encoder'] == 'rnn':
+        from models.Encoders.General import RNN_Encoder
+        encoder = RNN_Encoder(hparams, vocab)
+
     elif hparams['encoder'] == 'pipeline':
         from models.Encoders.General import Pipeline_Encoder
         encoder = Pipeline_Encoder(hparams)

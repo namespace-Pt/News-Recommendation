@@ -10,7 +10,7 @@ tqdm
 scikit-learn
 ```
 ## Rank
-[Leaderboard](https://msnews.github.io/#leaderboard), User Name: **namespace-Pt**
+[Leaderboard](https://msnews.github.io/#leaderboard), User Name: **namespace-Pt**, currently hidden
 ## Dataset
 download MIND dataset [HERE](https://msnews.github.io/)
 ### Simple Analysis on MIND
@@ -137,16 +137,10 @@ see [Preprocess.ipynb](manual/Preprocess.ipynb)
     - wrap training and testing/evaluating
 
 ## TODO
-- [ ] t-test
-- [ ] reproduce Hi-Fi Ark
-- [ ] subspace disentanglement
 - [ ] abstract out the model properties and hyper parameter settings
 - [ ] position embedding
-- [x] delicate selection project compared with raw attention weight
-  - no effect
 - [ ] base_encoder
 - [ ] ensemble
-- [ ] check out probability density of reinforcement learning
 - [ ] fix encoding fault
 
 
