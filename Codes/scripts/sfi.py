@@ -3,7 +3,7 @@ import sys
 os.chdir('./')
 sys.path.append('./')
 import re
-from utils.utils import evaluate,train,prepare,load_hparams,test,tune,load,encode
+from utils.utils import prepare,load_hparams
 
 if __name__ == "__main__":
 
@@ -84,16 +84,6 @@ if __name__ == "__main__":
     else:
         raise ValueError("Undefined Interactor:{}".format(hparams['interactor']))
 
-    # FIXME, treat encode as a argument, encode=train means only encode training dataset
-    if hparams['mode'] == 'encode':
-        from models.Encoders.General import Encoder_Wrapper
-        hparams['name'] = '-'.join([i for i in [hparams['name'], hparams['encoder'], hparams['interactor'], hparams['coarse']] if i])
-        encoder_wrapper = Encoder_Wrapper(hparams, encoder).to('cpu').eval()
-
-        load(encoder_wrapper, hparams, hparams['epochs'], hparams['save_step'][0])
-        encode(encoder_wrapper, hparams, loader=loaders[1])
-        # pipeline_encode(encoder_wrapper, hparams, loaders)
-
     if hparams['multiview']:
         hparams['name'] = 'sfi-multiview'
         if hparams['coarse']:
@@ -119,30 +109,13 @@ if __name__ == "__main__":
         hparams['name'] = '-'.join([i for i in [hparams['name'], hparams['encoder'], hparams['interactor'], hparams['coarse']] if i])
 
     if hparams['mode'] == 'dev':
-        evaluate(sfiModel,hparams,loaders[0],loading=True)
+        sfiModel.evaluate(hparams,loaders[0],loading=True)
 
     elif hparams['mode'] == 'train':
-        train(sfiModel, hparams, loaders)
+        sfiModel.fit(hparams, loaders)
 
     elif hparams['mode'] == 'tune':
-        tune(sfiModel, hparams, loaders)
+        sfiModel.tune(hparams, loaders)
 
     elif hparams['mode'] == 'test':
-        # from models.Encoders.General import Encoder_Wrapper,Pipeline_Encoder
-
-        # device = hparams['device']
-
-        # if not 'multiview' in hparams:
-        #     hparams['device'] = 'cpu'
-        #     encoder_wrapper = Encoder_Wrapper(hparams, encoder.to('cpu'))
-        #     load(encoder_wrapper, hparams, hparams['epochs'], hparams['save_step'][0])
-        #     encode(encoder_wrapper, hparams)
-
-        #     hparams['device'] = device
-        #     hparams['pipeline'] = 'sfi-fim-fim-gating'
-        #     encoder = Pipeline_Encoder(hparams)
-        #     sfiModel = SFI_gating(hparams, encoder).to(hparams['device'])
-        #     test(sfiModel, hparams, loaders[0])
-
-        # else:
-        test(sfiModel, hparams, loaders[0])
+        sfiModel.test(hparams, loaders[0])

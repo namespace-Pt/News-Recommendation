@@ -5,6 +5,7 @@ hparams = {
     'title_size':20,
     'abs_size':40,
     'his_size':50,
+    'learning_rate':1e-3,
     'vert_num':18,
     'subvert_num':293,
     'npratio':4,

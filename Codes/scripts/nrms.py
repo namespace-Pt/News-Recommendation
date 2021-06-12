@@ -1,9 +1,9 @@
 import os
 import sys
-os.chdir('/home/peitian_zhang/Codes/News-Recommendation')
-sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
+os.chdir('./')
+sys.path.append('./')
 
-from utils.utils import evaluate,train,prepare,load_hparams,test,tune,load,encode
+from utils.utils import prepare,load_hparams,encode
 from models.NRMS import NRMS,NRMS_MultiView
 
 if __name__ == "__main__":
@@ -71,21 +71,21 @@ if __name__ == "__main__":
         nrms = NRMS(vocab=vocab,hparams=hparams, encoder=encoder).to(hparams['device'])
 
     if hparams['mode'] == 'dev':
-        evaluate(nrms,hparams,loaders[0],loading=True)
+        nrms.evaluate(hparams,loaders[0],loading=True)
 
     elif hparams['mode'] == 'train':
-        train(nrms, hparams, loaders)
+        nrms.train(hparams, loaders)
 
     elif hparams['mode'] == 'test':
-        test(nrms, hparams, loaders[0])
+        nrms.test(hparams, loaders[0])
 
     elif hparams['mode'] == 'tune':
-        tune(nrms, hparams, loaders)
+        nrms.tune(hparams, loaders)
 
-    elif hparams['mode'] == 'encode':
-        from models.Encoders.General import Encoder_Wrapper
-        encoder_wrapper = Encoder_Wrapper(hparams, encoder).to('cpu').eval()
+    # elif hparams['mode'] == 'encode':
+    #     from models.Encoders.General import Encoder_Wrapper
+    #     encoder_wrapper = Encoder_Wrapper(hparams, encoder).to('cpu').eval()
 
-        load(encoder_wrapper, hparams, hparams['epochs'], hparams['save_step'][0])
-        encode(encoder_wrapper, hparams, loader=loaders[1])
+    #     load(encoder_wrapper, hparams, hparams['epochs'], hparams['save_step'][0])
+    #     encode(encoder_wrapper, hparams, loader=loaders[1])
         # pipeline_encode(encoder_wrapper, hparams, loaders)

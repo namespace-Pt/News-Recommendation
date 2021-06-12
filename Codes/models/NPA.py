@@ -1,25 +1,20 @@
 import torch
 import math
 import torch.nn as nn
-from .Encoders.NPA import NPA_Encoder
+from models.base_model import BaseModel
 
-class NPAModel(nn.Module):
-    def __init__(self,hparams,vocab,encoder):
-        super().__init__()
+class NPAModel(BaseModel):
+    def __init__(self,hparams,encoder):
+        super().__init__(hparams)
         self.name = 'npa'
 
-        self.cdd_size = (hparams['npratio'] + 1) if hparams['npratio'] > 0 else 1
-        self.batch_size = hparams['batch_size']
         self.signal_length = hparams['title_size']
-        self.his_size =hparams['his_size']
 
         self.encoder = encoder
 
         self.hidden_dim = self.encoder.hidden_dim
         self.preference_dim =self.encoder.query_dim
         self.user_dim = self.encoder.user_dim
-
-        self.device = torch.device(hparams['device'])
 
         # trainable lookup layer for user embedding, important to have len(uid2idx) + 1 rows because user indexes start from 1
         self.user_embedding = self.encoder.user_embedding

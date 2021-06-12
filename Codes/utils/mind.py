@@ -30,6 +30,7 @@ class MIND(Dataset):
         self.k = hparams['k']
         self.mode = re.search(
             'MIND/.*_(.*)/news', news_file).group(1)
+        self.scale = hparams['scale']
 
         # there are only two types of vocabulary
         self.vocab = getVocab('data/dictionaries/vocab_whole.pkl')

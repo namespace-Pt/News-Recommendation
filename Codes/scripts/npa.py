@@ -1,10 +1,9 @@
 import os
 import sys
-os.chdir('/home/peitian_zhang/Codes/News-Recommendation')
-sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
+os.chdir('./')
+sys.path.append('./')
 
-import torch
-from utils.utils import evaluate,train,prepare,load_hparams,test,tune,load,encode
+from utils.utils import prepare,load_hparams,encode
 from models.NPA import NPAModel
 
 if __name__ == "__main__":
@@ -30,10 +29,10 @@ if __name__ == "__main__":
     npaModel = NPAModel(vocab=vocab,hparams=hparams,encoder=encoder).to(hparams['device'])
 
     if hparams['mode'] == 'dev':
-        evaluate(npaModel,hparams,loaders[0],loading=True)
+        npaModel.evaluate(hparams,loaders[0],loading=True)
 
     elif hparams['mode'] == 'train':
-        train(npaModel, hparams, loaders)
+        npaModel.train(hparams, loaders)
 
     elif hparams['mode'] == 'test':
-        test(npaModel, hparams, loaders[0])
+        npaModel.test(hparams, loaders[0])

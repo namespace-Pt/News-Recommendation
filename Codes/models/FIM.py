@@ -1,15 +1,11 @@
 import torch
-import math
 import torch.nn as nn
+from models.base_model import BaseModel
 from models.Interactors.FIM import FIM_Interactor
 
-class FIMModel(nn.Module):
+class FIMModel(BaseModel):
     def __init__(self,hparams,encoder):
-        super().__init__()
-
-        self.cdd_size = (hparams['npratio'] + 1) if hparams['npratio'] > 0 else 1
-        self.his_size =hparams['his_size']
-        self.batch_size = hparams['batch_size']
+        super().__init__(hparams)
 
         self.signal_length = hparams['title_size']
 
@@ -23,9 +19,6 @@ class FIMModel(nn.Module):
 
         self.interactor = FIM_Interactor(encoder.level, self.his_size)
 
-        self.device = hparams['device']
-
-        self.softmax = nn.Softmax(dim=-1)
         self.ReLU = nn.ReLU()
 
         if self.his_size > 9:

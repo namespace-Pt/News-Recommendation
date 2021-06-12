@@ -1,10 +1,10 @@
 import os
 import sys
-os.chdir('/home/peitian_zhang/Codes/News-Recommendation')
-sys.path.append('/home/peitian_zhang/Codes/News-Recommendation')
+os.chdir('./')
+sys.path.append('./')
 
 import re
-from utils.utils import evaluate,train,prepare,load_hparams,test,tune,load,encode
+from utils.utils import prepare,load_hparams,encode
 from models.FIM import FIMModel
 
 if __name__ == "__main__":
@@ -71,21 +71,21 @@ if __name__ == "__main__":
         hparams['name'] = '-'.join([hparams['name'], hparams['encoder']])
 
     if hparams['mode'] == 'dev':
-        evaluate(fimModel,hparams,loaders[0],loading=True)
+        fimModel.evaluate(hparams,loaders[0],loading=True)
 
     elif hparams['mode'] == 'train':
-        train(fimModel, hparams, loaders)
+        fimModel.train(hparams, loaders)
 
     elif hparams['mode'] == 'test':
-        test(fimModel, hparams, loaders[0])
+        fimModel.test(hparams, loaders[0])
 
     elif hparams['mode'] == 'tune':
-        tune(fimModel, hparams, loaders)
+        fimModel.tune(hparams, loaders)
 
-    elif hparams['mode'] == 'encode':
-        from models.Encoders.General import Encoder_Wrapper
-        encoder_wrapper = Encoder_Wrapper(hparams, encoder).to('cpu').eval()
+    # elif hparams['mode'] == 'encode':
+    #     from models.Encoders.General import Encoder_Wrapper
+    #     encoder_wrapper = Encoder_Wrapper(hparams, encoder).to('cpu').eval()
 
-        load(encoder_wrapper, hparams, hparams['epochs'], hparams['save_step'][0])
-        encode(encoder_wrapper, hparams, loader=loaders[1])
+    #     load(encoder_wrapper, hparams, hparams['epochs'], hparams['save_step'][0])
+    #     encode(encoder_wrapper, hparams, loader=loaders[1])
         # pipeline_encode(encoder_wrapper, hparams, loaders)

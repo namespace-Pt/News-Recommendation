@@ -1,18 +1,15 @@
 import torch
 import torch.nn as nn
 from .Attention import Attention
+from models.base_model import BaseModel
 from .Encoders.MHA import MHA_User_Encoder,MHA_Encoder
 
-class NRMS(nn.Module):
+class NRMS(BaseModel):
     def __init__(self, hparams, vocab, encoder):
-        super().__init__()
+        super().__init__(hparams)
 
         self.name = 'nrms' + encoder.name
 
-        self.cdd_size = (hparams['npratio'] +
-                         1) if hparams['npratio'] > 0 else 1
-        self.batch_size = hparams['batch_size']
-        self.his_size = hparams['his_size']
         self.title_length = hparams['title_size']
         self.abs_length = hparams['abs_size']
 
@@ -20,7 +17,6 @@ class NRMS(nn.Module):
         self.user_encoder = MHA_User_Encoder(hparams)
         self.hidden_dim = self.encoder.hidden_dim
 
-        self.device = hparams['device']
 
     def _click_predictor(self, cdd_repr, user_repr):
         """ calculate batch of click probabolity
@@ -65,14 +61,10 @@ class NRMS(nn.Module):
         return score
 
 
-class NRMS_MultiView(nn.Module):
+class NRMS_MultiView(BaseModel):
     def __init__(self, hparams, vocab):
-        super().__init__()
+        super().__init__(hparams)
 
-        self.cdd_size = (hparams['npratio'] +
-                         1) if hparams['npratio'] > 0 else 1
-        self.batch_size = hparams['batch_size']
-        self.his_size = hparams['his_size']
         self.vert_num = hparams['vert_num']
         self.subvert_num = hparams['subvert_num']
 
@@ -83,8 +75,6 @@ class NRMS_MultiView(nn.Module):
         self.viewQuery = nn.Parameter(torch.randn(1,self.hidden_dim))
         self.vertProject = nn.Linear(self.vert_num, self.hidden_dim)
         self.subvertProject = nn.Linear(self.subvert_num, self.hidden_dim)
-
-        self.device = hparams['device']
 
         self.name = 'nrms-multiview'
 
