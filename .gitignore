@@ -12,13 +12,9 @@ Questions.md
 model_params
 Codes/text
 Codes/manual/main.ipynb
-Codes/models/SFI.py
 Codes/*.log
 Codes/data/results
 Codes/data/tensors
-Codes/manual/SFI_pipeline.ipynb
 Prediction
 ACM
-SFI_gating.ipynb
-SFI.ipynb
 Selective Fine-grained Interaction for Neural News Recommendation.pdf
