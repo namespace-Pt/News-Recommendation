@@ -3,7 +3,7 @@ import sys
 os.chdir('./')
 sys.path.append('./')
 
-from utils.utils import prepare,load_hparams,encode
+from utils.utils import prepare,load_hparams
 from models.NRMS import NRMS,NRMS_MultiView
 
 if __name__ == "__main__":
@@ -74,7 +74,7 @@ if __name__ == "__main__":
         nrms.evaluate(hparams,loaders[0],loading=True)
 
     elif hparams['mode'] == 'train':
-        nrms.train(hparams, loaders)
+        nrms.fit(hparams, loaders)
 
     elif hparams['mode'] == 'test':
         nrms.test(hparams, loaders[0])

@@ -17,6 +17,9 @@ from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator, GloVe
 from torch.utils.data.dataloader import DataLoader
 
+logging.basicConfig(level=logging.INFO,
+                    format="[%(asctime)s] %(levelname)s (%(name)s) %(message)s")
+
 def tokenize(sent, vocab):
     """ Split sentence into wordID list using regex and vocabulary
     Args:

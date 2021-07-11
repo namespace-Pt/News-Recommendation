@@ -3,8 +3,7 @@ import sys
 os.chdir('./')
 sys.path.append('./')
 
-import re
-from utils.utils import prepare,load_hparams,encode
+from utils.utils import prepare,load_hparams
 from models.FIM import FIMModel
 
 if __name__ == "__main__":
@@ -65,16 +64,11 @@ if __name__ == "__main__":
 
     fimModel = FIMModel(hparams, encoder).to(hparams['device'])
 
-    if re.search('pipeline', fimModel.encoder.name):
-        hparams['name'] = hparams['pipeline']
-    else:
-        hparams['name'] = '-'.join([hparams['name'], hparams['encoder']])
-
     if hparams['mode'] == 'dev':
         fimModel.evaluate(hparams,loaders[0],loading=True)
 
     elif hparams['mode'] == 'train':
-        fimModel.train(hparams, loaders)
+        fimModel.fit(hparams, loaders)
 
     elif hparams['mode'] == 'test':
         fimModel.test(hparams, loaders[0])

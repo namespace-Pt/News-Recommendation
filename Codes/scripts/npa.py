@@ -3,7 +3,7 @@ import sys
 os.chdir('./')
 sys.path.append('./')
 
-from utils.utils import prepare,load_hparams,encode
+from utils.utils import prepare,load_hparams
 from models.NPA import NPAModel
 
 if __name__ == "__main__":
@@ -32,7 +32,7 @@ if __name__ == "__main__":
         npaModel.evaluate(hparams,loaders[0],loading=True)
 
     elif hparams['mode'] == 'train':
-        npaModel.train(hparams, loaders)
+        npaModel.fit(hparams, loaders)
 
     elif hparams['mode'] == 'test':
         npaModel.test(hparams, loaders[0])

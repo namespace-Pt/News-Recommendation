@@ -2,7 +2,6 @@ import os
 import sys
 os.chdir('./')
 sys.path.append('./')
-import re
 from utils.utils import prepare,load_hparams
 
 if __name__ == "__main__":
@@ -85,7 +84,6 @@ if __name__ == "__main__":
         raise ValueError("Undefined Interactor:{}".format(hparams['interactor']))
 
     if hparams['multiview']:
-        hparams['name'] = 'sfi-multiview'
         if hparams['coarse']:
             from models.SFI import SFI_unified_MultiView
             sfiModel = SFI_unified_MultiView(hparams, encoder, interactor).to(hparams['device'])
@@ -103,10 +101,6 @@ if __name__ == "__main__":
             from models.SFI import SFI
             sfiModel = SFI(hparams, encoder, interactor).to(hparams['device'])
 
-    if re.search('pipeline', sfiModel.encoder.name):
-        hparams['name'] = hparams['pipeline']
-    else:
-        hparams['name'] = '-'.join([i for i in [hparams['name'], hparams['encoder'], hparams['interactor'], hparams['coarse']] if i])
 
     if hparams['mode'] == 'dev':
         sfiModel.evaluate(hparams,loaders[0],loading=True)

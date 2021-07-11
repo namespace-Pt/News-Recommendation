@@ -203,7 +203,7 @@ class SFI_unified(BaseModel):
             nn.Linear(self.hidden_dim, self.hidden_dim)
         )
 
-        self.name = '-'.join(['sfi-unified', encoder.name, interactor.name])
+        self.name = '-'.join(['sfi-coarse', encoder.name, interactor.name])
 
         if hparams['threshold'] != -float('inf'):
             threshold = torch.tensor([hparams['threshold']])

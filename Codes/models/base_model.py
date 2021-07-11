@@ -17,8 +17,6 @@ from tqdm import tqdm
 
 from utils.utils import cal_metric, parameter
 
-logging.basicConfig(level=logging.INFO,
-                    format="[%(asctime)s] %(levelname)s (%(name)s) %(message)s")
 logger = logging.getLogger(__name__)
 
 hparam_list = ["name", "scale","his_size", "k","threshold","learning_rate"]
@@ -30,7 +28,7 @@ class BaseModel(nn.Module):
         super().__init__()
 
         self.scale = hparams['scale']
-        self.attrs = hparams['attrs']
+        # self.attrs = hparams['attrs']
         # FIXME, checkpoint is not clear
         # self.checkpoint = hparams['checkpoint']
 
@@ -50,12 +48,12 @@ class BaseModel(nn.Module):
         """
         # parse checkpoint
         # if "checkpoint" in hparams:
-        #     save_path = "data/model_params/{}/{}_epoch{}_step{}_ck{}_[hs={},topk={},attrs={}].model".format(
+        #     save_path = "data/model_params/{}/{}_epoch{}_step{}_ck{}_[hs={},topk={}].model".format(
         #         hparams["name"], hparams["scale"], epoch, step, hparams["checkpoint"], hparams["his_size"], hparams["k"], ",".join(hparams["attrs"]))
         # else:
 
-        save_path = "data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},attrs={}].model".format(
-            self.name, self.scale, epoch, step, self.his_size, self.k, ",".join(self.attrs))
+        save_path = "data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model".format(
+            self.name, self.scale, epoch, step, self.his_size, self.k)
 
         state_dict = self.state_dict()
 
@@ -89,8 +87,8 @@ class BaseModel(nn.Module):
             shortcut for loading model and optimizer parameters
         """
 
-        save_path = "data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={},attrs={}].model".format(
-            self.name, self.scale, epoch, step, self.his_size, self.k, ",".join(self.attrs))
+        save_path = "data/model_params/{}/{}_epoch{}_step{}_[hs={},topk={}].model".format(
+            self.name, self.scale, epoch, step, self.his_size, self.k)
 
         state_dict = torch.load(save_path, map_location=self.device)
         if re.search("pipeline",self.name):
@@ -431,7 +429,7 @@ class BaseModel(nn.Module):
                         writer.add_scalar("data_loss",
                                         total_loss/total_steps)
 
-                if step % save_step == 0 and step > 0 and epoch > 0:
+                if step % save_step == 0 and step > 0 and epoch > 1:
                     print("\n")
                     with torch.no_grad():
                         result = self.evaluate(hparams, loaders[1], log=False)
@@ -483,12 +481,10 @@ class BaseModel(nn.Module):
         loss_func = self._get_loss()
         optimizers, schedulers = self._get_optim(hparams, loaders[0])
 
-        model, res = self._run_tune(loaders, optimizers, loss_func, hparams, schedulers=schedulers,
+        res = self._run_tune(loaders, optimizers, loss_func, hparams, schedulers=schedulers,
                         writer=writer, interval=hparams["interval"], save_step=int(len(loaders[0])/hparams["val_freq"])-1)
 
         self._log(res, hparams)
-        return model
-
 
     @torch.no_grad()
     def test(self, hparams, loader_test):
