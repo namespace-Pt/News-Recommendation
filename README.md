@@ -16,7 +16,7 @@
 **在[45]之后黄色代表不认识的单词，绿色代表需要看的点**
 
 ## 结果
-[LeaderBoard](https://msnews.github.io/#leaderboard), 用户名**namespace-Pt**, 暂时隐藏
+[Leaderboard](https://msnews.github.io/#leaderboard), 用户名: **namespace-Pt**和**SFI**
 
 # 新闻推荐
 ## Notation
