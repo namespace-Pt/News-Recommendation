@@ -1,4 +1,5 @@
 :smile:
+**THIS REPO is DEPRECATED, PLEASE REFER to [THIS ONE](https://github.com/namespace-Pt/Document-Reduction)**
 [TOC]
 ## 结构
 - Codes：复现的代码
