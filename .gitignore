@@ -1,23 +1,7 @@
-intuition.md
-Basis.tex
-Papers/Xx.pdf
-Papers/Methods/realated
-.vscode
-Discussions
-MyWork
-Codes/.vector_cache
-Codes/data/tb
-Codes/*/__pycache__/
-Questions.md
-model_params
-Codes/text
-Codes/manual/main.ipynb
-Codes/*.log
-Codes/data/results
-Codes/data/tensors
-Prediction
-ACM
-Selective Fine-grained Interaction for Neural News Recommendation.pdf
-Papers/Deep hierarchical user interest modeling with graph neural network for news recommendation.pdf
-Papers/ToT Context- and Query-aware Neural News Recommendation with Interest Drifting-aware Preference Learning.pdf
-Papers/DeepVT Deep View-Temporal Interaction Network for News Recommendation.pdf
+*.pyc
+cache
+ckpts
+results
+email.py
+*.log
+__pycache__
