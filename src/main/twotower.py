@@ -46,7 +46,7 @@ def main(rank, manager):
 if __name__ == "__main__":
     config = {
         "enable_fields": ["title"],
-        "newsEncoder": "bert",
+        "newsEncoder": "cnn",
         "userEncoder": "rnn",
     }
     manager = Manager(config)

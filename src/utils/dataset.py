@@ -45,8 +45,8 @@ class MIND(Dataset):
                 setattr(self, k, v)
 
         if manager.rank == 0:
-            if not os.path.exists(os.path.join(self.news_cache_root, manager.news_cache_dir, "title_token_ids.pkl")):
-                news_path = os.path.join(data_dir, manager.news_file)
+            if not os.path.exists(os.path.join(self.news_cache_root, "title_token_ids.pkl")):
+                news_path = os.path.join(data_dir, "news.tsv")
                 cache_news(news_path, self.news_cache_root, manager)
             if not os.path.exists(os.path.join(self.behaviors_cache_dir, "behaviors.pkl")):
                 nid2index = load_pickle(os.path.join(self.news_cache_root, "nid2index.pkl"))
@@ -70,7 +70,7 @@ class MIND(Dataset):
 
             start_idx = 0
             if "title" in self.enable_fields:
-                title_token_ids = load_pickle(os.path.join(self.news_cache_root, manager.news_cache_dir, "title_token_ids.pkl"))
+                title_token_ids = load_pickle(os.path.join(self.news_cache_root, "title_token_ids.pkl"))
                 for i, token_id in enumerate(title_token_ids, start=1):
                     token_id = token_id[start_idx: start_idx + self.title_length]
                     # use [SEP] to separate title and abstract
@@ -81,7 +81,7 @@ class MIND(Dataset):
                     start_idx += 1
 
             if "abs" in self.enable_fields:
-                abs_token_ids = load_pickle(os.path.join(self.news_cache_root, manager.news_cache_dir, "abs_token_ids.pkl"))
+                abs_token_ids = load_pickle(os.path.join(self.news_cache_root, "abs_token_ids.pkl"))
                 for i, token_id in enumerate(abs_token_ids, start=1):
                     # offset to remove an extra [CLS]
                     token_id = token_id[start_idx: self.abs_length + start_idx]
@@ -93,29 +93,14 @@ class MIND(Dataset):
                     start_idx += 1
 
             attn_masks = np.zeros((news_num, self.sequence_length), dtype=np.int64)
-            if self.enable_gate == "weight":
-                gate_masks = np.zeros((news_num, self.sequence_length), dtype=np.int64)
-
             for i, token_id in enumerate(token_ids):
                 s_len = len(token_id)
                 if s_len < self.sequence_length:
                     token_ids[i] = token_id + [pad_token_id] * (self.sequence_length - s_len)
                 attn_masks[i][:s_len] = 1
-                if self.enable_gate == "weight":
-                    # deduplicate and remove punctuations and remove special token ids
-                    # token_set = set()
-                    # for j, x in enumerate(token_id):
-                    #     if x not in token_set and x != cls_token_id and x != sep_token_id and x not in punc_token_ids:
-                    #         gate_masks[i, j] = 1
-                    #         token_set.add(x)
-                    for j, x in enumerate(token_id):
-                        if x != cls_token_id and x != sep_token_id and x not in punc_token_ids:
-                            gate_masks[i, j] = 1
 
             self.token_ids = np.asarray(token_ids, dtype=np.int64)
             self.attn_masks = np.asarray(attn_masks, dtype=np.int64)
-            if self.enable_gate == "weight":
-                self.gate_masks = np.asarray(gate_masks, dtype=np.int64)
 
         if load_behaviors:
             behaviors = load_pickle(os.path.join(self.behaviors_cache_dir, "behaviors.pkl"))
@@ -182,12 +167,6 @@ class MIND_Train(MIND):
             "his_attn_mask": his_attn_mask,
             "label": label
         }
-        if self.enable_gate == "weight":
-            cdd_gate_mask = self.gate_masks[cdd_idx]
-            his_gate_mask = self.gate_masks[his_idx]
-            return_dict["cdd_gate_mask"] = cdd_gate_mask
-            return_dict["his_gate_mask"] = his_gate_mask
-
         return return_dict
 
 
@@ -239,12 +218,6 @@ class MIND_Dev(MIND):
             "his_attn_mask": his_attn_mask,
             "label": label
         }
-        if self.enable_gate == "weight":
-            cdd_gate_mask = self.gate_masks[cdd_idx]
-            his_gate_mask = self.gate_masks[his_idx]
-            return_dict["cdd_gate_mask"] = cdd_gate_mask
-            return_dict["his_gate_mask"] = his_gate_mask
-
         return return_dict
 
 
@@ -292,12 +265,6 @@ class MIND_Test(MIND):
             "cdd_attn_mask": cdd_attn_mask,
             "his_attn_mask": his_attn_mask,
         }
-        if self.enable_gate == "weight":
-            cdd_gate_mask = self.gate_masks[cdd_idx]
-            his_gate_mask = self.gate_masks[his_idx]
-            return_dict["cdd_gate_mask"] = cdd_gate_mask
-            return_dict["his_gate_mask"] = his_gate_mask
-
         return return_dict
 
 
@@ -323,10 +290,6 @@ class MIND_News(MIND):
             "cdd_token_id": cdd_token_id,
             "cdd_attn_mask": cdd_attn_mask,
         }
-        if self.enable_gate == "weight":
-            cdd_gate_mask = self.gate_masks[index]
-            return_dict["cdd_gate_mask"] = cdd_gate_mask
-
         return return_dict
 
 
@@ -350,37 +313,15 @@ def tokenize_news(news_path, cache_dir, news_num, tokenizer, max_title_length, m
     save_pickle(abs_token_ids, os.path.join(cache_dir, "abs_token_ids.pkl"))
 
 
-def tokenize_news_keywords(news_path, cache_dir, news_num, tokenizer, max_title_length, max_abs_length):
-    title_token_ids = [[]] * news_num
-    abs_token_ids = [[]] * news_num
-
-    with open(news_path, 'r') as f:
-        for idx, line in enumerate(tqdm(f, total=news_num, desc="Tokenizing News", ncols=80)):
-            title, abs = line.strip("\n").split("\t")
-
-            title_token_id = tokenizer.encode(title, max_length=max_title_length)
-            title_token_ids[idx] = title_token_id
-
-            abs_token_id = tokenizer.encode(abs, max_length=max_abs_length)
-            abs_token_ids[idx] = abs_token_id
-
-    save_pickle(title_token_ids, os.path.join(cache_dir, "title_token_ids.pkl"))
-    save_pickle(abs_token_ids, os.path.join(cache_dir, "abs_token_ids.pkl"))
-
-
 def cache_news(news_path, news_cache_root, manager):
     news_num = int(subprocess.check_output(["wc", "-l", news_path]).decode("utf-8").split()[0])
 
     # different news file corresponds to different cache directory
-    news_cache_dir = os.path.join(news_cache_root, manager.news_cache_dir)
-    os.makedirs(news_cache_dir, exist_ok=True)
+    os.makedirs(news_cache_root, exist_ok=True)
 
     # TODO: bm25, entity and keyword
     tokenizer = AutoTokenizer.from_pretrained(manager.plm_dir)
-    if manager.news_cache_dir == "original":
-        tokenize_news(news_path, news_cache_dir, news_num, tokenizer, manager.max_title_length, manager.max_abs_length)
-    else:
-        tokenize_news_keywords(news_path, news_cache_dir, news_num, tokenizer, manager.max_title_length, manager.max_abs_length)
+    tokenize_news(news_path, news_cache_root, news_num, tokenizer, manager.max_title_length, manager.max_abs_length)
 
     if not os.path.exists(os.path.join(news_cache_root, "nid2index.pkl")):
         print(f"mapping news id to news index and save at {os.path.join(news_cache_root, 'nid2index.pkl')}...")

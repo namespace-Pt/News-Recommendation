@@ -164,22 +164,6 @@ class Manager():
             "dev": ["dev", "news"],
             "test": ["test", "news"],
         }
-        news_cache_dir_map = {
-            "none": "original",
-            "weight": "original",
-            "first": "original",
-            "bm25": "bm25",
-            "keybert": "keybert",
-            "random": "random"
-        }
-        news_file_map = {
-            "none": "news.tsv",
-            "weight": "news.tsv",
-            "first": "news.tsv",
-            "bm25": "bm25.tsv",
-            "keybert": "keybert.tsv",
-            "random": "random.tsv"
-        }
 
         self.plm_dir = os.path.join(self.data_root, "PLM", self.plm)
         self.plm_dim = plm_map_dimension[self.plm]
@@ -195,8 +179,6 @@ class Manager():
             "MINDlarge_test": 120961,
         }
         self.dataloaders = dataloader_map[self.mode]
-        self.news_cache_dir = news_cache_dir_map[self.enable_gate]
-        self.news_file = news_file_map[self.enable_gate]
 
         self.distributed = self.world_size > 1
         self.exclude_hparams = set(["news_nums", "vocab_size_map", "metrics", "plm_dim", "plm_dir", "data_root", "cache_root", "distributed", "exclude_hparams", "rank", "epochs", "mode", "debug", "special_token_ids", "validate_step", "hold_step", "exclude_hparams", "device", "save_at_validate", "preprocess_threads", "base_rank", "max_title_length", "max_abs_length"])
