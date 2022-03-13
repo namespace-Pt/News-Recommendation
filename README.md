@@ -5,5 +5,5 @@
    pip install torch==1.9.1+cu111 -f https://download.pytorch.org/whl/torch_stable.html
    ```
 5. ```
-   python -m main.gateformer --world-size 2 --data-root ~/Data
+   python -m main.twotower --world-size 2 --data-root ~/Data
    ```
