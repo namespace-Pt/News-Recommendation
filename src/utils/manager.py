@@ -71,15 +71,11 @@ class Manager():
         parser.add_argument("-mal", "--max-abs-length", dest="max_abs_length", type=int, default=128)
 
         parser.add_argument("-ef", "--enable-fields", dest="enable_fields", help="text fields to model", nargs="+", action="extend", choices=["title", "abs"], default=[])
-        parser.add_argument("-eg", "--enable-gate", dest="enable_gate", help="way to gate tokens", type=str, choices=["weight", "none", "bm25", "first", "keybert", "random"], default="weight")
 
         parser.add_argument("-ne", "--news-encoder", dest="newsEncoder", default="cnn")
         parser.add_argument("-ue", "--user-encoder", dest="userEncoder", default="rnn")
-        parser.add_argument("-wt", "--weighter", dest="weighter", default="cnn")
 
         parser.add_argument("-hd", "--hidden-dim", dest="hidden_dim", type=int, default=768)
-        parser.add_argument("-ged", "--gate-embedding-dim", dest="gate_embedding_dim", type=int, default=300)
-        parser.add_argument("-ghd", "--gate-hidden-dim", dest="gate_hidden_dim", type=int, default=300)
         parser.add_argument("-hn", "--head-num", dest="head_num", help="attention head number of tranformer model", type=int, default=12)
 
         parser.add_argument("-k", dest="k", help="gate number", type=int, default=4)
@@ -119,9 +115,6 @@ class Manager():
             raise ValueError("Include at least one field!")
         else:
             args["sequence_length"] = sequence_length
-
-        if args["enable_gate"] in ["first", "bm25", "keybert", "random"]:
-            args["weighter"] = "first"
 
         if args['seed'] is not None:
             seed = args['seed']
@@ -170,7 +163,6 @@ class Manager():
             "train": ["train", "dev", "news"],
             "dev": ["dev", "news"],
             "test": ["test", "news"],
-            "inspect": ["news"]
         }
         news_cache_dir_map = {
             "none": "original",

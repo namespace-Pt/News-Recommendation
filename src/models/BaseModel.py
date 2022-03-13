@@ -156,44 +156,6 @@ class BaseModel(nn.Module):
             dist.barrier(device_ids=[self.device])
 
 
-    @torch.no_grad()
-    def inspect(self, manager, loaders):
-        assert hasattr(self, "weighter")
-
-        tokenizer = AutoTokenizer.from_pretrained(manager.plm_dir)
-        loader_news = loaders["news"]
-        for i, x in enumerate(loader_news):
-            token_ids = x["cdd_token_id"].to(self.device)
-            attn_mask = x['cdd_attn_mask'].to(self.device)
-            try:
-                gate_mask = x['cdd_gate_mask'].to(self.device)
-            except:
-                gate_mask = None
-            token_weight = self.weighter(token_ids, attn_mask)
-            if token_weight is not None:
-                gated_token_ids, gated_attn_masks, gated_token_weights = self._compute_gate(token_ids, attn_mask, gate_mask, token_weight)
-                for token_id, gated_token_id, gated_token_weight in zip(token_ids.tolist(), gated_token_ids.tolist(), gated_token_weights.tolist()):
-                    token = tokenizer.convert_ids_to_tokens(token_id)
-                    gated_token = tokenizer.convert_ids_to_tokens(gated_token_id)
-                    print("-"*10 + "news text" + "-"*10)
-                    print(tokenizer.decode(token_id))
-                    print("-"*10 + "gated tokens" + "-"*10)
-                    line = "; ".join([f"{i} ({round(p, 3)})" for i, p in zip(gated_token, gated_token_weight)])
-                    print(line)
-                    input()
-            else:
-                gated_token_ids, gated_attn_masks, gated_token_weights = self._compute_gate(token_ids, attn_mask, gate_mask, token_weight)
-                for token_id, gated_token_id in zip(token_ids.tolist(), gated_token_ids.tolist()):
-                    token = tokenizer.convert_ids_to_tokens(token_id)
-                    gated_token = tokenizer.convert_ids_to_tokens(gated_token_id)
-                    print("-"*10 + "news text" + "-"*10)
-                    print(tokenizer.decode(token_id))
-                    print("-"*10 + "gated tokens" + "-"*10)
-                    line = " ".join([i for i in gated_token])
-                    print(line)
-                    input()
-
-
 
 class TwoTowerBaseModel(BaseModel):
     def __init__(self, manager, name=None):
