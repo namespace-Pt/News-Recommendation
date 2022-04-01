@@ -25,15 +25,11 @@ def save_pickle(obj, path):
         pickle.dump(obj, f)
 
 
-def download_plm(bert, dir):
+def download_plm(plm_full_name, dir):
     # initialize bert related parameters
-    bert_loading_map = {
-        "bert": "bert-base-uncased",
-        "deberta": "microsoft/deberta-base",
-    }
     os.makedirs(dir, exist_ok=True)
-    tokenizer = AutoTokenizer.from_pretrained(bert_loading_map[bert])
-    model = AutoModel.from_pretrained(bert_loading_map[bert])
+    tokenizer = AutoTokenizer.from_pretrained(plm_full_name)
+    model = AutoModel.from_pretrained(plm_full_name)
     tokenizer.save_pretrained(dir)
     model.save_pretrained(dir)
 

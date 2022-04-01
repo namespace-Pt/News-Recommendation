@@ -3,7 +3,6 @@ import torch
 from torch import _softmax_backward_data, nn
 
 
-
 def scaled_dp_attention(query, key, value, attn_mask=None, return_prob=False):
     """ calculate scaled attended output of values
     Args:
@@ -22,7 +21,8 @@ def scaled_dp_attention(query, key, value, attn_mask=None, return_prob=False):
     attn_score = torch.matmul(query, key)/math.sqrt(query.shape[-1])
 
     if attn_mask is not None:
-        attn_prob = XSoftmax.apply(attn_score, attn_mask, -1)
+        attn_mask = (1 - attn_mask) * -1e5
+        attn_prob = torch.softmax(attn_score + attn_mask, -1)
     else:
         attn_prob = torch.softmax(attn_score, -1)
 
@@ -34,51 +34,21 @@ def scaled_dp_attention(query, key, value, attn_mask=None, return_prob=False):
         return attn_output
 
 
-def extend_attention_mask(attention_mask, reverse=True):
+def extend_attention_mask(encoder_attention_mask):
     """
     Args:
-        attention_mask (`torch.Tensor`): An attention mask.
+        encoder_attention_mask (`torch.Tensor`): An attention mask.
     Returns:
         `torch.Tensor`: The inverted attention mask.
     """
-    if attention_mask.dim() == 2:
-        extended_attention_mask = attention_mask[:, None, None, :]
-    elif attention_mask.dim() == 3:
-        extended_attention_mask = attention_mask[:, None, :, :]
-    else:
-        raise NotImplementedError
+    if encoder_attention_mask.dim() == 3:
+        encoder_extended_attention_mask = encoder_attention_mask[:, None, :, :]
+    if encoder_attention_mask.dim() == 2:
+        encoder_extended_attention_mask = encoder_attention_mask[:, None, None, :]
 
-    if reverse:
-        extended_attention_mask = (1.0 - extended_attention_mask) * -1e5
+    encoder_extended_attention_mask = (1 - encoder_extended_attention_mask) * -1e5
 
-    return extended_attention_mask
-
-
-
-class XSoftmax(torch.autograd.Function):
-    """
-    Masked Softmax which is optimized for saving memory
-    Args:
-        input (:obj:`torch.tensor`): The input tensor that will apply softmax.
-        mask (:obj:`torch.IntTensor`): The mask matrix where 0 indicate that element will be ignored in the softmax calculation.
-    """
-
-    @staticmethod
-    def forward(self, input, mask, dim):
-        self.dim = dim
-        rmask = ~(mask.bool())
-
-        output = input.masked_fill(rmask, float("-inf"))
-        output = torch.softmax(output, self.dim)
-        output.masked_fill_(rmask, 0)
-        self.save_for_backward(output)
-        return output
-
-    @staticmethod
-    def backward(self, grad_output):
-        (output,) = self.saved_tensors
-        inputGrad = _softmax_backward_data(grad_output, output, self.dim, output)
-        return inputGrad, None, None
+    return encoder_extended_attention_mask
 
 
 

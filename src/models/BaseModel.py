@@ -103,10 +103,8 @@ class BaseModel(nn.Module):
 
 
     @torch.no_grad()
-    def dev(self, manager, loaders, load=True, log=False):
+    def dev(self, manager, loaders, log=False):
         self.eval()
-        if load:
-            manager.load(self)
 
         labels, preds = self._dev(manager, loaders)
 
@@ -126,10 +124,8 @@ class BaseModel(nn.Module):
 
 
     @torch.no_grad()
-    def test(self, manager, loaders, load=True, log=False):
+    def test(self, manager, loaders, log=False):
         self.eval()
-        if load:
-            manager.load(self)
 
         preds = self._test(manager, loaders)
 
@@ -296,6 +292,95 @@ class TwoTowerBaseModel(BaseModel):
     def _test(self, manager, loaders):
         self.encode_news(manager, loaders["news"])
 
+        impr_indices = []
+        masks = []
+        preds = []
+
+        for i, x in enumerate(tqdm(loaders["test"], ncols=80, desc="Predicting")):
+            logits = self.infer(x)
+
+            masks.extend(x["cdd_mask"].tolist())
+            impr_indices.extend(x["impr_index"].tolist())
+            preds.extend(logits.tolist())
+
+        if manager.distributed:
+            dist.barrier(device_ids=[self.device])
+            outputs = [None for i in range(self.world_size)]
+            dist.all_gather_object(outputs, (impr_indices, masks, preds))
+
+            if self.rank == 0:
+                impr_indices = []
+                masks = []
+                preds = []
+                for output in outputs:
+                    impr_indices.extend(output[0])
+                    masks.extend(output[1])
+                    preds.extend(output[2])
+
+                masks = np.asarray(masks, dtype=np.bool8)
+                preds = np.asarray(preds, dtype=np.float32)
+                preds, = pack_results(impr_indices, masks, preds)
+
+        else:
+            masks = np.asarray(masks, dtype=np.bool8)
+            preds = np.asarray(preds, dtype=np.float32)
+            preds, = pack_results(impr_indices, masks, preds)
+
+        return preds
+
+
+
+class OneTowerBaseModel(BaseModel):
+    def __init__(self, manager, name=None):
+        super().__init__(manager, name)
+
+
+    @torch.no_grad()
+    def _dev(self, manager, loaders):
+        impr_indices = []
+        masks = []
+        labels = []
+        preds = []
+
+        for i, x in enumerate(tqdm(loaders["dev"], ncols=80, desc="Predicting")):
+            logits = self.infer(x)
+
+            masks.extend(x["cdd_mask"].tolist())
+            impr_indices.extend(x["impr_index"].tolist())
+            labels.extend(x["label"].tolist())
+            preds.extend(logits.tolist())
+
+        if manager.distributed:
+            dist.barrier(device_ids=[self.device])
+            outputs = [None for i in range(self.world_size)]
+            dist.all_gather_object(outputs, (impr_indices, masks, labels, preds))
+
+            if self.rank == 0:
+                impr_indices = []
+                masks = []
+                labels = []
+                preds = []
+                for output in outputs:
+                    impr_indices.extend(output[0])
+                    masks.extend(output[1])
+                    labels.extend(output[2])
+                    preds.extend(output[3])
+
+                masks = np.asarray(masks, dtype=np.bool8)
+                labels = np.asarray(labels, dtype=np.int32)
+                preds = np.asarray(preds, dtype=np.float32)
+                labels, preds = pack_results(impr_indices, masks, labels, preds)
+
+        else:
+            masks = np.asarray(masks, dtype=np.bool8)
+            labels = np.asarray(labels, dtype=np.int32)
+            preds = np.asarray(preds, dtype=np.float32)
+            labels, preds = pack_results(impr_indices, masks, labels, preds)
+
+        return labels, preds
+
+
+    def _test(self, manager, loaders):
         impr_indices = []
         masks = []
         preds = []

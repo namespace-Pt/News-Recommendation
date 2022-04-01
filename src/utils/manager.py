@@ -30,7 +30,7 @@ class Manager():
     """
     the class to handle dataloader preperation, model training/evaluation
     """
-    def __init__(self, config=None, notebook=False):
+    def __init__(self, config=None, command=None):
         """
         set hyper parameters
 
@@ -41,7 +41,7 @@ class Manager():
         parser.add_argument("-s", "--scale", dest="scale", help="data scale", type=str, choices=["demo", "small", "large", "whole"], default="large")
         parser.add_argument("-e", "--epoch", dest="epochs", help="epochs to train the model", type=int, default=10)
         parser.add_argument("-m", "--mode", dest="mode", help="choose mode", default="train")
-        parser.add_argument("-d", "--device", dest="device", help="gpu index, -1 for cpu", type=int, default=0)
+        parser.add_argument("-d", "--device", dest="device", help="gpu index, -1 for cpu", type=lambda x: int(x) if x != "cpu" else "cpu", default=0)
         parser.add_argument("-bs", "--batch-size", dest="batch_size", help="batch size in training", type=int, default=32)
         parser.add_argument("-bse", "--batch-size-eval", dest="batch_size_eval", help="batch size in encoding", type=int, default=200)
         # parser.add_argument("-dl", "--dataloaders", dest="dataloaders", help="training dataloaders", nargs="+", action="extend", choices=["train", "dev", "news", "behaviors"], default=["train", "dev", "news"])
@@ -88,16 +88,14 @@ class Manager():
 
         parser.add_argument("--debug", dest="debug", help="debug mode", action="store_true", default=False)
 
-        if not notebook:
-            if config:
-                # different default settings per model
-                parser.set_defaults(**config)
-            args = vars(parser.parse_args())
+        if config:
+            # different default settings per model
+            parser.set_defaults(**config)
+        if command is not None:
+            args = vars(parser.parse_args(command))
         else:
-            args = dict(vars(config))
+            args = vars(parser.parse_args())
 
-        if args['device'] == -1:
-            args['device'] = "cpu"
         # used for checking
         if args["debug"]:
             args["hold_step"] = "0"
@@ -131,33 +129,31 @@ class Manager():
             if not k.startswith("__"):
                 setattr(self, k, v)
 
-        plm_map_dimension = {
-            "bert": 768,
-            "deberta": 768,
-            "unilm": 768
-        }
-        plm_special_token_id_map = {
-            "bert":{
-                "[PAD]": 0,
-                "[CLS]": 101,
-                "[SEP]": 102,
-                "punctuations": {},
+        plm_map = {
+            "bert": {
+                "full_name": "bert-base-uncased",
+                "dim": 768,
+                "vocab_size": 30522,
+                "special_token_ids": {
+                    "[PAD]": 0,
+                    "[CLS]": 101,
+                    "[SEP]": 102,
+                    "punctuations": {},
+                }
             },
-            "deberta":{
-                "[PAD]": 0,
-                "[CLS]": 1,
-                "[SEP]": 2,
-                "punctuations": {},
+
+            "distilbert": {
+                "full_name": "distilbert-base-uncased",
+                "dim": 768,
+                "vocab_size": 30522,
+                "special_token_ids": {
+                    "[PAD]": 0,
+                    "[CLS]": 101,
+                    "[SEP]": 102,
+                    "punctuations": {},
+                }
             },
-            "unilm":{
-                "[PAD]": 0,
-                "[CLS]": 101,
-                "[SEP]": 102,
-                "punctuations": {},
-            },
-        }
-        vocab_size_map = {
-            "bert": 30522
+
         }
         dataloader_map = {
             "train": ["train", "dev", "news"],
@@ -166,9 +162,11 @@ class Manager():
         }
 
         self.plm_dir = os.path.join(self.data_root, "PLM", self.plm)
-        self.plm_dim = plm_map_dimension[self.plm]
-        self.special_token_ids = plm_special_token_id_map[self.plm]
-        self.vocab_size = vocab_size_map[self.plm]
+        self.plm_dim = plm_map[self.plm]["dim"]
+        self.special_token_ids = plm_map[self.plm]["special_token_ids"]
+        self.vocab_size = plm_map[self.plm]["vocab_size"]
+        self.plm_full_name = plm_map[self.plm]["full_name"]
+
         self.news_nums = {
             "MINDdemo_train": 51282,
             "MINDdemo_dev": 42416,
@@ -180,6 +178,8 @@ class Manager():
         }
         self.dataloaders = dataloader_map[self.mode]
 
+        # default rank is 0
+        self.rank = 0
         self.distributed = self.world_size > 1
         self.exclude_hparams = set(["news_nums", "vocab_size_map", "metrics", "plm_dim", "plm_dir", "data_root", "cache_root", "distributed", "exclude_hparams", "rank", "epochs", "mode", "debug", "special_token_ids", "validate_step", "hold_step", "exclude_hparams", "device", "save_at_validate", "preprocess_threads", "base_rank", "max_title_length", "max_abs_length"])
 
@@ -234,7 +234,7 @@ class Manager():
                 pass
             else:
                 logger.info("downloading PLMs...")
-                download_plm(self.plm, self.plm_dir)
+                download_plm(self.plm_full_name, self.plm_dir)
         if self.distributed:
             dist.barrier(device_ids=[self.device])
 
@@ -399,9 +399,9 @@ class Manager():
 
                 if total_steps > hold_step and total_steps % validate_step == 0:
                     if isinstance(model, torch.nn.parallel.DistributedDataParallel):
-                        result = model.module.dev(self, loaders, load=False)
+                        result = model.module.dev(self, loaders)
                     else:
-                        result = model.dev(self, loaders, load=False)
+                        result = model.dev(self, loaders)
                     # only the result of master node is useful
                     if self.rank == 0:
                         result["step"] = total_steps

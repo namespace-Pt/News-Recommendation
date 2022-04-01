@@ -1,8 +1,8 @@
+import torch
 import torch.multiprocessing as mp
 from utils.manager import Manager
-from models.TwoTower import TwoTowerModel
+from models.OneTowerBert import OneTowerBert
 from torch.nn.parallel import DistributedDataParallel as DDP
-from models.modules.encoder import *
 
 
 def main(rank, manager):
@@ -15,24 +15,7 @@ def main(rank, manager):
     manager.setup(rank)
     loaders = manager.prepare()
 
-    if manager.newsEncoder == "cnn":
-        newsEncoder = CnnNewsEncoder(manager)
-    elif manager.newsEncoder == "bert":
-        newsEncoder = AllBertNewsEncoder(manager)
-    elif manager.newsEncoder == "tfm":
-        newsEncoder = TfmNewsEncoder(manager)
-    if manager.userEncoder == "rnn":
-        userEncoder = RnnUserEncoder(manager)
-    elif manager.userEncoder == "sum":
-        userEncoder = SumUserEncoder(manager)
-    elif manager.userEncoder == "avg":
-        userEncoder = AvgUserEncoder(manager)
-    elif manager.userEncoder == "attn":
-        userEncoder = AttnUserEncoder(manager)
-    elif manager.userEncoder == "tfm":
-        userEncoder = TfmUserEncoder(manager)
-
-    model = TwoTowerModel(manager, newsEncoder, userEncoder).to(manager.device)
+    model = OneTowerBert(manager).to(manager.device)
 
     if manager.mode == 'train':
         if manager.world_size > 1:
@@ -43,12 +26,16 @@ def main(rank, manager):
         manager.load(model)
         model.dev(manager, loaders, log=True)
 
+    elif manager.mode == 'test':
+        manager.load(model)
+        model.test(manager, loaders)
+
 
 if __name__ == "__main__":
     config = {
+        "batch_size_eval": 100,
         "enable_fields": ["title"],
-        "newsEncoder": "cnn",
-        "userEncoder": "rnn",
+        "validate_step": "0.5e",
     }
     manager = Manager(config)
 
