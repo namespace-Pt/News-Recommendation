@@ -1,5 +1,5 @@
 ### Download
-There are two branches in this REPO. The `old` branch is deprecated and used as backup. You can only clone this main branch by:
+There are two branches in this REPO. The `backup` branch is deprecated and used as backup. You can only clone this main branch by:
 ```
 git clone -b main --single-branch https://github.com/namespace-Pt/News-Recommendation.git
 ```
